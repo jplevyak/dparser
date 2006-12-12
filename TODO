@@ -1,0 +1,18 @@
+- fix issues with terminal priority when the different parses are
+coming from different states.... what does this mean?
+- fix ambiguity handling for parsing from start states... need to force a final reduction
+  either bloat the state table (probably best), or try to force the reduction manually....
+- memory leaks on error recovery
+- add trailing context to regular expressions
+- enhance cmp_stacks
+- optimize speed
+? LALR
+? error repair a la Carl Cerecke
+? split global state on demand
+? ensure that states only summarize identical .scope, .globals and .skip_space
+? eager parser
+
+handle path for include files
+add option to name the output file.
+
+fix issue with equiv_D_Scope.

@@ -1,0 +1,29 @@
+#!/bin/csh
+# CYGWIN
+rm -f tests/*.h tests/*.o tests/*.c tests/Makefile tests/*core tests/*.out tests/make_dparser tests/sample_parser tests/libdparse.a tests/grammar.g tests/sample.g
+gmake tar
+scp ../d*.tar.gz Owner@island: 
+ssh -l Owner island "tar xzf d*-src.tar.gz"
+ssh -l Owner island "rm d*.tar.gz"
+ssh -l Owner island "(cd d;make clean;rm -f .depend;make depend;make;make test;make bintar)"
+scp "Owner@island:d*-CYGWIN-bin.tar.gz" . 
+ssh -l Owner island "rm d*-CYGWIN-bin.tar.gz"
+# FreeBSD
+gmake clean
+rm -f .depend
+gmake depend
+gmake
+gmake test
+gmake bintar
+mv ../d*-FreeBSD-bin.tar.gz .
+# Linux
+scp ../d*.tar.gz b:
+ssh b "tar xzf d*-src.tar.gz"
+ssh b "rm d*.tar.gz"
+ssh b "(cd d;make clean;rm -f .depend;gmake depend;make;make test;make bintar)"
+scp "b:d*-Linux-bin.tar.gz" . 
+ssh b "rm d*-Linux-bin.tar.gz"
+# put 'em in place
+cp *-bin.tar.gz /home/jplevyak/public_html/Compilers
+cp ../d*.tar.gz /home/jplevyak/public_html/Compilers
+cp README /home/jplevyak/public_html/Compilers
