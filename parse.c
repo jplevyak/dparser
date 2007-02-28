@@ -915,7 +915,7 @@ get_unshared_pnodes(PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
       psr = &psy;
     if (set_find(psr == &psx ? pvy : pvx, stack_head(psr))) {
       set_add(PS2PV(psr), stack_head(psr));
-      stack_pop(psr);
+      (void)stack_pop(psr);
       continue;
     }
     t = stack_pop(psr);

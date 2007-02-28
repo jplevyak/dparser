@@ -1,7 +1,7 @@
 # Makefile for D_Parser
 
 D_DEBUG=1
-#D_OPTIMIZE=1
+D_OPTIMIZE=1
 #D_PROFILE=1
 #D_USE_GC=1
 #D_LEAK_DETECT=1
@@ -75,10 +75,10 @@ CFLAGS += -g -DD_DEBUG=1
 endif
 # optimized flags
 ifdef D_OPTIMIZE
-CFLAGS += -O3
+CFLAGS += -O3 -Wno-strict-aliasing
 ifeq ($(ARCH),x86)
 ifndef D_PROFILE
-CFLAGS += -fomit-frame-pointer 
+CFLAGS += -fomit-frame-pointer
 endif
 endif
 endif
