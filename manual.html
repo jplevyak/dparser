@@ -542,7 +542,7 @@ information safely for different speculative parses.<br>
 &nbsp; Each parse node includes a set of system state variables and can
 have a set of user-defined state variables. &nbsp;User defined parse
 node state is declared by <span style="font-weight: bold;">define</span>'ing<span
- style="font-weight: bold;"> D_ParseNodeUser</span>. &nbsp; Parse node
+ style="font-weight: bold;"> D_ParseNodeUser</span>. The size of the parse node state must be passed into new_D_Parser() to ensure that the appropriate amount of space is allocated for parse nodes. &nbsp; Parse node
 state is accessed with:<br>
 <br>
 &nbsp;<span style="font-weight: bold;">$#</span> - number of child nodes<br>
