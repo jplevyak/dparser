@@ -1,3 +1,5 @@
+1.17    Fixed a bug which could result in incorrect actions being called
+
 1.16    Use flag to disable strict aliasing optimizations in GCC
         Add options for greedy and height disambiguation
 

@@ -1,5 +1,5 @@
 /*
-  Copyright 2002-2006 John Plevyak, All Rights Reserved
+  Copyright 2002-2008 John Plevyak, All Rights Reserved
 */
 
 #include "d.h"
@@ -1811,6 +1811,8 @@ commit_tree(Parser *p, PNode *pn) {
       continue;
     }
   }
+  if (pn->reduction)
+    DBG(printf("commit %p (%s)\n", pn, p->t->symbols[pn->parse_node.symbol].name));
   if (pn->reduction && pn->reduction->final_code)
     pn->reduction->final_code(
       pn, (void**)&pn->children.v[0], pn->children.n,
@@ -2083,7 +2085,7 @@ exhaustive_parse(Parser *p, int state) {
     }
     progress++;
     ready = progress > p->user.commit_actions_interval;
-    if (ready && !p->shifts_todo->next) {
+    if (ready && !p->shifts_todo->next && !p->reductions_todo) {
       commit_stack(p, p->shifts_todo->snode);
       ready = progress = 0;
     }
