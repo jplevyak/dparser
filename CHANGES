@@ -1,3 +1,6 @@
+1.16    Use flag to disable strict aliasing optimizations in GCC
+        Add options for greedy and height disambiguation
+
 1.15    Removed call to exec in python interface (Brian Sabbey)
         Fix binary_op_left in python interface (Brian Sabbey)
 
