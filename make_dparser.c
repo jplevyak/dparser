@@ -21,8 +21,11 @@ static int write_line_directives = 1;
 static int write_header = -1;
 static int token_type = 0;
 static char write_extension[256] = "c";
+static char output_file [1024] = "";
 
 static ArgumentDescription arg_desc[] = {
+ {"output", 'o', "Output file name", "S1024",
+  &output_file[0], "D_MAKE_PARSER_OUTPUT", NULL},
  {"longest_match", 'l', "Use Longest Match Rule for Tokens", "T", 
   &longest_match, "D_MAKE_LONGEST_MATCH", NULL},
  {"tokenizer", 'T', "Tokenizer for START", "T", &tokenizer,
@@ -109,6 +112,13 @@ main(int argc, char *argv[]) {
   g->write_header = write_header;
   g->token_type = token_type;
   strcpy(g->write_extension, write_extension);
+
+  if (!output_file[0]) {
+    strncpy(output_file, grammar_pathname, sizeof(output_file)-1);
+    strncat(output_file, ".d_parser.", sizeof(output_file)-strlen(output_file)-1);
+    strncat(output_file, g->write_extension, sizeof(output_file)-strlen(output_file)-1);
+  }
+  g->write_pathname = output_file;
 
   /* don't print anything to stdout, when the grammar is printed there */
   if (d_rdebug_grammar_level > 0)

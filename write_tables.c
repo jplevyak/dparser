@@ -1792,15 +1792,10 @@ write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int bin
 			     FILE *fp, unsigned char **str, unsigned int *str_len)
 {
   File file;
-  char pathname[FILENAME_MAX];
-  strcpy(pathname, base_pathname);
-  strcat(pathname, ".d_parser.");
-  strcat(pathname, g->write_extension);
-  g->write_pathname = pathname;
   if (!binary) {
-    fp = fopen(pathname, "w");
+    fp = fopen(g->write_pathname, "w");
     if (!fp)
-      d_fail("unable to open `%s` for write\n", pathname);
+      d_fail("unable to open `%s` for write\n", g->write_pathname);
   }
   file_init(&file, binary, fp, str, str_len);
   if (!binary) {
