@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   unsigned char *str = NULL;
   unsigned int str_len;
   Grammar *g;
-  D_ParserTables *parser_tables_gram;
+  BinaryTables binary_tables;
 
   process_args(&arg_state, argv);
   if (arg_state.nfile_arguments < 2)
@@ -141,14 +141,14 @@ main(int argc, char *argv[]) {
   if (!(str = (unsigned char*)sbuf_read(grammar_pathname)))
     d_fail("unable to read grammar file '%s'", grammar_pathname);
   mkdparse_from_string(g, (char*)str);
-  str = 0;
+  d_free(str); str = 0;
   if (write_binary_tables_to_string(g, &str, &str_len) < 0)
     d_fail("unable to write tables to string '%s'", grammar_pathname);
   free_D_Grammar(g);
 
   /* execute parser */
-  parser_tables_gram = read_binary_tables_from_string(str, spec_code, final_code);
-  p = new_D_Parser(parser_tables_gram, SIZEOF_MY_PARSE_NODE);
+  binary_tables = read_binary_tables_from_string(str, spec_code, final_code);
+  p = new_D_Parser(binary_tables.parser_tables_gram, SIZEOF_MY_PARSE_NODE);
   p->save_parse_tree = save_parse_tree;
   p->ambiguity_fn = ambiguity_count_fn;
   p->partial_parses = partial_parses;
@@ -176,6 +176,7 @@ main(int argc, char *argv[]) {
     if (buf)
       FREE(buf);
   }
+  d_free(binary_tables.tables);
   free_D_Parser(p);
   free_args(&arg_state);
   exit(0);

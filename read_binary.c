@@ -11,11 +11,12 @@ read_chk(void* ptr, size_t size, size_t nmemb, FILE* fp, unsigned char **str) {
   }
 }
 
-D_ParserTables *
+BinaryTables
 read_binary_tables_internal(FILE *fp, unsigned char *str, 
 			    D_ReductionCode spec_code, D_ReductionCode final_code) 
 {
   BinaryTablesHead tables;
+  BinaryTables binary_tables;
   int i;
   char *tables_buf, *strings_buf;
 
@@ -51,10 +52,12 @@ read_binary_tables_internal(FILE *fp, unsigned char *str,
   if (fp)
     fclose(fp);
 
-  return (D_ParserTables*)(tables_buf + tables.d_parser_tables_loc);
+  binary_tables.parser_tables_gram = (D_ParserTables*)(tables_buf + tables.d_parser_tables_loc);
+  binary_tables.tables = tables_buf;
+  return binary_tables;
 }
 
-D_ParserTables *
+BinaryTables 
 read_binary_tables(char *file_name, 
 		   D_ReductionCode spec_code, D_ReductionCode final_code) {
   FILE *fp = fopen(file_name, "rb");
@@ -63,13 +66,13 @@ read_binary_tables(char *file_name,
   return read_binary_tables_internal(fp, 0, spec_code, final_code);
 }
 
-D_ParserTables *
+BinaryTables 
 read_binary_tables_from_file(FILE *fp, 
 		   D_ReductionCode spec_code, D_ReductionCode final_code) {
   return read_binary_tables_internal(fp, 0, spec_code, final_code);
 }
 
-D_ParserTables *
+BinaryTables 
 read_binary_tables_from_string(unsigned char *str, D_ReductionCode spec_code, D_ReductionCode final_code) {
   return read_binary_tables_internal(0, str, spec_code, final_code);
 }
