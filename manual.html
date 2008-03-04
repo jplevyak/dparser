@@ -24,6 +24,7 @@
   <li>Terminals</li>
   <ol>
     <li>Strings</li>
+    <li>Unicode</li>
     <li>Regular Expressions</li>
     <li>Naming tokens<br>
     </li>
@@ -176,7 +177,13 @@ T: 'Huck' 'Finn' { twain(); };<br>
 <span style="font-weight: bold;"></span>block: '{' statements* '}';<br>
 whileblock: 'while' '(' expression ')' block;<br>
 <br>
-&nbsp; 6.2. Regular expressions are surrounded with double quotes.
+&nbsp; 6.2. Unicode literals can appear in strings or as charaters with U+ or u+.
+&nbsp;For example:<br>
+<br>
+<span style="font-weight: bold;"></span>'φ'       { printf("phi\n"); }<br>
+U+03c9   { printf("omega\n"); }<br>
+<br>
+&nbsp; 6.3. Regular expressions are surrounded with double quotes.
 &nbsp;For example:<br>
 <br>
 hexint: "(0x|0X)[0-9a-fA-F]+[uUlL]?";<br>
@@ -187,7 +194,7 @@ include parens, square parens, ranges, and '*', '+', '?'. &nbsp; If you
 need something more, request a feature or implement it yourself; the
 code is in scan.c.<br>
 <br>
-&nbsp; 6.3 Terminal modifiers<br>
+&nbsp; 6.4 Terminal modifiers<br>
 <br>
 &nbsp; Terminals can contain embbed escape codes.&nbsp; Including the
 standard C escape codes, the codes \x and \d permit inserting hex and

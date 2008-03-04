@@ -89,6 +89,7 @@ new_rule : { $g->r = new_rule($g, $g->p); };
 simple_element
   : string { $g->e = new_string($g, $n0.start_loc.s, $n0.end, $g->r); }
   | regex { $g->e = new_string($g, $n0.start_loc.s, $n0.end, $g->r); }
+  | unicode_char { $g->e = new_utf8_char($g, $n0.start_loc.s, $n0.end, $g->r); }
   | identifier { $g->e = new_ident($n0.start_loc.s, $n0.end, $g->r); }
   | '${scan' balanced_code+ '}' { $g->e = new_code($g, $n1.start_loc.s, $n1.end, $g->r); }
   | '(' new_subrule rules ')' {
@@ -198,6 +199,7 @@ balanced_code
 symbols : "[!~`@#$%^&*\-_+=|:;\\<,>.?/]";
 string: "'([^'\\]|\\[^])*'";
 regex: "\"([^\"\\]|\\[^])*\"";
+unicode_char: "[uU]\+[0-9a-fA-F]+";
 identifier: "[a-zA-Z_][a-zA-Z_0-9]*" $term -1;
 integer: decimalint | hexint | octalint;
 decimalint: "-?[1-9][0-9]*[uUlL]?";

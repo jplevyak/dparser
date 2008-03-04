@@ -212,6 +212,46 @@ new_string(Grammar *g, char *s, char *e, Rule *r) {
 }
 
 Elem *
+new_utf8_char(Grammar *g, char *s, char *e, Rule *r) {
+  char utf8_code [4];
+  unsigned long utf32_code, base, len = 0;
+  Elem *x;
+  for (utf32_code=0, base=1; e>=s+3; base*=16) {
+    e--;
+    if (*e >= '0' && *e <= '9')
+      utf32_code += base * (*e - '0');
+    else if (*e >= 'a' && *e <= 'f')
+      utf32_code += base * (*e - 'a' + 10);
+    else if (*e >= 'A' && *e <= 'F')
+      utf32_code += base * (*e - 'A' + 10);
+  }
+  if (utf32_code < 0x80) {
+    utf8_code[0] = utf32_code;
+    len = 1;
+  } else if (utf32_code < 0x1000) {
+    utf8_code[0] = 0xc0 | ((utf32_code >> 6) & 0x1f);
+    utf8_code[1] = 0x80 | (utf32_code & 0x3f);
+    len = 2;
+  } else if (utf32_code < 0x10000) {
+    utf8_code[0] = 0xe0 | ((utf32_code >> 12) & 0x0f);
+    utf8_code[1] = 0x80 | ((utf32_code >> 6) & 0x3f);
+    utf8_code[2] = 0x80 | (utf32_code & 0x3f);
+    len = 3;
+  } else if (utf32_code < 0x02000000) {
+    utf8_code[0] = 0xf0 | ((utf32_code >> 18) & 0x07);
+    utf8_code[1] = 0x80 | ((utf32_code >> 12) & 0x3f);
+    utf8_code[2] = 0x80 | ((utf32_code >> 6) & 0x3f);
+    utf8_code[3] = 0x80 | (utf32_code & 0x3f);
+    len = 4;
+  } else {
+    d_fail("UTF32 Unicode value U+%8X too large for valid UTF-8 encoding (cf. Unicode Spec 4.0, section 3.9)", utf32_code);
+  }
+  x = new_term_string(g, utf8_code, utf8_code + len, r);
+  x->e.term->kind = TERM_STRING;
+  return x;
+}
+
+Elem *
 new_ident(char *s, char *e, Rule *r) {
   Elem *x = new_elem();
   x->kind = ELEM_UNRESOLVED;

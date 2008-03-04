@@ -259,6 +259,7 @@ Elem *new_elem_nterm(Production *p, Rule *r);
 void new_declaration(Grammar *g, Elem *e, uint kind);
 Production *new_production(Grammar *g, char *name);
 Elem *new_string(Grammar *g, char *s, char *e, Rule *r);
+Elem *new_utf8_char(Grammar *g, char *s, char *e, Rule *r);
 Elem *new_ident(char *s, char *e, Rule *r);
 void new_token(Grammar *g, char *s, char *e);
 Elem *new_code(Grammar *g, char *s, char *e, Rule *r);
