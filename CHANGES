@@ -1,3 +1,9 @@
+1.18    added -o option for output file
+        use ranlib for Darwin compatibility
+        fixed some memory leaks
+        fix greediness with simpler algorithm
+        Basic unicode support
+
 1.17    Fixed a bug which could result in incorrect actions being called
 
 1.16    Use flag to disable strict aliasing optimizations in GCC
