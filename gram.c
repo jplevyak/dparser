@@ -455,7 +455,7 @@ plus_EBNF(Grammar *g) {
     last_elem(g->r) = new_elem_nterm(pp, g->r);
     if (g->r->rule_priority) {
       rr->rule_priority = g->r->rule_priority;
-      rr->rule_assoc = ASSOC_NARY_RIGHT;
+      rr->rule_assoc = ASSOC_NARY_LEFT;
     }
   } else {
     elem = last_elem(g->r);
@@ -464,7 +464,7 @@ plus_EBNF(Grammar *g) {
     vec_add(&rr->elems, new_elem_nterm(pp, rr));
     if (g->r->rule_priority) {
       rr->rule_priority = g->r->rule_priority;
-      rr->rule_assoc = ASSOC_NARY_LEFT;
+      rr->rule_assoc = ASSOC_NARY_RIGHT;
     }
   }
   vec_add(&pp->rules, rr);

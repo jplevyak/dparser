@@ -852,11 +852,15 @@ cmp_priorities(PNode *x, PNode *y) {
 }
 
 static void
-get_unshared(PNode *x, VecPNode *vx) {
+get_all(PNode *x, VecPNode *vx) {
   int i;
-  for (i = 0; i < x->children.n; i++)
-    if (set_add(vx, x))
-      get_unshared(x->children.v[i], vx);
+  if (set_add(vx, x)) {
+    for (i = 0; i < x->children.n; i++) {
+      PNode *pn = x->children.v[i];
+      LATEST(pn);
+      get_all(pn, vx);
+    }
+  }
 }
 
 static void
@@ -864,8 +868,9 @@ get_unshared_pnodes(PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
   int i;
   VecPNode vx, vy;
   vec_clear(&vx); vec_clear(&vy); 
-  get_unshared(x, &vx);
-  get_unshared(y, &vy);
+  LATEST(x); LATEST(y);
+  get_all(x, &vx);
+  get_all(y, &vy);
   for (i = 0; i < vx.n; i++)
     if (vx.v[i] && !set_find(&vy, vx.v[i]))
       vec_add(pvx, vx.v[i]);

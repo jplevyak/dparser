@@ -35,7 +35,7 @@ ArgumentDescription arg_desc[] = {
   "D_PARSE_FIXUP", NULL},
  {"fixup_ebnf", 'e', "Fixup EBNF Productions", "T", &fixup_ebnf, 
   "D_PARSE_FIXUP_EBNF", NULL},
- {"nogreedy", 'G', "Don't Use Greediness for Disambiguation", "T", 
+ {"nogreedy", 'G', "No Greediness for Disambiguation", "T", 
   &dont_use_greediness_for_disambiguation, "D_PARSE_GREEDY", NULL},
  {"noheight", 'H', "No Height for Disambiguation", "T", 
   &dont_use_height_for_disambiguation, "D_PARSE_HEIGHT", NULL},
