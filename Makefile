@@ -41,12 +41,6 @@ ifeq ($(ARCH),x86_64)
   CFLAGS += -fPIC
 endif
 
-ifeq ($(OS_TYPE),Darwin)
-  AR_FLAGS = crvs
-else
-  AR_FLAGS = crv
-endif
-
 ifeq ($(OS_TYPE),CYGWIN)
 GC_CFLAGS += -L/usr/local/lib
 else
@@ -169,10 +163,12 @@ make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS) 
 
 $(LIBDPARSE): $(LIB_OBJS)
-	ar $(AR_FLAGS) $@ $^
+	ar cruv $@ $^
+	ranlib $@
 
 $(LIBMKDPARSE): $(MK_LIB_OBJS)
-	ar $(AR_FLAGS) $@ $^
+	ar cruv $@ $^
+	ranlib $@
 
 %.d_parser.c: % make_dparser
 	$(MAKE_DPARSER) $<
