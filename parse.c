@@ -925,6 +925,7 @@ get_unshared_pnodes(PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
     t = stack_pop(psr);
     get_pnode(t, psr, PS2PV(psr));
   }
+  stack_free(&psx); stack_free(&psy);
   return;
 }
 
@@ -950,6 +951,8 @@ greedycmp(const void *ax, const void *ay) {
   return 0;
 }
 
+#define RET(_x) do { ret = (_x); goto Lreturn; } while (0)
+
 static int
 cmp_greediness(PNode *x, PNode *y) {
   VecPNode pvx, pvy;
@@ -958,10 +961,10 @@ cmp_greediness(PNode *x, PNode *y) {
   set_to_vec(&pvx); set_to_vec(&pvy);
   qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
   qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
-  int ix = 0, iy = 0;
+  int ix = 0, iy = 0, ret = 0;
   while (1) {
     if (pvx.n <= ix || pvy.n <= iy)
-      return 0;
+      RET(0);
     x = pvx.v[ix]; y = pvy.v[iy];
     if (x == y) {
       ix++;
@@ -975,19 +978,21 @@ cmp_greediness(PNode *x, PNode *y) {
     else if (x->parse_node.symbol > y->parse_node.symbol)
       iy++;
     else if (x->parse_node.end > y->parse_node.end)
-      return -1;
+      RET(-1);
     else if (x->parse_node.end < y->parse_node.end)
-      return 1;
+      RET(1);
     else if (x->children.n < y->children.n)
-      return -1;
+      RET(-1);
     else if (x->children.n > y->children.n)
-      return 1;
+      RET(1);
     else {
       ix++;
       iy++;
     }
   }
-  return 0;
+ Lreturn:
+  vec_free(&pvx); vec_free(&pvy);
+  return ret;
 }
 
 static int
