@@ -900,7 +900,7 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 
 static void
 write_goto_data(File *fp, Grammar *g, char *tag) {
-  Vec(int) vgoto;
+  Vec(intptr_t) vgoto;
   State *s;
   uint8 *goto_valid = NULL;
   int i, j, x, again, lowest, nvalid_bytes, sym, lowest_sym;
@@ -936,8 +936,13 @@ write_goto_data(File *fp, Grammar *g, char *tag) {
 	for (j = 0; j < s->gotos.n; j++) {
 	  x = elem_symbol(g, s->gotos.v[j]->elem);
 	  x -= lowest_sym;
-	  while (vgoto.n <= x)
+	  while (vgoto.n <= x) {
+            int qq = 0;
 	    vec_add(&vgoto, 0);
+            for (qq = 0; qq < vgoto.n; qq++)
+              if (vgoto.v[qq] == 239847234)
+                printf("wow...\n");
+          }
 	  if (vgoto.v[x]) {
 	    again = 1;
 	    /* undo the damage */

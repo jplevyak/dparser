@@ -110,8 +110,7 @@ vec_add_internal(void *v, void *elem) {
   } else if (av->v == av->e) {
     av->v = (void**)MALLOC(INITIAL_VEC_SIZE * sizeof(void *));
     memcpy(av->v, av->e, av->n * sizeof(void *));
-    memset(&av->v[av->n], 0, sizeof(void *) * (INITIAL_VEC_SIZE - av->n));
-  } else
+  } else {
     if ((av->n & (INITIAL_VEC_SIZE - 1)) == 0) {
       int l = av->n, nl = (1 + INITIAL_VEC_SHIFT);
       l = l >> INITIAL_VEC_SHIFT;
@@ -120,10 +119,11 @@ vec_add_internal(void *v, void *elem) {
       if (!av->n || !l) {
 	nl = 1 << nl;
 	av->v = (void**)REALLOC(av->v, nl * sizeof(void *));
-        memset(&av->v[av->n], 0, sizeof(void *) * (nl - av->n));
       }
     }
-  av->v[av->n++] = elem;
+  }
+  av->v[av->n] = elem;
+  av->n++;
 }
 
 int
