@@ -15,8 +15,7 @@ int fixup_ebnf = 0;
 int compare_stacks = 1;
 int commit_actions_interval = 100;
 int start_state = 0;
-int dont_use_eagerness_for_disambiguation = 0;
-int use_greediness_for_disambiguation = 0;
+int dont_use_greediness_for_disambiguation = 0;
 int dont_use_height_for_disambiguation = 0;
 
 static void help(ArgumentState *arg_state, char *arg_unused);
@@ -36,10 +35,8 @@ ArgumentDescription arg_desc[] = {
   "D_PARSE_FIXUP", NULL},
  {"fixup_ebnf", 'e', "Fixup EBNF Productions", "T", &fixup_ebnf, 
   "D_PARSE_FIXUP_EBNF", NULL},
- {"noeager", 'E', "No Eagerness for Disambiguation", "T", 
-  &dont_use_eagerness_for_disambiguation, "D_PARSE_NOEAGER", NULL},
- {"greedy", 'G', "Use Greediness for Disambiguation", "T", 
-  &use_greediness_for_disambiguation, "D_PARSE_GREEDY", NULL},
+ {"nogreedy", 'G', "Don't Use Greediness for Disambiguation", "T", 
+  &dont_use_greediness_for_disambiguation, "D_PARSE_GREEDY", NULL},
  {"noheight", 'H', "No Height for Disambiguation", "T", 
   &dont_use_height_for_disambiguation, "D_PARSE_HEIGHT", NULL},
  {"verbose", 'v', "Verbose", "+", &d_verbose_level, 
@@ -101,8 +98,7 @@ main(int argc, char *argv[]) {
   p->dont_compare_stacks = !compare_stacks;
   p->commit_actions_interval = commit_actions_interval;
   p->start_state = start_state;
-  p->dont_use_eagerness_for_disambiguation = dont_use_eagerness_for_disambiguation; 
-  p->use_greediness_for_disambiguation = use_greediness_for_disambiguation; 
+  p->dont_use_greediness_for_disambiguation = dont_use_greediness_for_disambiguation; 
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
   for (i = 0; i < arg_state.nfile_arguments; i++) {
     p->loc.pathname = arg_state.file_argument[i];

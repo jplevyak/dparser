@@ -851,82 +851,28 @@ cmp_priorities(PNode *x, PNode *y) {
   return r;
 }
 
-/* if the child is a symbol, the end_skip of the last child
-   will not equal that of the entire parse tree */
-#define END_SKIP(_pn, _i) \
-    (((_i) == (_pn)->children.n - 1) ? (_pn)->parse_node.end_skip : \
-      (_pn)->children.v[_i]->parse_node.end_skip)
-
-static int
-cmp_eagerness(PNode *x, PNode *y) {
-  int i, n;
-  char *xx, *yy;
-
-  n = x->children.n < y->children.n ? x->children.n : y->children.n;
-  for (i = 0; i < n; i++) {
-    xx = x->children.v[i]->parse_node.end_skip;
-    yy = y->children.v[i]->parse_node.end_skip;
-    /* if the child is a symbol, the end_skip of the last child
-       will not equal that of the entire parse tree */
-    xx = i == x->children.n - 1 ? x->parse_node.end_skip : xx;
-    yy = i == y->children.n - 1 ? y->parse_node.end_skip : yy;
-    if (xx > yy)
-      return -1;
-    if (xx < yy)
-      return 1;
-  }
-  return 0;
+static void
+get_unshared(PNode *x, VecPNode *vx) {
+  int i;
+  for (i = 0; i < x->children.n; i++)
+    if (set_add(vx, x))
+      get_unshared(x->children.v[i], vx);
 }
 
 static void
-get_pnode(PNode *x, StackPNode *psx, VecPNode *pvx) {
-  int i;
-  LATEST(x);
-  set_add(pvx, x);
-  for (i = 0; i < x->children.n; i++)
-    priority_insert(psx, x->children.v[i]);
-} 
-
-#define PS2PV(_ps) ((_ps) == &psx ? pvx : pvy)
-
-/* get the set of unshared nodes, 
-   eliminating shared subtrees via priority queues */
-static void
 get_unshared_pnodes(PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
-  StackPNode psx, psy;
-  StackPNode *psr = 0;
-  PNode *t = 0;
-
-  stack_clear(&psx); stack_clear(&psy);
-  get_pnode(x, &psx, pvx);
-  get_pnode(y, &psy, pvy);
-
-  while (1) {
-    if (is_stack_empty(&psx)) {
-      psr = &psy;
-      break;
-    } else if (is_stack_empty(&psy)) {
-      psr = &psx;
-      break;
-    }
-    if (stack_head(&psx)->height > stack_head(&psy)->height)
-      psr = &psx;
-    else
-      psr = &psy;
-    if (set_find(psr == &psx ? pvy : pvx, stack_head(psr))) {
-      set_add(PS2PV(psr), stack_head(psr));
-      (void)stack_pop(psr);
-      continue;
-    }
-    t = stack_pop(psr);
-    get_pnode(t, psr, PS2PV(psr));
-  }
-  while (!is_stack_empty(psr)) {
-    t = stack_pop(psr);
-    get_pnode(t, psr, PS2PV(psr));
-  }
-  stack_free(&psx); stack_free(&psy);
-  return;
+  int i;
+  VecPNode vx, vy;
+  vec_clear(&vx); vec_clear(&vy); 
+  get_unshared(x, &vx);
+  get_unshared(y, &vy);
+  for (i = 0; i < vx.n; i++)
+    if (vx.v[i] && !set_find(&vy, vx.v[i]))
+      vec_add(pvx, vx.v[i]);
+  for (i = 0; i < vy.n; i++)
+    if (vy.v[i] && !set_find(&vx, vy.v[i]))
+      vec_add(pvy, vy.v[i]);
+  vec_free(&vx); vec_free(&vy);
 }
 
 static int
@@ -944,9 +890,9 @@ greedycmp(const void *ax, const void *ay) {
   if (x->parse_node.symbol > y->parse_node.symbol)
     return 1;
   // third by length
-  if (x->parse_node.end > y->parse_node.end)
-    return -1;
   if (x->parse_node.end < y->parse_node.end)
+    return -1;
+  if (x->parse_node.end > y->parse_node.end)
     return 1;
   return 0;
 }
@@ -958,7 +904,7 @@ cmp_greediness(PNode *x, PNode *y) {
   VecPNode pvx, pvy;
   vec_clear(&pvx); vec_clear(&pvy); 
   get_unshared_pnodes(x, y, &pvx, &pvy);
-  set_to_vec(&pvx); set_to_vec(&pvy);
+  /* set_to_vec(&pvx); set_to_vec(&pvy); */
   qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
   qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
   int ix = 0, iy = 0, ret = 0;
@@ -1010,10 +956,7 @@ cmp_pnodes(Parser *p, PNode *x, PNode *y) {
     if (r)
       return r;
   }
-  if (!p->user.dont_use_eagerness_for_disambiguation)
-    if ((r = cmp_eagerness(x, y)))
-      return r;
-  if (p->user.use_greediness_for_disambiguation)
+  if (!p->user.dont_use_greediness_for_disambiguation)
     if ((r = cmp_greediness(x, y)))
       return r;
   if (!p->user.dont_use_height_for_disambiguation) {

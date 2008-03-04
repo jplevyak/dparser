@@ -151,13 +151,13 @@ test:
 
 install:
 	mkdir -p $(PREFIX)/bin
-	cp $(EXECUTABLES) $(PREFIX)/bin
+	cp -f $(EXECUTABLES) $(PREFIX)/bin
 	mkdir -p $(PREFIX)/include
-	cp $(INCLUDES) $(PREFIX)/include
+	cp -f $(INCLUDES) $(PREFIX)/include
 	mkdir -p $(PREFIX)/lib
-	cp $(INSTALL_LIBRARIES) $(PREFIX)/lib
+	cp -f $(INSTALL_LIBRARIES) $(PREFIX)/lib
 	mkdir -p $(PREFIX)/man/man1
-	cp $(MANPAGES) $(PREFIX)/man/man1
+	cp -f $(MANPAGES) $(PREFIX)/man/man1
 
 deinstall:
 	rm $(EXECUTABLES:%=$(PREFIX)/bin/%)

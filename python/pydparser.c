@@ -243,7 +243,7 @@ make_parser(long int idpt,
 	    int print_debug_info,
             int partial_parses,
             int dont_compare_stacks,
-            int dont_use_eagerness_for_disambiguation,
+            int dont_use_greediness_for_disambiguation,
             int dont_use_height_for_disambiguation,
 	    char *start_symbol,
 	    int takes_strings,
@@ -259,7 +259,7 @@ make_parser(long int idpt,
   p->commit_actions_interval = commit_actions_interval;
   p->partial_parses = partial_parses;
   p->dont_compare_stacks = dont_compare_stacks;
-  p->dont_use_eagerness_for_disambiguation = dont_use_eagerness_for_disambiguation;
+  p->dont_use_greediness_for_disambiguation = dont_use_greediness_for_disambiguation;
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
   p->error_recovery = error_recovery;
   p->free_node_fn = free_node_fn;

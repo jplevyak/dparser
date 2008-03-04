@@ -1,2 +1,2 @@
-103 states 77 scans 75 shifts 2951 reductions 2600 compares 0 ambiguities
-((((((((((((((((((((((((( b  +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b ) +  b )
+103 states 77 scans 75 shifts 9322 reductions 8419 compares 0 ambiguities
+( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  + ( b  +  b )))))))))))))))))))))))))
