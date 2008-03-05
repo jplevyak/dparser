@@ -19,6 +19,11 @@ make_tables(char *grammar_string, char *grammar_pathname) {
   g->write_header = -1;
   g->token_type = 0;
   strcpy(g->write_extension, "dat");
+  static char output_file [1024] = "";
+  strncpy(output_file, grammar_pathname, sizeof(output_file)-1);
+  strncat(output_file, ".d_parser.", sizeof(output_file)-strlen(output_file)-1);
+  strncat(output_file, g->write_extension, sizeof(output_file)-strlen(output_file)-1);
+  g->write_pathname = output_file;
 
   mkdparse_from_string(g, grammar_string);
 
