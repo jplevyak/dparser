@@ -764,7 +764,7 @@ tree of reductions</li>
 -
 to not automatically remove ambiguities which result from trees of
 epsilon reductions without actions</li>
-  <li><span style="font-weight: bold;">dont_use_eagerness_for_disambiguation</span>
+  <li><span style="font-weight: bold;">dont_use_greediness_for_disambiguation</span>
 - do not use the rule that the longest parse which reduces to the same
 token should be used to disambiguate parses.&nbsp; This rule is used to
 handle the case (<span style="font-weight: bold;">if then else?</span>)
@@ -776,13 +776,10 @@ used
 to handle recursive grammars relatiively cleanly.</li>
   <li><span style="font-weight: bold;">dont_compare_stacks</span> -
 disables comparing stacks to handle certain exponential cases during
-ambiguous operator priority resolution.&nbsp; This feature is
-relatively
-new, and this disables the new code.<br>
+ambiguous operator priority resolution.&nbsp;<br>
   </li>
   <li><span style="font-weight: bold;">commit_actions_interval</span> -
-how often to commit final actions (0 is immediate, MAXINT is
-essentially
+how often to commit final actions (0 is immediate, MAXINT is essentially
 not till the end of parsing)</li>
   <li><span style="font-weight: bold;"></span><span
  style="font-weight: bold;">error_recovery</span> - whether or not to
