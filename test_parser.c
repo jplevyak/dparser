@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   unsigned char *str = NULL;
   unsigned int str_len;
   Grammar *g;
-  BinaryTables binary_tables;
+  BinaryTables * binary_tables;
 
   process_args(&arg_state, argv);
   if (arg_state.nfile_arguments < 2)
@@ -148,7 +148,8 @@ main(int argc, char *argv[]) {
 
   /* execute parser */
   binary_tables = read_binary_tables_from_string(str, spec_code, final_code);
-  p = new_D_Parser(binary_tables.parser_tables_gram, SIZEOF_MY_PARSE_NODE);
+  d_free(str);
+  p = new_D_Parser(binary_tables->parser_tables_gram, SIZEOF_MY_PARSE_NODE);
   p->save_parse_tree = save_parse_tree;
   p->ambiguity_fn = ambiguity_count_fn;
   p->partial_parses = partial_parses;
@@ -176,7 +177,7 @@ main(int argc, char *argv[]) {
     if (buf)
       FREE(buf);
   }
-  d_free(binary_tables.tables);
+  free_BinaryTables(binary_tables);
   free_D_Parser(p);
   free_args(&arg_state);
   exit(0);

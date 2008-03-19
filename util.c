@@ -386,8 +386,8 @@ escape_string(char *s) {
 	} else {
 	  *ss++ = '\\';
 	  *ss++ = 'x';
-	  *ss++ = tohex2(*s);
-	  *ss++ = tohex1(*s);
+	  *ss++ = tohex2((unsigned char)*s);
+	  *ss++ = tohex1((unsigned char)*s);
 	}
 	break;
     }

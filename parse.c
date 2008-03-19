@@ -10,8 +10,8 @@
 #define SNODE_HASH_INITIAL_SIZE_INDEX		8
 #define ERROR_RECOVERY_QUEUE_SIZE		10000
 
-#define LATEST(_pn) do { \
-  while ((_pn)->latest != (_pn)->latest->latest) (_pn)->latest = (_pn)->latest->latest; \
+#define LATEST(_p, _pn) do { \
+  while ((_pn)->latest != (_pn)->latest->latest) {PNode *t = (_pn)->latest->latest; ref_pn(t); unref_pn((_p),(_pn)->latest); (_pn)->latest = t;}\
   (_pn) = (_pn)->latest; \
 } while (0)
 
@@ -33,18 +33,19 @@ typedef Stack(struct SNode*) StackSNode;
 typedef Stack(int) StackInt;
 
 static int exhaustive_parse(Parser *p, int state);
+static void free_PNode(Parser *p, PNode *pn);
 
 void
-print_paren(PNode *p) {
+print_paren(Parser *pp, PNode *p) {
   int i;
   char *c;
-  LATEST(p);
+  LATEST(pp, p);
   if (!p->error_recovery) {
     if (p->children.n) {
       if (p->children.n > 1)
 	printf("(");
       for (i = 0; i < p->children.n; i++)
-	print_paren(p->children.v[i]);
+	print_paren(pp, p->children.v[i]);
       if (p->children.n > 1)
 	printf(")");
     } else if (p->parse_node.start_loc.s != p->parse_node.end_skip) {
@@ -60,9 +61,9 @@ void
 xprint_paren(Parser *pp, PNode *p) {
   int i;
   char *c;
-  LATEST(p);
+  LATEST(pp, p);
   if (!p->error_recovery) {
-    printf("%s ", pp->t->symbols[p->parse_node.symbol].name);
+    printf("[%p %s]", p, pp->t->symbols[p->parse_node.symbol].name);
     if (p->children.n) {
       printf("(");
       for (i = 0; i < p->children.n; i++)
@@ -81,8 +82,8 @@ xprint_paren(Parser *pp, PNode *p) {
   }
 }
 
-void xpp(Parser *pp, PNode *p) { xprint_paren(pp, p); printf("\n"); }
-void pp(PNode *p) { print_paren(p); printf("\n"); }
+void xPP(Parser *pp, PNode *p) { xprint_paren(pp, p); printf("\n"); }
+void PP(Parser *pp, PNode *p) { print_paren(pp, p); printf("\n"); }
 
 #define D_ParseNode_to_PNode(_apn) \
 ((PNode*)D_PN(_apn, -(int)&((PNode*)(NULL))->parse_node))
@@ -196,6 +197,7 @@ new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, void *g) {
   sn->state = state;
   sn->initial_scope = sc;
   sn->initial_globals = g;
+  sn->last_pn = NULL;
   sn->loc = *loc;
   insert_SNode(p, sn);
   if (sn->state->accept) {
@@ -219,6 +221,7 @@ new_ZNode(Parser *p, PNode *pn) {
   else
     p->free_znodes = znode_next(z);
   z->pn = pn;
+  ref_pn(pn);
   vec_clear(&z->sns);
   return z;
 }
@@ -234,7 +237,7 @@ free_PNode(Parser *p, PNode *pn) {
   vec_free(&pn->children);
   if ((amb = pn->ambiguities)) {
     pn->ambiguities = NULL;
-    free_PNode(p, amb);
+    unref_pn(p, amb);
   }
   if (pn->latest != pn)
     unref_pn(p, pn->latest);
@@ -272,6 +275,8 @@ free_SNode(Parser *p, struct SNode *s) {
     if (s->zns.v[i])
       free_ZNode(p, s->zns.v[i], s);
   vec_free(&s->zns);
+  if (s->last_pn)
+    unref_pn(p, s->last_pn);
   s->all_next = p->free_snodes;
   p->free_snodes = s;
 }
@@ -296,7 +301,7 @@ find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, void
 	  pn->parse_node.end_skip == end_skip &&
 	  pn->initial_scope == sc &&
 	  pn->initial_globals == g) {
-	LATEST(pn);
+	LATEST(p, pn);
 	return pn;
       }
   return NULL;
@@ -359,9 +364,10 @@ free_old_nodes(Parser *p) {
   while (pn) {
     for (i = 0; i < pn->children.n; i++) {
       while (pn->children.v[i] != pn->children.v[i]->latest) {
-	ref_pn(pn->children.v[i]->latest);
+        tpn = pn->children.v[i]->latest;
+	ref_pn(tpn);
 	unref_pn(p, pn->children.v[i]);
-	pn->children.v[i] = pn->children.v[i]->latest;
+	pn->children.v[i] = tpn;
       }
     }
     h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, 
@@ -747,48 +753,48 @@ priority_insert(StackPNode *psx, PNode *x) {
 }
 
 static void
-get_exp_all(PNode *x, StackInt *psx) {
+get_exp_all(Parser *p, PNode *x, StackInt *psx) {
   int i;
 
   if (x->assoc)
     stack_push(psx, x->priority);
   for (i = 0; i < x->children.n; i++) {
     PNode *pn = x->children.v[i];
-    LATEST(pn);
-    get_exp_all(pn, psx);
+    LATEST(p, pn);
+    get_exp_all(p, pn, psx);
   }
 }
 
 static void
-get_exp_one(PNode *x, StackPNode *psx, StackInt *isx) {
+get_exp_one(Parser *p, PNode *x, StackPNode *psx, StackInt *isx) {
   int i;
 
-  LATEST(x);
+  LATEST(p, x);
   if (!IS_NARY_ASSOC(x->assoc))
     priority_insert(psx, x);
   else {
     stack_push(isx, x->priority);
     for (i = 0; i < x->children.n; i++)
       if (x->children.v[i]->assoc)
-	get_exp_one(x->children.v[i], psx, isx);
+	get_exp_one(p, x->children.v[i], psx, isx);
   }
 } 
 
 static void
-get_exp_one_down(PNode *x, StackPNode *psx, StackInt *isx) {
+get_exp_one_down(Parser *p, PNode *x, StackPNode *psx, StackInt *isx) {
   int i;
 
-  LATEST(x);
+  LATEST(p, x);
   stack_push(isx, x->priority);
   for (i = 0; i < x->children.n; i++)
     if (x->children.v[i]->assoc)
-      get_exp_one(x->children.v[i], psx, isx);
+      get_exp_one(p, x->children.v[i], psx, isx);
 } 
 
 /* get the set of priorities for unshared nodes, 
    eliminating shared subtrees via priority queues */
 static void
-get_unshared_priorities(StackPNode *psx, StackPNode *psy,
+get_unshared_priorities(Parser *p, StackPNode *psx, StackPNode *psy,
 			StackInt *isx, StackInt *isy) 
 {
   StackPNode *psr;
@@ -817,16 +823,16 @@ get_unshared_priorities(StackPNode *psx, StackPNode *psy,
     }
     t = stack_pop(psr);
     if (psr == psx)
-      get_exp_one_down(t, psx, isx);
+      get_exp_one_down(p, t, psx, isx);
     else
-      get_exp_one_down(t, psy, isy);
+      get_exp_one_down(p, t, psy, isy);
   }
   while (!is_stack_empty(psr)) {
     t = stack_pop(psr);
     if (psr == psx)
-      get_exp_all(t, isx);
+      get_exp_all(p, t, isx);
     else
-      get_exp_all(t, isy);
+      get_exp_all(p, t, isy);
   }
   return;
 }
@@ -835,14 +841,14 @@ get_unshared_priorities(StackPNode *psx, StackPNode *psy,
    while eliminating common subtrees for efficiency. 
 */
 static int
-cmp_priorities(PNode *x, PNode *y) {
+cmp_priorities(Parser *p, PNode *x, PNode *y) {
   StackPNode psx, psy;
   StackInt isx, isy;
 
   stack_clear(&psx); stack_clear(&psy); stack_clear(&isx); stack_clear(&isy);
-  get_exp_one(x, &psx, &isx);
-  get_exp_one(y, &psy, &isy);
-  get_unshared_priorities(&psx, &psy, &isx, &isy);
+  get_exp_one(p, x, &psx, &isx);
+  get_exp_one(p, y, &psy, &isy);
+  get_unshared_priorities(p, &psx, &psy, &isx, &isy);
   intsort(isx.start, stack_depth(&isx));
   intsort(isy.start, stack_depth(&isy));
   int r = compare_priorities(isx.start, stack_depth(&isx), 
@@ -852,25 +858,25 @@ cmp_priorities(PNode *x, PNode *y) {
 }
 
 static void
-get_all(PNode *x, VecPNode *vx) {
+get_all(Parser *p, PNode *x, VecPNode *vx) {
   int i;
   if (set_add(vx, x)) {
     for (i = 0; i < x->children.n; i++) {
       PNode *pn = x->children.v[i];
-      LATEST(pn);
-      get_all(pn, vx);
+      LATEST(p, pn);
+      get_all(p, pn, vx);
     }
   }
 }
 
 static void
-get_unshared_pnodes(PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
+get_unshared_pnodes(Parser *p, PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
   int i;
   VecPNode vx, vy;
   vec_clear(&vx); vec_clear(&vy); 
-  LATEST(x); LATEST(y);
-  get_all(x, &vx);
-  get_all(y, &vy);
+  LATEST(p, x); LATEST(p, y);
+  get_all(p, x, &vx);
+  get_all(p, y, &vy);
   for (i = 0; i < vx.n; i++)
     if (vx.v[i] && !set_find(&vy, vx.v[i]))
       vec_add(pvx, vx.v[i]);
@@ -905,10 +911,10 @@ greedycmp(const void *ax, const void *ay) {
 #define RET(_x) do { ret = (_x); goto Lreturn; } while (0)
 
 static int
-cmp_greediness(PNode *x, PNode *y) {
+cmp_greediness(Parser *p, PNode *x, PNode *y) {
   VecPNode pvx, pvy;
   vec_clear(&pvx); vec_clear(&pvy); 
-  get_unshared_pnodes(x, y, &pvx, &pvy);
+  get_unshared_pnodes(p, x, y, &pvx, &pvy);
   /* set_to_vec(&pvx); set_to_vec(&pvy); */
   qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
   qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
@@ -957,12 +963,12 @@ cmp_pnodes(Parser *p, PNode *x, PNode *y) {
       if (x->priority < y->priority)
 	return 1;
     } 
-    r = cmp_priorities(x, y);
+    r = cmp_priorities(p, x, y);
     if (r)
       return r;
   }
   if (!p->user.dont_use_greediness_for_disambiguation)
-    if ((r = cmp_greediness(x, y)))
+    if ((r = cmp_greediness(p, x, y)))
       return r;
   if (!p->user.dont_use_height_for_disambiguation) {
     if (x->height < y->height)
@@ -1030,9 +1036,9 @@ make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode 
     if (path)
       for (i = path->n - 1; i >= 0; i--) {
 	PNode *latest = path->v[i]->pn;
-	LATEST(latest);
+	LATEST(p, latest);
+   ref_pn(latest);
 	vec_add(&new_pn->children, latest);
-	ref_pn(latest);
       }
     if (reduce_actions(p, new_pn, r)) {
       free_PNode(p, new_pn);
@@ -1056,7 +1062,7 @@ make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode 
 }
 
 static int
-PNode_equal(PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh) {
+PNode_equal(Parser *p, PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh) {
   int i, n = pn->children.n;
   if (sh)
     return sh == pn->shift;
@@ -1067,8 +1073,8 @@ PNode_equal(PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh) {
   if (n == path->n) {
     for (i = 0; i < n; i++) {
       PNode *x = pn->children.v[i], *y = path->v[n - i - 1]->pn;
-      LATEST(x);
-      LATEST(y);
+      LATEST(p, x);
+      LATEST(p, y);
       if (x != y)
 	return 0;
     }
@@ -1086,7 +1092,7 @@ add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn,
   uint hash;
   PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, pn->parse_node.globals, &hash), 
     *new_pn;
-  if (old_pn && PNode_equal(old_pn, r, path, sh))
+  if (old_pn && PNode_equal(p, old_pn, r, path, sh))
     return old_pn;
   new_pn = make_PNode(p, hash, symbol, start_loc, e, pn, r, path, sh, scope);
   if (!old_pn) {
@@ -1101,13 +1107,15 @@ add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn,
   p->compares++;
   switch (cmp_pnodes(p, new_pn, old_pn)) {
     case 0: 
+      ref_pn(new_pn);
       new_pn->ambiguities = old_pn->ambiguities; 
       old_pn->ambiguities = new_pn;
       break;
     case -1:
       insert_PNode(p, new_pn);
-      old_pn->latest = new_pn;
+      LATEST(p,old_pn);
       ref_pn(new_pn);
+      old_pn->latest = new_pn;
       old_pn = new_pn;
       break;
     case 1: 
@@ -1224,7 +1232,11 @@ goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
   state_index = GOTO_STATE(p, pn, ps);
   state = &p->t->state[state_index];
   new_ps = add_SNode(p, state, loc, pn->parse_node.scope, pn->parse_node.globals);
+  if (new_ps->last_pn)
+    unref_pn(p, new_ps->last_pn);
+  ref_pn(pn);
   new_ps->last_pn = pn;
+  
   DBG(printf("goto %d (%s) -> %d %p\n", 
 	     (int)(ps->state - p->t->state), 
 	     p->t->symbols[pn->parse_node.symbol].name,
@@ -1235,7 +1247,6 @@ goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
   z = set_find_znode(&new_ps->zns, pn);
   if (!z) { /* not found */
     set_add_znode(&new_ps->zns, (z = new_ZNode(p, pn)));
-    ref_pn(pn);
     for (j = 0; j < new_ps->state->reductions.n; j++)
       if (new_ps->state->reductions.v[j]->nelements)
 	add_Reduction(p, z, new_ps, new_ps->state->reductions.v[j]);
@@ -1547,7 +1558,7 @@ print_stack(Parser *p, SNode *s, int indent) {
     if (s->zns.n > 1)
       printf("\n%s[", &spaces[99-indent]);
     printf("(%s:", p->t->symbols[s->zns.v[i]->pn->parse_node.symbol].name);
-    print_paren(s->zns.v[i]->pn);
+    print_paren(p, s->zns.v[i]->pn);
     printf(")");
     for (j = 0; j < s->zns.v[i]->sns.n; j++) {
       if (s->zns.v[i]->sns.n > 1)
@@ -1652,7 +1663,7 @@ ambiguity_abort_fn(D_Parser *pp, int n, D_ParseNode **v) {
   int i;
   if (d_verbose_level) {
     for (i = 0; i < n; i++) {
-      print_paren(D_ParseNode_to_PNode(v[i]));
+      print_paren((Parser *) pp, D_ParseNode_to_PNode(v[i]));
       printf("\n");
     }
   }
@@ -1684,7 +1695,7 @@ resolve_ambiguities(Parser *p, PNode *pn) {
   vec_add(&pns, &pn->parse_node);
   for (amb = pn->ambiguities; amb; amb = amb->ambiguities) {
     int i, found = 0;
-    LATEST(amb);
+    LATEST(p, amb);
     if (!p->user.dont_merge_epsilon_trees)
       if (efa && is_epsilon_PNode(amb) && final_actionless(amb))
 	continue;
@@ -1742,7 +1753,7 @@ fixup_internal_symbol(Parser *p, PNode *pn, int ichild) {
 static PNode *
 commit_tree(Parser *p, PNode *pn) {
   int i, n, fixup_ebnf = 0, fixup = 0, internal = 0;
-  LATEST(pn);
+  LATEST(p, pn);
   if (pn->evaluated)
     return pn;
   if (!is_unreduced_epsilon_PNode(pn))
@@ -1753,7 +1764,12 @@ commit_tree(Parser *p, PNode *pn) {
   internal = is_symbol_internal_or_EBNF(p, pn);
   fixup = !p->user.dont_fixup_internal_productions && internal;
   for (i = 0; i < pn->children.n; i++) { 
-    pn->children.v[i] = commit_tree(p, pn->children.v[i]);
+    PNode *tpn = commit_tree(p, pn->children.v[i]);
+    if (tpn != pn->children.v[i]){
+      ref_pn(tpn);
+      unref_pn(p, pn->children.v[i]);
+      pn->children.v[i] = tpn;
+    }
     n = pn->children.v[i]->children.n;
     if (fixup && 
 	(fixup_ebnf ? is_symbol_internal_or_EBNF(p, pn->children.v[i]) :
@@ -1780,6 +1796,8 @@ commit_tree(Parser *p, PNode *pn) {
 static int
 commit_stack(Parser *p, SNode *sn) {
   int res = 0;
+  PNode *tpn;
+  
   if (sn->zns.n != 1)
     return -1;
   if (sn->zns.v[0]->sns.n > 1)
@@ -1789,7 +1807,12 @@ commit_stack(Parser *p, SNode *sn) {
   if (sn->zns.v[0]->sns.n)
     if ((res = commit_stack(p, sn->zns.v[0]->sns.v[0])) < 0)
       return res;
-  sn->zns.v[0]->pn = commit_tree(p, sn->zns.v[0]->pn);
+  tpn = commit_tree(p, sn->zns.v[0]->pn);
+  if (tpn != sn->zns.v[0]->pn){
+      ref_pn(tpn);
+      unref_pn(p, sn->zns.v[0]->pn);
+      sn->zns.v[0]->pn = tpn;
+  }
   return res;
 }
 
@@ -1901,16 +1924,15 @@ error_recovery(Parser *p) {
     best_pn = best_sn->zns.v[0]->pn;
     best_pn->parse_node.white_space(
       (D_Parser*)p, &best_loc, (void**)&best_pn->parse_node.globals);
-    ref_sn(best_sn);
     new_pn = add_PNode(p, 0, &p->user.loc,  best_loc.s, best_pn, 0, 0, 0);
     new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope, new_pn->initial_globals);
+    ref_pn(new_pn);
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
-    ref_pn(new_pn);
     vec_add(&z->sns, best_sn);
     r->znode = z;
+    ref_sn(new_sn);
     r->snode = new_sn;
-    ref_sn(best_sn);
     r->reduction = rr;
     r->new_snode = NULL;
     r->next = NULL;
@@ -1999,10 +2021,12 @@ exhaustive_parse(Parser *p, int state) {
   tpn.parse_node.globals = p->user.initial_globals;
   tpn.initial_scope = tpn.parse_node.scope = p->top_scope;
   tpn.parse_node.end = loc.s;
+  if (sn->last_pn)
+    unref_pn(p, sn->last_pn);
   pn = add_PNode(p, 0, &loc, loc.s, &tpn, 0, 0, 0);
+  ref_pn(pn);
   sn->last_pn = pn;
   set_add_znode(&sn->zns, (z = new_ZNode(p, pn)));
-  ref_pn(pn);
   while (1) {
     /* reduce all */
     while (p->reductions_todo) {
@@ -2228,14 +2252,14 @@ handle_top_level_ambiguities(Parser *p, SNode *sn) {
   for (i = 0; i < sn->zns.n; i++) {
     if (sn->zns.v[i]) {
       x = sn->zns.v[i]->pn;
-      LATEST(x);
+      LATEST(p, x);
       if (!pn) {
         z = sn->zns.v[i];
         pn = x;
       } else  {
         if (x != pn && !x->ambiguities && x != last) {
-          ref_pn(x);
           x->ambiguities = pn->ambiguities;
+          ref_pn(x);
           pn->ambiguities = x;
           if (!last) last = x;
         }
@@ -2289,7 +2313,7 @@ dparse(D_Parser *ap, char *buf, int buf_len) {
 	if (d_verbose_level > 1)
 	  xprint_paren(p, pn);
 	else
-	  print_paren(pn);
+	  print_paren(p, pn);
 	printf("\n");
       }
     }

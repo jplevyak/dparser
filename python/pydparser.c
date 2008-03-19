@@ -667,6 +667,6 @@ d_version(char *v) {
 
 long int 
 load_parser_tables(char *tables_name) {
-  BinaryTables binary_tables = read_binary_tables(tables_name, my_speculative_action, my_final_action);
-  return (long int)binary_tables.parser_tables_gram;
+  BinaryTables *binary_tables = read_binary_tables(tables_name, my_speculative_action, my_final_action);
+  return (long int)binary_tables->parser_tables_gram;
 }

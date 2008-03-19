@@ -178,7 +178,7 @@ unescape_term_string(Term *t) {
 	  if (length > 0) {
 	    char saved_c = start[length];
 	    start[length] = '\0';
-	    *ss = (char) strtol(start, NULL, base);
+	    *ss = (unsigned char) strtol(start, NULL, base);
 	    start[length] = saved_c;
 	    if (*s > 0)	     
 	      break;
