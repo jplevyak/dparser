@@ -16,9 +16,9 @@ parser = Parser(make_grammar_file=1)
 
 buf = 'hi10hello+3hellohi'
 
-if parser.parse(buf, buf_offset=2, partial_parses=1, initial_skip_space_fn = skip_space) != 13:
+if parser.parse(buf, buf_offset=2, partial_parses=1, initial_skip_space_fn = skip_space).getStructure() != 13:
     print 'fail'
 
 buf = '87+5'
-if parser.parse(buf, initial_skip_space_fn = skip_space) != 92:
+if parser.parse(buf, initial_skip_space_fn = skip_space).getStructure() != 92:
     print 'fail'

@@ -22,4 +22,4 @@ def syntax_error(t):
     print 'fail'
     
 parser = dparser.Parser()
-parser.parse('xxy', syntax_error_fn = syntax_error)
+parser.parse('xxy', syntax_error_fn = syntax_error).getStructure()

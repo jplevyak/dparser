@@ -32,13 +32,14 @@ D_Parser *make_parser(long int idpt,
 		      PyObject *syntax_error_fn,
 		      PyObject *ambiguity_fn,
 		      int dont_fixup_internal_productions,
+		      int fixup_EBNF_productions,
 		      int dont_merge_epsilon_trees,
 		      int commit_actions_interval,
 		      int error_recovery,
 		      int print_debug_info,
 		      int partial_parses,
 		      int dont_compare_stacks,
-		      int dont_use_eagerness_for_disambiguation,
+		      int dont_use_greediness_for_disambiguation,
 		      int dont_use_height_for_disambiguation,
 		      char *start_state,
 		      int takes_strings,
@@ -46,3 +47,5 @@ D_Parser *make_parser(long int idpt,
 PyObject *run_parser(D_Parser *dp, PyObject* string, int buf_idx);
 int make_tables(char *grammar_string, char *grammar_pathname);
 long int load_parser_tables(char *tables_name);
+void unload_parser_tables(long int binary_table);
+

@@ -13,7 +13,7 @@ class smart_install_data(install_data):
         self.install_dir = getattr(install_cmd, 'install_lib')
         return install_data.run(self)
 
-module_swigc = Extension('dparser_swigc',
+module_swigc = Extension('_dparser_swigc',
     sources = ['dparser_wrap.c', 'pydparser.c', 'make_tables.c'],
     define_macros = [('SWIG_GLOBAL', None)],
                          libraries = ['mkdparse', 'dparse'],
@@ -24,6 +24,6 @@ setup(name="dparser",
     cmdclass = {"install_data": smart_install_data},
     version = "1.9",
     description = 'DParser for Python',
-    py_modules = ["dparser"],
+    py_modules = ["dparser", "dparser_swigc"],
     ext_modules = [module_swigc],
 )

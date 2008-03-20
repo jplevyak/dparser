@@ -33,4 +33,4 @@ def d_verb(t, this):
     "verb : 'flies'"
     return t[0]
 
-Parser().parse('cat flies')
+Parser().parse('cat flies').getStructure()

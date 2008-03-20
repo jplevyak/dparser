@@ -26,6 +26,6 @@ def d_exp(t):
 # will contain a member, s, 
 
 parser = Parser()
-parser.parse('1 % 2 % 3')
-if stringify(parser.s) != '1 + 2 + 3':
+parsedmessage = parser.parse('1 % 2 % 3')
+if stringify(parsedmessage.getStringLeft()) != '1 + 2 + 3':
     print 'error'

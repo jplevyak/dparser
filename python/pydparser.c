@@ -1,6 +1,7 @@
 /* Copyright (c) 2003, 2004 Brian Sabbey */
 #include <Python.h>
 #include "pydparser.h"
+#include "swigpyrun.h"
 
 #define d_interface(_p) ((D_ParserPyInterface*)((Parser*)_p)->pinterface1)
 #define d_dpt(_p) (((Parser*)_p)->t)
@@ -10,8 +11,6 @@ static int my_final_action(void *new_ps, void **children, int n_children, int pn
 static int my_speculative_action(void *new_ps, void **children, int n_children, int pn_offset,
 				 struct D_Parser *parser); 
 static PyObject *make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string);
-
-void SWIG_MakePtr(char *_c, const void *_ptr, char *type);
 
 typedef struct D_ParserPyInterface {
   PyObject *reject;
@@ -108,14 +107,14 @@ my_D_ParseNode_symbol_get(D_ParseNode *dpn, D_Parser *dp) {
 
 static PyObject * 
 new_loc_inst(D_Parser* dp, d_loc_t* dlt) {
-  char buf[128];
+  PyObject * buf;
   D_ParserPyInterface *ppi = d_interface(dp);
   PyObject *new_loc_args = PyTuple_New(3);
   PyObject *new_loc_inst;
-  SWIG_MakePtr(buf, dlt, "_d_loc_t_p");
-  PyTuple_SetItem(new_loc_args, 0, Py_BuildValue("s", buf));
-  SWIG_MakePtr(buf, dp, "_D_Parser_p");
-  PyTuple_SetItem(new_loc_args, 1, Py_BuildValue("s", buf));
+  buf = SWIG_NewPointerObj((void *)dlt, SWIG_TypeQuery("_p_d_loc_t"),0);
+  PyTuple_SetItem(new_loc_args, 0, buf);
+  buf = SWIG_NewPointerObj((void *)dp, SWIG_TypeQuery("_p_D_Parser"),0);
+  PyTuple_SetItem(new_loc_args, 1, buf);
   Py_INCREF(ppi->py_buf_start);
   PyTuple_SetItem(new_loc_args, 2, ppi->py_buf_start);
   new_loc_inst = PyObject_CallObject(ppi->loc_type, new_loc_args);
@@ -125,14 +124,14 @@ new_loc_inst(D_Parser* dp, d_loc_t* dlt) {
 
 static PyObject *
 make_py_node(D_Parser *dp, D_ParseNode *dpn) {
-  char buf[128];
+  PyObject * buf;
   D_ParserPyInterface *ppi = d_interface(dp);
   PyObject *new_node_arg = PyTuple_New(3);
   PyObject *node_inst;
-  SWIG_MakePtr(buf, dpn, "_D_ParseNode_p");
-  PyTuple_SetItem(new_node_arg, 0, Py_BuildValue("s", buf));
-  SWIG_MakePtr(buf, dp, "_D_Parser_p");
-  PyTuple_SetItem(new_node_arg, 1, Py_BuildValue("s", buf));
+  buf = SWIG_NewPointerObj((void *)dpn, SWIG_TypeQuery("_p_D_ParseNode"),0);
+  PyTuple_SetItem(new_node_arg, 0, buf);
+  buf = SWIG_NewPointerObj((void *)dp, SWIG_TypeQuery("_p_D_Parser"),0);
+  PyTuple_SetItem(new_node_arg, 1, buf);
   Py_INCREF(ppi->py_buf_start);
   PyTuple_SetItem(new_node_arg, 2, ppi->py_buf_start);
   node_inst = PyObject_CallObject(ppi->node_info_type, new_node_arg);
@@ -237,6 +236,7 @@ make_parser(long int idpt,
 	    PyObject *syntax_error_fn,
 	    PyObject *ambiguity_fn,
 	    int dont_fixup_internal_productions,
+            int fixup_EBNF_productions, 
 	    int dont_merge_epsilon_trees,
 	    int commit_actions_interval,
 	    int error_recovery,
@@ -248,10 +248,10 @@ make_parser(long int idpt,
 	    char *start_symbol,
 	    int takes_strings,
 	    int takes_globals) {
-  D_ParserTables *dpt = (D_ParserTables*) idpt;
+  BinaryTables *dpt = (BinaryTables*) idpt;
   D_ParserPyInterface *ppi;
-  D_Parser *p = new_D_Parser(dpt, sizeof(D_ParseNode_User));
-  p->fixup_EBNF_productions = 1;
+  D_Parser *p = new_D_Parser(dpt->parser_tables_gram, sizeof(D_ParseNode_User));
+  p->fixup_EBNF_productions = fixup_EBNF_productions;
   p->save_parse_tree = 1;
   p->initial_scope = NULL; 
   p->dont_fixup_internal_productions = dont_fixup_internal_productions;
@@ -299,13 +299,13 @@ make_parser(long int idpt,
   ppi->symbol_list = NULL;
   if (start_symbol[0]) {
     int i;
-    for (i = 0; i < dpt->nsymbols; i++) {
-      if (dpt->symbols[i].kind == D_SYMBOL_NTERM && strcmp(dpt->symbols[i].name, start_symbol) == 0) {
-	p->start_state = dpt->symbols[i].start_symbol;
+    for (i = 0; i < dpt->parser_tables_gram->nsymbols; i++) {
+      if (dpt->parser_tables_gram->symbols[i].kind == D_SYMBOL_NTERM && strcmp(dpt->parser_tables_gram->symbols[i].name, start_symbol) == 0) {
+	p->start_state = dpt->parser_tables_gram->symbols[i].start_symbol;
 	break;
       }
     }
-    if (i == dpt->nsymbols) {
+    if (i == dpt->parser_tables_gram->nsymbols) {
       fprintf(stderr, "invalid start symbol: %s\n", start_symbol);
       i = 0;
     }
@@ -329,6 +329,7 @@ del_parser(D_Parser *dp) {
   Py_DECREF(ppi->node_info_type);
   Py_XDECREF(ppi->py_buf_start);
   Py_XDECREF(ppi->symbol_list);
+  Py_XDECREF(dp->initial_globals);
   if (ppi->top_node) {
     free_D_ParseTreeBelow(dp, ppi->top_node);
     free_D_ParseNode(dp, ppi->top_node);
@@ -404,6 +405,7 @@ pylist_children(D_Parser *parser, D_ParseNode *d, int string) {
     D_ParseNode *child = d_get_child(d, i);
     PyObject *po = make_pyobject_from_node(parser, child, string);
     if (po == NULL) {
+      Py_DECREF(list);
       return NULL;
     }
     PyList_SetItem(list, i, po);
@@ -429,12 +431,16 @@ make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string) {
       make_token = d_interface(parser)->make_token;
       if (make_token != Py_None && !string) {
 	PyObject *arglist = Py_BuildValue("(O)", user);
+        if (arglist == NULL) {
+          Py_DECREF(user);
+          return NULL;
+        }
 	PyObject *result = PyEval_CallObject(make_token, arglist);
-	if (result == NULL) {
-	  return NULL;
-	}
 	Py_DECREF(user);
 	Py_DECREF(arglist);
+        if (result == NULL) {
+	  return NULL;
+	}
 	return result;
       }
     }
@@ -502,19 +508,17 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
       PyTuple_SetItem(arglist, i, Py_BuildValue("i", speculative));
     }
     else if (type == 2) {
-      PyObject *globals = dd->globals;
       if (!dd->user.inced_global_state) {
 	dd->user.inced_global_state = 1;
-	Py_INCREF(globals);
       }
-      Py_INCREF(globals);
       globals_holder = PyList_New(1);
-      PyList_SetItem(globals_holder, 0, globals);
+      Py_INCREF(dd->globals);
+      PyList_SetItem(globals_holder, 0, dd->globals);
       PyTuple_SetItem(arglist, i, globals_holder);
     }
     else if (type == 3) {
-      PyTuple_SetItem(arglist, i, string_list);
       Py_INCREF(string_list);
+      PyTuple_SetItem(arglist, i, string_list);
     }
     else if (type == 4) {
       PyObject* nodes = PyList_New(n_children);
@@ -667,6 +671,10 @@ d_version(char *v) {
 
 long int 
 load_parser_tables(char *tables_name) {
-  BinaryTables *binary_tables = read_binary_tables(tables_name, my_speculative_action, my_final_action);
-  return (long int)binary_tables->parser_tables_gram;
+  return (long int)read_binary_tables(tables_name, my_speculative_action, my_final_action);
+}
+
+void
+unload_parser_tables(long int binary_tables) {
+  free_BinaryTables( ((BinaryTables * )binary_tables));
 }

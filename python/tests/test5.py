@@ -15,5 +15,5 @@ def d_h2(t, spec):
     return 2
 
 parser = dparser.Parser()
-if parser.parse('a') != 1:
+if parser.parse('a').getStructure() != 1:
     print 'error'

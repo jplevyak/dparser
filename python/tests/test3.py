@@ -24,5 +24,5 @@ def d_exp2(t):
     '''exp : '(' add ')' '''
     return t[1]
 
-if Parser().parse('''3*(3+4)''') != 21:
+if Parser().parse('''3*(3+4)''').getStructure() != 21:
     print 'fail'

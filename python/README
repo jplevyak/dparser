@@ -3,13 +3,10 @@ This module was created by Brian Sabbey (sabbey at u.washington.edu).
 See index.html for details.
 
 Swig:
-	swig -python -shadow dparser.i
+	make swig
 
-	ignore dparser_swig.py
-
-	made with SWIG Version 1.1 (Patch 5)
-	may not work with later versions
-
+	made with SWIG Version 1.3
+	
 Thanks to:
 
 	Brennan Evans for more general unix support.

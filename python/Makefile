@@ -1,12 +1,15 @@
 
 all:
-	echo "type 'make install' as root to install"
+	swig  -python -external-runtime
+	swig  -python dparser.i
+	python setup.py build
+	echo "type 'sudo make install' to install"
 
 install:
 	python setup.py install
 
 clean:
-	rm -rf build dparser.pyc tests/d_parser_mach_gen.*
+	rm -rf build dparser.pyc dparser_swigc.* dparser_wrap.c swigpyrun.h tests/d_parser_mach_gen.*
 
 test:
 	python tests/test.py

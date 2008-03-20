@@ -1,21 +1,14 @@
-%module dparser_swig
+%module dparser_swigc
 %{
 #include "pydparser.h"
 %}
 
-%typemap(python, in) PyObject* {
-  $target = $source;
-}
-
-%typemap(python, out) PyObject* {
-  $target = $source;
-}
-
-%include pydparser.h
+%include "pydparser.h"
 
 typedef struct d_loc_t {
-  char *pathname;
-  int previous_col, col, line;
+  long int s;
+  char *pathname, *ws;
+  int col, previous_col, line;
 } d_loc_t;
 
 typedef struct D_ParseNode {
