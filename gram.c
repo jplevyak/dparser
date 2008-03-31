@@ -475,6 +475,26 @@ plus_EBNF(Grammar *g) {
 }
 
 void
+rep_EBNF(Grammar *g, int min, int max) {
+  Production *pp;
+  Rule *rr;
+  Elem *elem;
+  int i, j;
+  if (max < min) max = min;
+
+  pp = new_internal_production(g, g->p);
+  elem = last_elem(g->r);
+  for (i = min; i <= max; i++) {
+    rr = new_rule(g, pp);
+    for (j = 0; j < i; j++)
+      vec_add(&rr->elems, dup_elem(elem, rr));
+    vec_add(&pp->rules, rr);
+  }
+  last_elem(g->r) = new_elem_nterm(pp, g->r);
+  FREE(elem);
+}
+
+void
 initialize_productions(Grammar *g) {
   Production *pp = new_production(g, dup_str("0 Start", 0));
   pp->internal = INTERNAL_HIDDEN;

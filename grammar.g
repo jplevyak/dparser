@@ -147,7 +147,10 @@ element_modifier
     }
   | '?' { conditional_EBNF($g); }
   | '*' { star_EBNF($g); }
-  | '+' { plus_EBNF($g); } ;
+  | '+' { plus_EBNF($g); } 
+  | '@' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), -1); } 
+  | '@' integer ':' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), strtol($n3.start_loc.s, NULL, 0)); } 
+  ;
 
 rule_modifier : rule_assoc rule_priority | external_action;
 

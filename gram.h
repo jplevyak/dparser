@@ -274,6 +274,7 @@ D_Pass *find_pass(Grammar *g, char *start, char *end);
 void conditional_EBNF(Grammar *g); /* applied to g->e,g->r,g->p */
 void star_EBNF(Grammar *g); /* ditto */
 void plus_EBNF(Grammar *g); /* ditto */
+void rep_EBNF(Grammar *g, int minimum, int maximum);
 void initialize_productions(Grammar *g);
 void finalize_productions(Grammar *g);
 int state_for_declaration(Grammar *g, int iproduction);
