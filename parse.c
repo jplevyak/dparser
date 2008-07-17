@@ -1092,8 +1092,15 @@ add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn,
   uint hash;
   PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, pn->parse_node.globals, &hash), 
     *new_pn;
-  if (old_pn && PNode_equal(p, old_pn, r, path, sh))
-    return old_pn;
+  if (old_pn) { 
+    PNode *amb = 0;
+    if (PNode_equal(p, old_pn, r, path, sh))
+      return old_pn;
+    for (amb = old_pn->ambiguities; amb; amb = amb->ambiguities) {
+      if (PNode_equal(p, amb, r, path, sh))
+        return old_pn;
+    }
+  }
   new_pn = make_PNode(p, hash, symbol, start_loc, e, pn, r, path, sh, scope);
   if (!old_pn) {
     old_pn = new_pn;
@@ -1106,9 +1113,9 @@ add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn,
     goto Lreturn;
   p->compares++;
   switch (cmp_pnodes(p, new_pn, old_pn)) {
-    case 0: 
+    case 0:
       ref_pn(new_pn);
-      new_pn->ambiguities = old_pn->ambiguities; 
+      new_pn->ambiguities = old_pn->ambiguities;
       old_pn->ambiguities = new_pn;
       break;
     case -1:
