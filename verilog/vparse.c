@@ -2,7 +2,7 @@
  *
  *  Utilities used during parsing Verilog files.
  *
- * $Revision: 1.1 $
+ * $Revision: 1.2 $
  */
 
 #include <stdio.h>
@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <string.h>
 
 #include "vparse.h"
 
@@ -485,7 +486,7 @@ f_appends( struct fileinfo_s *pfi, const char *s )
 		if ( pfi->newlen + l >= pfi->newspace-64 ) {
 
 			pfi->newspace += l;
-			pfi->newspace = ( pfi->newspace+1023 ) % 1024;
+			pfi->newspace = ((pfi->newspace + 1023) & ~1024);
 
 			pfi->newbuf = realloc( pfi->newbuf, pfi->newspace );
 			if ( ! pfi->newbuf )
@@ -784,6 +785,7 @@ def_add( struct deftab_s *dt, const char *name, int namelen,
 	pde->name[namelen] = '\0';
 
 	pde->substitution = substitution;
+	pde->next = 0;
 }
 
 static char *

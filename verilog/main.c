@@ -4,7 +4,7 @@
  *
  * 	Main for Verilog parser.
  *
- * $Revision: 1.1 $
+ * $Revision: 1.2 $
  */
 
 #include <stdio.h>
@@ -15,7 +15,7 @@
 #include "dparse.h"
 
 extern D_ParserTables parser_tables_gram;
-extern int verbose_level;
+extern int d_verbose_level;
 extern struct D_ParseNode *my_ambiguity_fn(struct D_Parser *pp, int n,
                                            struct D_ParseNode **v );
 
@@ -37,7 +37,7 @@ main(int argc, char *argv[]) {
 
 	while ((ch = getopt(argc, argv, "vphI:")) != -1)
 		switch (ch) {
-		case 'v': verbose_level++; 	break;
+		case 'v': d_verbose_level++; 	break;
 		case 'p': dump_pp++;		break;
 		case 'I':
 			if ( ! v_incdirs ) {
