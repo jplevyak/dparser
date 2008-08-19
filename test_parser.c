@@ -14,6 +14,8 @@ static int partial_parses = 0;
 static int fixup = 1;
 static int fixup_ebnf = 0;
 static int compare_stacks = 1;
+static int no_height_disamb = 0;
+static int no_greedy_disamb = 0;
 static int commit_actions_interval = 100;
 static int start_state = 0;
 
@@ -58,6 +60,12 @@ ArgumentDescription arg_desc[] = {
   "D_PARSE_FIXUP", NULL},
  {"fixup_ebnf", 'e', "Fixup EBNF Productions", "T", &fixup_ebnf, 
   "D_PARSE_FIXUP_EBNF", NULL},
+
+ {"noheight", 'H', "Do not use Height Disambiguization", "T", &no_height_disamb, 
+  "D_PARSE_NO_HEIGHT_DISAMB", NULL},
+ {"nogreedy", 'G', "Do not use Greedy Disambiguization", "T", &no_greedy_disamb, 
+  "D_PARSE_NO_GREEDY_DISAMB", NULL},
+
 
  {"verbose", 'v', "Verbose", "+", &d_verbose_level, 
   "D_PARSE_VERBOSE", NULL},
@@ -156,6 +164,8 @@ main(int argc, char *argv[]) {
   p->dont_fixup_internal_productions = !fixup;
   p->fixup_EBNF_productions = fixup_ebnf;
   p->dont_compare_stacks = !compare_stacks;
+  p->dont_use_height_for_disambiguation = no_height_disamb;
+  p->dont_use_greediness_for_disambiguation = no_greedy_disamb;
   p->commit_actions_interval = commit_actions_interval;
   p->start_state = start_state;
   for (i = 1; i < arg_state.nfile_arguments; i++) {
