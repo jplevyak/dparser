@@ -274,7 +274,7 @@ class Parser:
               dont_use_height_for_disambiguation=0,
               start_symbol=''):
                   
-        if not isinstance(buf, str):
+        if not isinstance(buf, basestring):
             raise ParsingException("Message to parse is not a string: %r" % buf)
                   
         parser = dparser_swigc.make_parser(self.tables.getTables(), self, Reject, make_token, d_loc_t, D_ParseNode,
