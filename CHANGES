@@ -1,3 +1,7 @@
+1.20    Fixed a couple Verilog issues (thanx to Brian Pharris)
+        Python Unicode support (thanx to Simon Law)
+        Added disabiguation switches to test_parser
+
 1.19    Fixed memory leak (thanx Humberto Abdelnur)
         Updated to current SWIG  (thanx Humberto Abdelnur)
         Added support for repeating elements (elem@1:3) 1 to 3 times
