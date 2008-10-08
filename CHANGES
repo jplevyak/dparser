@@ -1,6 +1,7 @@
 1.20    Fixed a couple Verilog issues (thanx to Brian Pharris)
         Python Unicode support (thanx to Simon Law)
         Added disabiguation switches to test_parser
+        Fixed potential hang in Error Recovery
 
 1.19    Fixed memory leak (thanx Humberto Abdelnur)
         Updated to current SWIG  (thanx Humberto Abdelnur)
