@@ -355,6 +355,7 @@ free_old_nodes(Parser *p) {
     *lsn = (*lsn)->bucket_next;
   }
   sn = p->snode_hash.last_all;
+  p->snode_hash.last_all = 0;
   while (sn) {
     tsn = sn; sn = sn->all_next;
     unref_sn(p, tsn);
@@ -1863,6 +1864,20 @@ update_line(char *s, char *e, int *line) {
   for (;s < e; s++) if (*s == '\n') (*line)++;
 }
 
+static void
+recover_sn(Parser *p, SNode *sn) {
+  int i, j;
+  SNode **last = &p->snode_hash.last_all;
+  while (*last && *last != sn) last = &(*last)->all_next;
+  if (*last)
+    *last = sn->all_next;
+  insert_SNode(p, sn);
+  for (i = 0; i < sn->zns.n; i++) {
+    for (j = 0; j < sn->zns.v[i]->sns.n; j++)
+      recover_sn(p, sn->zns.v[i]->sns.v[j]);
+  }
+}
+
 static int
 error_recovery(Parser *p) {
   SNode *sn, *best_sn = NULL;
@@ -1937,6 +1952,7 @@ error_recovery(Parser *p) {
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
     vec_add(&z->sns, best_sn);
+    recover_sn(p, best_sn);
     r->znode = z;
     ref_sn(new_sn);
     r->snode = new_sn;
