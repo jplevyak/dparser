@@ -86,7 +86,7 @@ void xPP(Parser *pp, PNode *p) { xprint_paren(pp, p); printf("\n"); }
 void PP(Parser *pp, PNode *p) { print_paren(pp, p); printf("\n"); }
 
 #define D_ParseNode_to_PNode(_apn) \
-((PNode*)D_PN(_apn, -(int)&((PNode*)(NULL))->parse_node))
+((PNode*)(D_PN(_apn, -(intptr_t)&((PNode*)(NULL))->parse_node)))
 
 #define PNode_to_D_ParseNode(_apn) \
 ((D_ParseNode*)&((PNode*)(_apn))->parse_node)
@@ -554,7 +554,7 @@ reduce_actions(Parser *p, PNode *pn, D_Reduction *r) {
   if (r->speculative_code)
     return r->speculative_code(
       pn, (void**)&pn->children.v[0], pn->children.n,
-      (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+      (intptr_t)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
   return 0;
 }
 
@@ -1026,7 +1026,7 @@ make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode 
       new_pn->reduction = &dummy;
       if (sh->speculative_code(
 	new_pn, (void**)&new_pn->children.v[0], new_pn->children.n,
-	(int)&((PNode*)(NULL))->parse_node, (D_Parser*)p)) 
+	(intptr_t)&((PNode*)(NULL))->parse_node, (D_Parser*)p)) 
       {
 	free_PNode(p, new_pn);
 	return NULL;
@@ -1553,7 +1553,9 @@ binary_op_ZNode(SNode *sn) {
   return z;
 }
 
-static char *spaces = "                                                                                                  "; 
+#ifdef D_DEBUG
+
+static const char *spaces = "                                                                                                  "; 
 static void
 print_stack(Parser *p, SNode *s, int indent) {
   int i,j;
@@ -1579,6 +1581,7 @@ print_stack(Parser *p, SNode *s, int indent) {
       printf("]");
   }
 }
+#endif
 
 /* compare two stacks with operators on top of identical substacks
    eliminating the stack with the lower priority binary operator 
@@ -1793,7 +1796,7 @@ commit_tree(Parser *p, PNode *pn) {
   if (pn->reduction && pn->reduction->final_code)
     pn->reduction->final_code(
       pn, (void**)&pn->children.v[0], pn->children.n,
-      (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+      (intptr_t)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
   if (pn->evaluated) {
     if (!p->user.save_parse_tree && !internal)
       free_ParseTreeBelow(p, pn);
@@ -1824,8 +1827,8 @@ commit_stack(Parser *p, SNode *sn) {
   return res;
 }
 
-static char *
-find_substr(char *str, char *s) {
+static const char *
+find_substr(const char *str, const char *s) {
   int len = strlen(s);
   if (len == 1) {
     while (*str && *str != *s) str++;
@@ -1860,7 +1863,7 @@ syntax_error_report_fn(struct D_Parser *ap) {
 }
 
 static void
-update_line(char *s, char *e, int *line) {
+update_line(const char *s, const char *e, int *line) {
   for (;s < e; s++) if (*s == '\n') (*line)++;
 }
 
@@ -1881,7 +1884,7 @@ recover_sn(Parser *p, SNode *sn) {
 static int
 error_recovery(Parser *p) {
   SNode *sn, *best_sn = NULL;
-  char *best_s = NULL, *ss, *s;
+  const char *best_s = NULL, *ss, *s;
   int i, j, head = 0, tail = 0, res = 1;
   D_ErrorRecoveryHint *best_er = NULL;
   SNode **q = 0;
@@ -1942,7 +1945,7 @@ error_recovery(Parser *p) {
     rr->nelements = best_er->depth + 1;
     rr->symbol = best_er->symbol;
     update_line(best_loc.s, best_s, &best_loc.line);
-    best_loc.s = best_s;
+    best_loc.s = (char*)best_s;
     best_pn = best_sn->zns.v[0]->pn;
     best_pn->parse_node.white_space(
       (D_Parser*)p, &best_loc, (void**)&best_pn->parse_node.globals);
@@ -1984,7 +1987,7 @@ pass_call(Parser *p, D_Pass *pp, PNode *pn) {
   if (PASS_CODE_FOUND(pp, pn))
     pn->reduction->pass_code[pp->index](
       pn, (void**)&pn->children.v[0], pn->children.n,
-      (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+      (intptr_t)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
 }
 
 static void

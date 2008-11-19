@@ -179,7 +179,7 @@ new_offset(File *fp, char *name) {
 }
 
 static uintptr_t
-make_string(File *fp, char *name) {
+make_string(File *fp, const char *name) {
   intptr_t size = strlen(name)+1;
   Buf *buf = &fp->strings;
   char *dest;
@@ -367,7 +367,7 @@ start_array_fn(File *fp, int type_size, char *type_prefix, char *type_str,
 }
 
 static void 
-add_struct_str_member_fn(File *fp, char **dest, char *str) {
+add_struct_str_member_fn(File *fp, char **dest, const char *str) {
   if (fp->binary) {
     *dest = (char*)make_string(fp, str);
     vec_add(&fp->str_relocations, (void*)((char*)dest - fp->tables.start));

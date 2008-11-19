@@ -2,6 +2,7 @@
         Python Unicode support (thanx to Simon Law)
         Added disabiguation switches to test_parser
         Fixed potential hang in Error Recovery
+        Warning free under GCC 4.3.2
 
 1.19    Fixed memory leak (thanx Humberto Abdelnur)
         Updated to current SWIG  (thanx Humberto Abdelnur)

@@ -52,7 +52,7 @@ typedef struct D_RightEpsilonHint {
 typedef struct D_ErrorRecoveryHint {
   unsigned short	depth;
   unsigned short	symbol;
-  char			*string;
+  const char		*string;
 } D_ErrorRecoveryHint;
 
 typedef struct D_Shift {
@@ -136,7 +136,7 @@ typedef struct D_State {
 #define D_SYMBOL_TOKEN		7
 typedef struct D_Symbol {
   unsigned int		kind;
-  char			*name;
+  char		        *name;
   int			name_len;
   int			start_symbol;
 } D_Symbol;
@@ -147,7 +147,7 @@ typedef struct D_Symbol {
 #define D_PASS_FOR_ALL		0x0008
 #define D_PASS_FOR_UNDEFINED	0x0010
 typedef struct D_Pass {
-  char		*name;
+  char	        *name;
   unsigned int	name_len;
   unsigned int  kind;
   unsigned int	index;
