@@ -1,6 +1,6 @@
 /* 
     $URL: http://manta.univ.gda.pl/svn/wb/parsing/dparser/D/dparse_tree.c $
-    $Revision: 1.1 $
+    $Revision: 1.2 $
 */
 
 #include <stdio.h>
@@ -21,7 +21,7 @@ xprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_fn_t 
 static void 
 xprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_fn_t fn, void *client_data) {
   int nch = d_get_number_of_children(pn), i;
-  char *name = pt.symbols[pn->symbol].name;
+  char *name = (char*)pt.symbols[pn->symbol].name;
   //  int len = pn->end_skip - pn->start_loc.s;
   //  char *value = malloc(len+2);
   //  memcpy(value, pn->start_loc.s, len);

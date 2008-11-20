@@ -136,7 +136,7 @@ typedef struct D_State {
 #define D_SYMBOL_TOKEN		7
 typedef struct D_Symbol {
   unsigned int		kind;
-  char		        *name;
+  const char	        *name;
   int			name_len;
   int			start_symbol;
 } D_Symbol;
