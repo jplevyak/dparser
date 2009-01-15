@@ -1032,7 +1032,7 @@ write_scanner_code(File *file, Grammar *g, char *tag) {
 	if (!s->scanner_code) {
 	  s->scanner_code = 1;
 	  new_offset(file, make_name("d_scan_code_%d_%s", i, tag));
-	  fprintf(fp, "int d_scan_code_%d_%s(char **as, int *col, int *line,"
+	  fprintf(fp, "int d_scan_code_%d_%s(d_loc_t *loc,"
 		  "unsigned short *symbol, int *term_priority,"
 		  "unsigned char *op_assoc, int *op_priority) {\n"
 		  "  int res;\n",
@@ -1046,7 +1046,7 @@ write_scanner_code(File *file, Grammar *g, char *tag) {
 	  fprintf(fp, ", ");
 	} else
 	  fprintf(fp, "%s(", a->term->string);
-	fprintf(fp, "as, col, line, op_assoc, op_priority))) {\n"
+	  fprintf(fp, "loc, op_assoc, op_priority))) {\n"
 		"    *symbol = %d;\n"
 		"    *term_priority = %d;\n"
 		"    return res;\n"

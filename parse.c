@@ -1330,9 +1330,7 @@ shift_all(Parser *p, char *pos) {
       p->code_shifts[ncode].speculative_code = 0;
       p->shift_results[nshifts].loc = loc;
       if ((state->scanner_code(
-	&p->shift_results[nshifts].loc.s, 
-	&p->shift_results[nshifts].loc.col, 
-	&p->shift_results[nshifts].loc.line, 
+	&p->shift_results[nshifts].loc, 
 	&p->code_shifts[ncode].symbol, &p->code_shifts[ncode].term_priority, 
 	&p->code_shifts[ncode].op_assoc, &p->code_shifts[ncode].op_priority))) 
       {

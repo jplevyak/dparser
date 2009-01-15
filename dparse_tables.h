@@ -23,7 +23,7 @@ typedef struct d_loc_t {
 typedef void (*D_WhiteSpaceFn)(struct D_Parser *p, 
 			      d_loc_t *loc, void **p_globals);
 typedef int (*D_ScanCode)(
-  char **s, int *col, int *line, unsigned short *symbol, 
+  d_loc_t *loc, unsigned short *symbol, 
   int *term_priority, unsigned char *op_assoc, int *op_priority);
 typedef int (*D_ReductionCode)(
   void *new_ps, void **children, int n_children, int pn_offset,

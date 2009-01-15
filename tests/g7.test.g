@@ -1,22 +1,23 @@
 {
+#include "dparse.h"
 #include "g7.test.g.d_parser.h"
-int myscanner(char **s, int *col, int *line, unsigned short *symbol, 
+int myscanner(d_loc_t *loc, unsigned short *symbol, 
       int *term_priority, unsigned char *op_assoc, int *op_priority) 
 {
-  if (**s == 'a') {
-    (*s)++;
+  if (loc->s[0] == 'a') {
+    loc->s++;
     *symbol = A;
     return 1;
-  } else if (**s == 'b') {
-    (*s)++;
+  } else if (loc->s[0] == 'b') {
+    loc->s++;
     *symbol = BB;
     return 1;
-  } else if (**s == 'c') {
-    (*s)++;
+  } else if (loc->s[0] == 'c') {
+    loc->s++;
     *symbol = CCC;
     return 1;
-  } else if (**s == 'd') {
-    (*s)++;
+  } else if (loc->s[0] == 'd') {
+    loc->s++;
     *symbol = DDDD;
     return 1;
   } else
