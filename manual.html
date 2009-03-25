@@ -525,7 +525,7 @@ _: { printf("final action"); }<br>
 9.1. &nbsp;Global State (<span style="font-weight: bold;">$g</span>)<br>
 <br>
 &nbsp; Global state is declared by <span style="font-weight: bold;">define</span>'ing<span
- style="font-weight: bold;"> D_ParseNodeGlobals</span> (see the ANSI C
+ style="font-weight: bold;"> D_ParseNode_Globals</span> (see the ANSI C
 grammar for a similar declaration for symbols). Global state can be
 accessed in any action with <span style="font-weight: bold;">$g</span>.
 &nbsp;Because <span style="font-weight: bold;">DParser</span> handles
@@ -560,6 +560,8 @@ for parent node (non-terminal defined by the production)<br>
 &nbsp;<span style="font-weight: bold;">$X</span> (where X is a number)
 -
 the user parse node state of element X of the production<br>
+&nbsp;<span style="font-weight: bold;">$n</span> - the system parse
+node state of the rule node<br>
 &nbsp;<span style="font-weight: bold;">$nX</span> - the system parse
 node state of element X of the production<br>
 <br>
