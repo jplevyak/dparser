@@ -206,10 +206,13 @@ my_ambiguity_fn(struct D_Parser *dp,
   }
   arglist = Py_BuildValue("(O)", list);
   result = PyEval_CallObject(d_interface(dp)->ambiguity_fn, arglist);
-  if(!result) {
+  if(result == Py_None) {
     Py_DECREF(list);
     Py_DECREF(arglist);
-    return v[0];
+    i = 0;
+    if (dp->dont_use_greediness_for_disambiguation || dp->dont_use_height_for_disambiguation)
+      i = resolve_amb_greedy(dp, n, v);
+    return v[i];
   }
 
   for (i=0; i<n; i++) {

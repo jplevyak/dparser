@@ -953,6 +953,19 @@ cmp_greediness(Parser *p, PNode *x, PNode *y) {
   return ret;
 }
 
+int
+resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v) {
+  int i, result, selected_node= 0;
+
+  for(i=1; i<n; i++) {
+     result = cmp_greediness((Parser *)dp, D_ParseNode_to_PNode(v[i]),D_ParseNode_to_PNode( v[selected_node]) );
+     if ( result < 0 ||
+         (result == 0 && D_ParseNode_to_PNode(v[i])->height < D_ParseNode_to_PNode(v[selected_node])->height) )
+        selected_node = i;
+  }
+  return selected_node;
+}
+
 static int
 cmp_pnodes(Parser *p, PNode *x, PNode *y) {
   int r = 0;

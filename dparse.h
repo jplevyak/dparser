@@ -79,6 +79,8 @@ char *d_ws_after(D_Parser *p, D_ParseNode *pn); /* points AFTER trailing ws */
 
 void d_pass(D_Parser *p, D_ParseNode *pn, int pass_number);
 
+int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v);
+
 char *d_dup_pathname_str(char *str);
 
 #if defined(__cplusplus)
