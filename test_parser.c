@@ -95,11 +95,11 @@ help(ArgumentState *arg_state, char *arg_unused) {
 
 char *ops = "+";
 void *ops_cache = NULL; 
-int ops_scan(char *ops, void *ops_cache, char **as, int *col, int *line,
+int ops_scan(char *ops, void *ops_cache, d_loc_t *loc,
 	     unsigned char *op_assoc, int *op_priority) 
 {
-  if (**as == '+') {
-    (*as)++;
+  if (loc->s[0] == '+') {
+    loc->s++;
     *op_assoc = ASSOC_BINARY_LEFT;
     *op_priority = 9500;
     return 1;
