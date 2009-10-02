@@ -168,6 +168,7 @@ insert_SNode_internal(Parser *p, SNode *sn) {
     FREE(v);
   }
   sn->bucket_next = ph->v[h % ph->m];
+  assert(sn->bucket_next != sn);
   ph->v[h % ph->m] = sn;
   ph->n++;
 }
@@ -1303,7 +1304,11 @@ parse_whitespace(D_Parser *ap, d_loc_t *loc, void **p_globals) {
   pp->start = loc->s;
   if (!exhaustive_parse(pp, ((Parser *)ap)->t->whitespace_state)) {
     if (pp->accept) {
+      int old_col = loc->col, old_line = loc->line;
       *loc = pp->accept->loc;
+      if (loc->line == 1)
+        loc->col = old_col + loc->col;
+      loc->line = old_line + (pp->accept->loc.line - 1);
       unref_sn(pp, pp->accept);
       pp->accept = NULL;
     }
@@ -1407,7 +1412,6 @@ shift_all(Parser *p, char *pos) {
 	skip_fn = new_pn->parse_node.white_space;
 	new_pn->parse_node.white_space(
 	  (D_Parser*)p, &skip_loc, (void**)&new_pn->parse_node.globals);
-	skip_loc.previous_col = r->snode->loc.col >= 0 ? r->snode->loc.col : -1;
 	skip_loc.ws = r->loc.s;
 	new_pn->ws_before = loc.ws;
 	new_pn->ws_after = skip_loc.s;
@@ -1879,16 +1883,28 @@ update_line(const char *s, const char *e, int *line) {
 }
 
 static void
-recover_sn(Parser *p, SNode *sn) {
+recover_sn(Parser *p, SNode *sn, VecSNode *recovered_sns) {
   int i, j;
+  uint h;
+  if (!set_add(recovered_sns, sn))
+    return;
   SNode **last = &p->snode_hash.last_all;
   while (*last && *last != sn) last = &(*last)->all_next;
   if (*last)
     *last = sn->all_next;
+  last = &p->snode_hash.all;
+  while (*last && *last != sn) last = &(*last)->all_next;
+  if (*last)
+    *last = sn->all_next;
+  h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_globals);
+  last = &p->snode_hash.v[h % p->snode_hash.m];
+  while (*last && *last != sn) last = &(*last)->bucket_next;
+  if (*last)
+    *last = (*last)->bucket_next;
   insert_SNode(p, sn);
   for (i = 0; i < sn->zns.n; i++) {
     for (j = 0; j < sn->zns.v[i]->sns.n; j++)
-      recover_sn(p, sn->zns.v[i]->sns.v[j]);
+      recover_sn(p, sn->zns.v[i]->sns.v[j], recovered_sns);
   }
 }
 
@@ -1950,7 +1966,9 @@ error_recovery(Parser *p) {
     PNode *new_pn;
     SNode *new_sn;
     ZNode *z;
-    
+    VecSNode recovered_sns;
+
+    vec_clear(&recovered_sns);
     memset(rr, 0, sizeof(*rr));
     vec_add(&p->error_reductions, rr);
     rr->nelements = best_er->depth + 1;
@@ -1966,7 +1984,7 @@ error_recovery(Parser *p) {
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
     vec_add(&z->sns, best_sn);
-    recover_sn(p, best_sn);
+    recover_sn(p, best_sn, &recovered_sns);
     r->znode = z;
     ref_sn(new_sn);
     r->snode = new_sn;
@@ -2125,13 +2143,9 @@ char _wspace[256] = {
 static void
 white_space(D_Parser *p, d_loc_t *loc, void **p_user_globals) {
   int rec = 0;
-  char *s = loc->s, *scol;
+  char *s = loc->s, *scol = 0;
 
-  if (p->loc.s == s) 
-    scol = s; 
-  else 
-    scol = 0;
-  if (*s == '#' && loc->previous_col == 0) {
+  if (*s == '#' && loc->col == 0) {
   Ldirective:
     {
       char *save = s;
@@ -2203,7 +2217,7 @@ white_space(D_Parser *p, d_loc_t *loc, void **p_user_globals) {
   if (scol)
     loc->col = s - scol;
   else
-    loc->col = -1;
+    loc->col += s - loc->s;
   loc->s = s;
   return;
 }

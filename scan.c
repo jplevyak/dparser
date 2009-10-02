@@ -8,7 +8,7 @@ int
 scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
   d_loc_t loc = *aloc, last_loc = *aloc;
   char *s = loc.s, *scol = 0;
-  int col = loc.col, collast = col, line = loc.line;
+  int col = loc.col, line = loc.line;
   int nresults = 0, i = 0, j;
   D_Shift **shift = NULL, **shift_diff = 0;
 
@@ -33,12 +33,12 @@ scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
 	  }
 	}
 	prev = state;
-	loc.s = s; collast = col; loc.line = line;
+	if (c == '\n') { line++; col = 0; scol = s; } else col++;
+	loc.s = s; loc.line = line; loc.col = col;
 	if (st[state].shift) {
 	  last = state;
 	  last_loc = loc;
 	}
-	if (c == '\n') { line++; col = 0; scol = s; } else col++;
 	c = (uint8)*s++;
       }
       shift = st[last].shift;
@@ -64,7 +64,7 @@ scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
 	  }
 	}
 	prev = state;
-	loc.s = s; collast = col; loc.line = line;
+	loc.s = s; loc.line = line; loc.col = col;
 	if (st[state].shift) {
 	  last = state;
 	  last_loc = loc;
@@ -95,7 +95,7 @@ scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
 	  }
 	}
 	prev = state;
-	loc.s = s; collast = col; loc.line = line;
+	loc.s = s; loc.line = line; loc.col = col;
 	if (st[state].shift) {
 	  last = state;
 	  last_loc = loc;
@@ -107,9 +107,7 @@ scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
       break;
     }
   }
-  loc.col = scol ? s - scol : -1;
   if (shift) {
-    loc.line = line;
     for (; *shift; shift++) {
       results[nresults].loc = last_loc;
       results[nresults++].shift = *shift;

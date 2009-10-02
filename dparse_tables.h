@@ -17,7 +17,7 @@ struct D_ShiftTable;
 
 typedef struct d_loc_t {
   char *s, *pathname, *ws;
-  int col, previous_col, line;
+  int col, line;
 } d_loc_t;
 
 typedef void (*D_WhiteSpaceFn)(struct D_Parser *p, 

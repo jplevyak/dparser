@@ -103,7 +103,7 @@ main(int argc, char *argv[]) {
   for (i = 0; i < arg_state.nfile_arguments; i++) {
     p->loc.pathname = arg_state.file_argument[i];
     p->loc.line = 1;
-    p->loc.col = p->loc.previous_col = 0;
+    p->loc.col = 0;
     if (buf_read(arg_state.file_argument[i], &buf, &len) > 0)
       pn = dparse(p, buf, len);
     else 
