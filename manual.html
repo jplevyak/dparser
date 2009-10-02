@@ -467,6 +467,15 @@ ab<br>
 <br>
 aXb<br>
 <br>
+Note that in the above example, the print("X") is evaluated in
+a context null rule context while in:<br>
+<br>
+S: A (A B { printf("X"); }) B;<br>
+<br>
+The print is evalated in the context of the "A B" subrule because
+it appears at the end of the subrule and is therefor treated as a
+normal action for the subrule.<br>
+<br>
 8.4 Pass Actions<br>
 <br>
 &nbsp; <span style="font-weight: bold;">DParser</span> supports
