@@ -2252,9 +2252,17 @@ free_D_ParseNode(D_Parser * p, D_ParseNode *dpn) {
 #endif
 }
 
+static void
+copy_user_configurables(Parser *pp, Parser *p) { 
+  memcpy(((char*)&pp->user.start_state) + sizeof(pp->user.start_state),
+         ((char*)&p->user.start_state) + sizeof(p->user.start_state),
+         ((char*)&pp->user.syntax_errors - (char*)&pp->user.start_state));
+}
+
 Parser * 
 new_subparser(Parser *p) {
   Parser * pp = (Parser *)new_D_Parser(p->t, p->user.sizeof_user_parse_node);
+  copy_user_configurables(pp, p);
   pp->end = p->end;
   pp->pinterface1 = p->pinterface1;
   alloc_parser_working_data(pp);
