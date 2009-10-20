@@ -1,7 +1,8 @@
 #!/bin/tcsh 
 
-setenv VALGRIND 'valgrind -q '
-#setenv VALGRIND ' '
+#unset D_USE_FREELISTS for best valgrind results
+#setenv VALGRIND 'valgrind -q '
+setenv VALGRIND ' '
 
 cp BUILD_VERSION Makefile *.c *.h grammar.g tests
 cd tests

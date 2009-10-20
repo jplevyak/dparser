@@ -242,8 +242,12 @@ free_PNode(Parser *p, PNode *pn) {
   }
   if (pn->latest != pn)
     unref_pn(p, pn->latest);
+#ifdef USE_FREELISTS
   pn->all_next = p->free_pnodes;
   p->free_pnodes = pn;
+#else
+  FREE(pn);
+#endif
 #ifdef TRACK_PNODES
   if (pn->xprev)
     pn->xprev->xnext = pn->xnext;
@@ -265,8 +269,12 @@ free_ZNode(Parser *p, ZNode *z, SNode *s) {
     if (s != z->sns.v[i])
       unref_sn(p, z->sns.v[i]);
   vec_free(&z->sns);
+#ifdef USE_FREELISTS
   znode_next(z) = p->free_znodes;
   p->free_znodes = z;
+#else
+  FREE(z);
+#endif
 }
 
 static void
@@ -278,8 +286,12 @@ free_SNode(Parser *p, struct SNode *s) {
   vec_free(&s->zns);
   if (s->last_pn)
     unref_pn(p, s->last_pn);
+#ifdef USE_FREELISTS
   s->all_next = p->free_snodes;
   p->free_snodes = s;
+#else
+  FREE(s);
+#endif
 }
 #else
 #define free_ZNode(_p, _z, _s)
@@ -1882,32 +1894,6 @@ update_line(const char *s, const char *e, int *line) {
   for (;s < e; s++) if (*s == '\n') (*line)++;
 }
 
-static void
-recover_sn(Parser *p, SNode *sn, VecSNode *recovered_sns) {
-  int i, j;
-  uint h;
-  if (!set_add(recovered_sns, sn))
-    return;
-  SNode **last = &p->snode_hash.last_all;
-  while (*last && *last != sn) last = &(*last)->all_next;
-  if (*last)
-    *last = sn->all_next;
-  last = &p->snode_hash.all;
-  while (*last && *last != sn) last = &(*last)->all_next;
-  if (*last)
-    *last = sn->all_next;
-  h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_globals);
-  last = &p->snode_hash.v[h % p->snode_hash.m];
-  while (*last && *last != sn) last = &(*last)->bucket_next;
-  if (*last)
-    *last = (*last)->bucket_next;
-  insert_SNode(p, sn);
-  for (i = 0; i < sn->zns.n; i++) {
-    for (j = 0; j < sn->zns.v[i]->sns.n; j++)
-      recover_sn(p, sn->zns.v[i]->sns.v[j], recovered_sns);
-  }
-}
-
 static int
 error_recovery(Parser *p) {
   SNode *sn, *best_sn = NULL;
@@ -1966,9 +1952,7 @@ error_recovery(Parser *p) {
     PNode *new_pn;
     SNode *new_sn;
     ZNode *z;
-    VecSNode recovered_sns;
 
-    vec_clear(&recovered_sns);
     memset(rr, 0, sizeof(*rr));
     vec_add(&p->error_reductions, rr);
     rr->nelements = best_er->depth + 1;
@@ -1984,13 +1968,14 @@ error_recovery(Parser *p) {
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
     vec_add(&z->sns, best_sn);
-    recover_sn(p, best_sn, &recovered_sns);
+    ref_sn(best_sn);
     r->znode = z;
     ref_sn(new_sn);
     r->snode = new_sn;
     r->reduction = rr;
     r->new_snode = NULL;
     r->next = NULL;
+    free_old_nodes(p);
     free_old_nodes(p);
     reduce_one(p, r);
     for (i = 0; i < p->snode_hash.m; i++)
