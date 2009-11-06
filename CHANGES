@@ -1,3 +1,7 @@
+1.23    Whitespace parsers now inherit attriutes of the parent
+        Fixed (another) error recovery crash bug
+        Add ability to disable freelists for better valgrind results
+
 1.22    Add ambiguity callbacks for python (Humberto Abdelnur)
         Fixed error recovery crash bug
         Fixed column number bug.
