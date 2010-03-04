@@ -120,6 +120,7 @@ void int_list_intersect(int *a, int *b, int *c);
 int *int_list_dup(int *aa);
 
 char *escape_string(char *s);
+char *escape_string_single_quote(char *s);
 
 extern uint d_prime2[];
 extern int d_verbose_level;

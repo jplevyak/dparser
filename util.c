@@ -363,8 +363,9 @@ int_list_dup(int *aa) {
 }
 
 #define ESC(_c) *ss++ = '\\'; *ss++ = _c; break;
-char *
-escape_string(char *s) {
+
+static char *
+escape_string_internal(char *s, int single_quote) {
   char *ss = (char*)MALLOC((strlen(s) + 1) * 4), *sss = ss;
   for (; *s; s++) {
     switch (*s) {
@@ -375,15 +376,19 @@ escape_string(char *s) {
       case '\t': ESC('t');
       case '\v': ESC('v');
       case '\a': ESC('a');
-      case '\\': 
+      case '\\': ESC('\\');
       case '\"':
-	*ss++ = '\\';
-	*ss++ = *s; break;
-		
+        if (!single_quote) { ESC(*s); }
+	*ss++ = *s;
+        break;
+      case '\'':
+        if (single_quote) { ESC(*s); }
+	*ss++ = *s;
+        break;
       default:
-	if (isprint(*s)) {
+	if (isprint(*s))
 	  *ss++ = *s;
-	} else {
+	else {
 	  *ss++ = '\\';
 	  *ss++ = 'x';
 	  *ss++ = tohex2((unsigned char)*s);
@@ -395,5 +400,8 @@ escape_string(char *s) {
   *ss = 0;
   return sss;
 }
+
+char *escape_string(char *s) { return escape_string_internal(s, 0); }
+char *escape_string_single_quote(char *s) { return escape_string_internal(s, 1); }
 
 void d_free(void *x) { FREE(x); }

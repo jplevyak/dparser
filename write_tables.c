@@ -1111,10 +1111,16 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
   }
   fprintf(fp, "%s{ ", fname);
   c = code;
+  int in_string = 0;
   while (*c) {
+    if (*c != '\\') {
+      if (c[1] == '\'' || c[1] == '"') {
+        if (in_string == c[1]) in_string = 0; else if (!in_string) in_string = c[1];
+      }
+    }
     if (*c == '\n')
       g->write_line++;
-    if (*c == '$') {
+    if (!in_string && *c == '$') {
       c++;
       if (*c == '#') {
 	c++;

@@ -1,3 +1,6 @@
+1.24    Fixed bug in with -R option
+        Prevented substitutions in strings in code 
+
 1.23    Whitespace parsers now inherit attriutes of the parent
         Fixed (another) error recovery crash bug
         Add ability to disable freelists for better valgrind results

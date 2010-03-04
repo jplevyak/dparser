@@ -142,7 +142,7 @@ EXAMPLE<br>
 &nbsp; 4.1. The first production is the root of your grammar (what you
 will be trying to parse).<br>
 &nbsp; 4.2. Productions start with the non-terminal being defined
-followed by a colon ':', a set of right hand sides seperated by '|'
+followed by a colon ':', a set of right hand sides separated by '|'
 (or)
 consisting of elements (non-terminals or terminals).<br>
 &nbsp; 4.3. Elements can be grouped with parens '(', and the normal
@@ -312,20 +312,20 @@ for the substates must be disjoint.<br>
 6.5 Longest Match<br>
 <br>
 &nbsp; Longest match lexical ambiguity resolution is a technique used
-by seperate phase lexers to help decide (along<br>
-with lexical priorities) which single token to select for a given input
+by separate phase lexers to help decide (along with lexical priorities) 
+which single token to select for a given input
 string.&nbsp; It is used in the definition of ANSI-C, but not in C++
 because of a snafu in the definition of templates whereby templates of
 templates (List&lt;List &lt;Int&gt;&gt;) can end with the right shift
 token ('&gt;&gt;").&nbsp; Since <span style="font-weight: bold;">DParser</span>
-does not have a seperate lexical phase, it does not require longest
+does not have a separate lexical phase, it does not require longest
 match disambiguation, but provides it as an option.<br>
 <br>
 &nbsp; There are two ways to specify longest match disabiguation:
 globally as an option (-l) to <span style="font-weight: bold;">make_dparser</span>
-or locally with with a ${declare ... longest_match}.&nbsp; If global
+or locally with with a ${declare longest_match ...}.&nbsp; If global
 longest match disambiguation is <span style="font-weight: bold;">ON</span>,
-it can be locally disabled with {$declare ... all_matches} .&nbsp; As
+it can be locally disabled with {$declare all_matches ...} .&nbsp; As
 with Tokenizers above, local declarations operate on disjoint subsets
 of
 parsing states.<br>
@@ -520,7 +520,7 @@ be initiated in the final action of any rule.<br>
 &nbsp; The special production "<span style="font-weight: bold;">_</span>"
 can be defined with a single rule whose actions become the default when
 no other action is specified.&nbsp; Default actions can be specified
-for speculative, final and pass actions and apply to each seperately.<br>
+for speculative, final and pass actions and apply to each separately.<br>
 <br>
 EXAMPLE<br>
 <br>

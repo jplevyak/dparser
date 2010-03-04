@@ -67,7 +67,7 @@ main(int argc, char *argv[]) {
 
 		p->loc.pathname = argv[ arg ];
 		p->loc.line = 1;
-		p->loc.col = p->loc.previous_col = 0;
+		p->loc.col = 0;
 
 		if ( dump_pp ) {
 			int i;

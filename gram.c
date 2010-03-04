@@ -1524,31 +1524,36 @@ build_grammar(Grammar *g) {
 
 static void
 print_term_escaped(Term *t, int double_escaped) {
-  char *s = t->string ? escape_string(t->string) : NULL;
+  char *s = 0;
   if (t->term_name) {
     printf("%s ", t->term_name);
   } else if (t->kind == TERM_STRING) {
+    s = t->string ? escape_string_single_quote(t->string) : NULL;
     if (!t->string || !*t->string)
       printf("<EOF> ");
     else {
-      printf("'%s' ", double_escaped?escape_string(s):s);
+      printf("'%s' ", double_escaped?escape_string_single_quote(s):s);
       if (t->ignore_case)
 	printf("/i ");
       if (t->term_priority)
 	printf("%sterm %d ", double_escaped?"#":"$", t->term_priority);
     }
   } else if (t->kind == TERM_REGEX) {
+    s = t->string ? escape_string(t->string) : NULL;
+    //char *s = t->string; // ? escape_string(t->string) : NULL;
     char *quote = double_escaped ? "\\\"" : "\"";
     printf("%s%s%s ", quote, double_escaped?escape_string(s):s, quote);
     if (t->ignore_case)
       printf("/i ");
     if (t->term_priority)
       printf("%sterm %d ", double_escaped?"#":"$", t->term_priority);
-  } else if (t->kind == TERM_CODE)
+  } else if (t->kind == TERM_CODE) {
+    s = t->string ? escape_string(t->string) : NULL;
     printf("code(\"%s\") ", s);
-  else if (t->kind == TERM_TOKEN)
+  } else if (t->kind == TERM_TOKEN) {
+    s = t->string ? escape_string(t->string) : NULL;
     printf("%s ", s);
-  else
+  } else
     d_fail("unknown token kind");
   if (s)
     FREE(s);
@@ -1653,6 +1658,11 @@ print_productions(Grammar *g, char *pathname) {
     print_production(g->productions.v[i]);
 }
 
+static void print_declare(char *s, char *n) {
+  while (*n && (isspace(*n) || isdigit(*n))) n++;
+  printf(s, n);
+}
+
 static void
 print_declarations(Grammar *g) {
   int i;
@@ -1662,14 +1672,18 @@ print_declarations(Grammar *g) {
   for (i = 0; i < g->declarations.n; i++) {
     Declaration *dd = g->declarations.v[i];
     Elem *ee = dd->elem;
-    //printf("\nDeclaration->kind: %d", dd->kind);
-    //printf("\nElem->kind:        %d\n", ee->kind);
     switch (dd->kind) {
     case DECLARE_LONGEST_MATCH:
-      printf("${declare longest_match %s}\n", ee->e.nterm->name);
+      if (g->longest_match)
+        printf("${declare longest_match}\n");
+      else
+        print_declare("${declare longest_match %s}\n", ee->e.nterm->name);
       break;
     case DECLARE_ALL_MATCHES:
-      printf("${declare all_matches %s}\n", ee->e.nterm->name);
+      if (!g->longest_match)
+        printf("${declare all_matches}\n");
+      else
+        print_declare("${declare all_matches %s}\n", ee->e.nterm->name);
       break;
     default:
       printf("\n/*\nDeclaration->kind: %d", dd->kind);
