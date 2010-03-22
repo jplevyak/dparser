@@ -1,3 +1,5 @@
+1.25    Fix const issues thanx to Harald Gutsche
+
 1.24    Fixed bug in with -R option
         Prevented substitutions in strings in code 
 
