@@ -87,7 +87,7 @@ new_term_string(Grammar *g, char *s, char *e, Rule *r) {
 
 #define ESC(_c) *ss++ = '\\'; *ss++ = _c; break;
 char *
-escape_string_for_regex(char *s) {
+escape_string_for_regex(const char *s) {
   char *ss = (char*)MALLOC((strlen(s) + 1) * 2), *sss = ss;
   for (; *s; s++) {
     switch (*s) {

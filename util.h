@@ -103,16 +103,16 @@ while(0)
   (*((_s)->cur)++ = (_x)); } while(0)
 void * stack_push_internal(AbstractStack*, void*);
 
-int buf_read(char *pathname, char **buf, int *len);
-char *sbuf_read(char *pathname);
+int buf_read(const char *pathname, char **buf, int *len);
+char *sbuf_read(const char *pathname);
 
 #define STREQ(_x,_n,_s) \
   ((_n == sizeof(_s)-1) && !strncasecmp(_x,_s,sizeof(_s)-1))
 
-void d_fail(char *str, ...);
-void d_warn(char *str, ...);
-char *dup_str(char *str, char *end);
-uint strhashl(char *s, int len);
+void d_fail(const char *str, ...);
+void d_warn(const char *str, ...);
+char *dup_str(const char *str, const char *end);
+uint strhashl(const char *s, int len);
 void d_free(void *);
 
 void int_list_diff(int *a, int *b, int *c);

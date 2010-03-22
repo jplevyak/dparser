@@ -17,8 +17,8 @@ int test_level = 0;
 int d_rdebug_grammar_level = 0;
 
 char *
-d_dup_pathname_str(char *s) {
-  char *e = s;
+d_dup_pathname_str(const char *s) {
+  const char *e = s;
   if (!s)
     return dup_str("", 0);
   if (*e == '"') {
@@ -29,7 +29,7 @@ d_dup_pathname_str(char *s) {
 }
 
 char *
-dup_str(char *s, char *e) {
+dup_str(const char *s, const char *e) {
   int l = e ? e-s : strlen(s);
   char *ss = (char*)MALLOC(l+1);
   memcpy(ss, s, l);
@@ -37,11 +37,11 @@ dup_str(char *s, char *e) {
   return ss;
 }
 
-uint 
-strhashl(char *s, int l) {
+uint
+strhashl(const char *s, int l) {
   uint h = 0, g;
   int i = 0;
-                
+
   for (;i < l;i++,s++) {
     h = (h << 4) + *s;
     if ((g = h & 0xf0000000))
@@ -51,7 +51,7 @@ strhashl(char *s, int l) {
 }
 
 int
-buf_read(char *pathname, char **buf, int *len) {
+buf_read(const char *pathname, char **buf, int *len) {
   struct stat sb;
   int fd;
 
@@ -72,7 +72,7 @@ buf_read(char *pathname, char **buf, int *len) {
 }
 
 char *
-sbuf_read(char *pathname) {
+sbuf_read(const char *pathname) {
   char *buf;
   int len;
 
@@ -82,7 +82,7 @@ sbuf_read(char *pathname) {
 }
 
 void
-d_fail(char *str, ...) {
+d_fail(const char *str, ...) {
   char nstr[256];
   va_list ap;
   va_start(ap, str);
@@ -93,7 +93,7 @@ d_fail(char *str, ...) {
 }
 
 void
-d_warn(char *str, ...) {
+d_warn(const char *str, ...) {
   char nstr[256];
   va_list ap;
   va_start(ap, str);
