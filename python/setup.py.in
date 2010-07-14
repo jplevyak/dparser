@@ -1,0 +1,46 @@
+#
+# $Id$
+#
+# $Log$
+#
+from distutils.core import setup, Extension
+import string
+
+#Pete Shinner's distutils data file fix... from distutils-sig
+#data installer with improved intelligence over distutils
+#data files are copied into the project directory instead
+#of willy-nilly
+#from distutils.command.install_data import install_data
+#import os, sys, string
+#class smart_install_data(install_data):
+#    def run(self):
+#        #need to change self.install_dir to the library dir
+#        install_cmd = self.get_finalized_command('install')
+#        self.install_dir = getattr(install_cmd, 'install_lib')
+#        return install_data.run(self)
+
+module_swigc = Extension('_@PACKAGE_NAME@'
+   , sources = ['@PACKAGE_NAME@_wrap.c']
+   , include_dirs=['@top_srcdir@']
+   , extra_link_args = string.split('@GC_LIB@ @LEAK_LIB@ @POW_LIB@')
+   , extra_compile_args = ['-Wall']
+   , library_dirs = ['@builddir@/.libs', '@top_builddir@', '/usr/local/lib', '@libdir@']
+   , libraries = ['pydparser', 'mkdparse', 'dparser']
+   #, ['@PACKAGE_NAME@_wrap.c', 'py@PACKAGE_NAME@.c', 'make_tables.c']
+   #, define_macros = [('SWIG_GLOBAL', None)]
+)
+    
+setup(name = '@PACKAGE_NAME@'
+    , version = '@VERSION@'
+    , description = 'DParser for Python'
+    #cmdclass = {"install_data": smart_install_data},
+    #py_modules = ["@PACKAGE_NAME@"],
+    , ext_modules = [module_swigc]
+    , author = 'Mr Da Parser, John Plevyak'
+    , author_email = '@PACKAGE_BUGREPORT@'
+    , url = '@PACKAGE_URL@'
+    , download_url = '@PACKAGE_DOWNLOAD_URL@'
+    , package_dir = {'@PACKAGE_NAME@': '@srcdir@'}
+    , packages = [ '@PACKAGE_NAME@' ]
+    , ext_package = '@PACKAGE_NAME@'
+)

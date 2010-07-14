@@ -1,0 +1,18 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Parser-D
+version:      0.001
+version_from: D.pm
+installdirs:  site
+requires:
+    Class::Container:              0.12
+    Data::Dumper:                  2.121
+    Data::Hexdumper:               1.2
+    File::Temp:                    0.16
+    IO::Gzip:                      0
+    Params::Validate:              0
+    Parse::Lex:                    2.15
+    Test::More:                    0.34
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

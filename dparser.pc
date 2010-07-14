@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: The John Plevyak's Da Parser
+Description: yet another  parser
+Version: 1.14.2
+Libs: -L${libdir} -ldpaser
+Cflags: -I${includedir}

@@ -1,0 +1,281 @@
+--    Expanded ASN1 Module 'MAP-DialogueInformation'     
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 13:00:16            
+
+MAP-DialogueInformation{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-DialogueInformation (3) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   map-DialogueAS, 
+   MAP-DialoguePDU;
+
+
+map-DialogueAS OBJECT IDENTIFIER ::= { ccitt (0) identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) 1 map-DialoguePDU (1) version1 (1) }
+
+MAP-DialoguePDU ::= CHOICE {
+   map-open              [0] IMPLICIT SEQUENCE {
+      destinationReference   [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+      originationReference   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+      ... , 
+      extensionContainer     SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL}, 
+   map-accept            [1] IMPLICIT SEQUENCE {
+      ... , 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL}, 
+   map-close             [2] IMPLICIT SEQUENCE {
+      ... , 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL}, 
+   map-refuse            [3] IMPLICIT SEQUENCE {
+      reason                          ENUMERATED {
+         noReasonGiven                  ( 0 ), 
+         invalidDestinationReference    ( 1 ), 
+         invalidOriginatingReference    ( 2 ) }, 
+      ... , 
+      extensionContainer              SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      alternativeApplicationContext   OBJECT IDENTIFIER OPTIONAL}, 
+   map-userAbort         [4] IMPLICIT SEQUENCE {
+      map-UserAbortChoice   CHOICE {
+         userSpecificReason                   [0] IMPLICIT NULL, 
+         userResourceLimitation               [1] IMPLICIT NULL, 
+         resourceUnavailable                  [2] IMPLICIT ENUMERATED {
+            shortTermResourceLimitation    ( 0 ), 
+            longTermResourceLimitation     ( 1 ) }, 
+         applicationProcedureCancellation     [3] IMPLICIT ENUMERATED {
+            handoverCancellation          ( 0 ), 
+            radioChannelRelease           ( 1 ), 
+            networkPathRelease            ( 2 ), 
+            callRelease                   ( 3 ), 
+            associatedProcedureFailure    ( 4 ), 
+            tandemDialogueRelease         ( 5 ), 
+            remoteOperationsFailure       ( 6 ) }}, 
+      ... , 
+      extensionContainer    SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL}, 
+   map-providerAbort     [5] IMPLICIT SEQUENCE {
+      map-ProviderAbortReason   ENUMERATED {
+         abnormalDialogue    ( 0 ), 
+         invalidPDU          ( 1 ) }, 
+      ... , 
+      extensionContainer        SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL}}
+
+MAP-OpenInfo ::= SEQUENCE {
+   destinationReference   [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+   originationReference   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+   ... , 
+   extensionContainer     SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL}
+
+MAP-AcceptInfo ::= SEQUENCE {
+   ... , 
+   extensionContainer   SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL}
+
+MAP-CloseInfo ::= SEQUENCE {
+   ... , 
+   extensionContainer   SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL}
+
+MAP-RefuseInfo ::= SEQUENCE {
+   reason                          ENUMERATED {
+      noReasonGiven                  ( 0 ), 
+      invalidDestinationReference    ( 1 ), 
+      invalidOriginatingReference    ( 2 ) }, 
+   ... , 
+   extensionContainer              SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL, 
+   alternativeApplicationContext   OBJECT IDENTIFIER OPTIONAL}
+
+Reason     ::= ENUMERATED {
+   noReasonGiven                  ( 0 ), 
+   invalidDestinationReference    ( 1 ), 
+   invalidOriginatingReference    ( 2 ) }
+
+MAP-UserAbortInfo ::= SEQUENCE {
+   map-UserAbortChoice   CHOICE {
+      userSpecificReason                   [0] IMPLICIT NULL, 
+      userResourceLimitation               [1] IMPLICIT NULL, 
+      resourceUnavailable                  [2] IMPLICIT ENUMERATED {
+         shortTermResourceLimitation    ( 0 ), 
+         longTermResourceLimitation     ( 1 ) }, 
+      applicationProcedureCancellation     [3] IMPLICIT ENUMERATED {
+         handoverCancellation          ( 0 ), 
+         radioChannelRelease           ( 1 ), 
+         networkPathRelease            ( 2 ), 
+         callRelease                   ( 3 ), 
+         associatedProcedureFailure    ( 4 ), 
+         tandemDialogueRelease         ( 5 ), 
+         remoteOperationsFailure       ( 6 ) }}, 
+   ... , 
+   extensionContainer    SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL}
+
+MAP-UserAbortChoice ::= CHOICE {
+   userSpecificReason                   [0] IMPLICIT NULL, 
+   userResourceLimitation               [1] IMPLICIT NULL, 
+   resourceUnavailable                  [2] IMPLICIT ENUMERATED {
+      shortTermResourceLimitation    ( 0 ), 
+      longTermResourceLimitation     ( 1 ) }, 
+   applicationProcedureCancellation     [3] IMPLICIT ENUMERATED {
+      handoverCancellation          ( 0 ), 
+      radioChannelRelease           ( 1 ), 
+      networkPathRelease            ( 2 ), 
+      callRelease                   ( 3 ), 
+      associatedProcedureFailure    ( 4 ), 
+      tandemDialogueRelease         ( 5 ), 
+      remoteOperationsFailure       ( 6 ) }}
+
+ResourceUnavailableReason ::= ENUMERATED {
+   shortTermResourceLimitation    ( 0 ), 
+   longTermResourceLimitation     ( 1 ) }
+
+ProcedureCancellationReason ::= ENUMERATED {
+   handoverCancellation          ( 0 ), 
+   radioChannelRelease           ( 1 ), 
+   networkPathRelease            ( 2 ), 
+   callRelease                   ( 3 ), 
+   associatedProcedureFailure    ( 4 ), 
+   tandemDialogueRelease         ( 5 ), 
+   remoteOperationsFailure       ( 6 ) }
+
+MAP-ProviderAbortInfo ::= SEQUENCE {
+   map-ProviderAbortReason   ENUMERATED {
+      abnormalDialogue    ( 0 ), 
+      invalidPDU          ( 1 ) }, 
+   ... , 
+   extensionContainer        SEQUENCE {
+      privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            extId      MAP-EXTENSION .&extensionId  ( {
+               , 
+               ...} ) , 
+            extType    MAP-EXTENSION .&ExtensionType  ( {
+               , 
+               ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+      pcs-Extensions         [1] IMPLICIT SEQUENCE {
+         ... } OPTIONAL, 
+      ... } OPTIONAL}
+
+MAP-ProviderAbortReason ::= ENUMERATED {
+   abnormalDialogue    ( 0 ), 
+   invalidPDU          ( 1 ) }
+
+END

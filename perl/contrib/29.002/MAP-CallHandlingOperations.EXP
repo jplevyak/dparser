@@ -1,0 +1,1444 @@
+--   Expanded ASN1 Module 'MAP-CallHandlingOperations'   
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 12:59:15            
+
+MAP-CallHandlingOperations{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-CallHandlingOperations (7) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   sendRoutingInfo, 
+   provideRoamingNumber, 
+   resumeCallHandling, 
+   setReportingState, 
+   statusReport, 
+   remoteUserFree, 
+   ist-Alert, 
+   ist-Command, 
+   releaseResources;
+
+
+sendRoutingInfo OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      msisdn                            [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      cug-CheckInfo                     [1] IMPLICIT SEQUENCE {
+         cug-Interlock        OCTET STRING ( SIZE( 4 ) ), 
+         cug-OutgoingAccess   NULL OPTIONAL, 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      numberOfForwarding                [2] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+      interrogationType                 [3] IMPLICIT ENUMERATED {
+         basicCall     ( 0 ), 
+         forwarding    ( 1 ) }, 
+      or-Interrogation                  [4] IMPLICIT NULL OPTIONAL, 
+      or-Capability                     [5] IMPLICIT INTEGER ( 1 .. 127 ) OPTIONAL, 
+      gmsc-OrGsmSCF-Address             [6] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      callReferenceNumber               [7] IMPLICIT OCTET STRING ( SIZE( 1 .. 8 ) ) OPTIONAL, 
+      forwardingReason                  [8] IMPLICIT ENUMERATED {
+         notReachable    ( 0 ), 
+         busy            ( 1 ), 
+         noReply         ( 2 ) } OPTIONAL, 
+      basicServiceGroup                 [9] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+      networkSignalInfo                 [10] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      camelInfo                         [11] IMPLICIT SEQUENCE {
+         supportedCamelPhases   BIT STRING {
+            phase1  (0 ), 
+            phase2  (1 ), 
+            phase3  (2 ), 
+            phase4  (3 )} ( SIZE( 1 .. 16 ) ), 
+         suppress-T-CSI         NULL OPTIONAL, 
+         extensionContainer     SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         offeredCamel4CSIs      [0] IMPLICIT BIT STRING {
+            o-csi  (0 ), 
+            d-csi  (1 ), 
+            vt-csi  (2 ), 
+            t-csi  (3 ), 
+            mt-sms-csi  (4 ), 
+            mg-csi  (5 ), 
+            psi-enhancements  (6 )} ( SIZE( 7 .. 16 ) ) OPTIONAL} OPTIONAL, 
+      suppressionOfAnnouncement         [12] IMPLICIT NULL OPTIONAL, 
+      extensionContainer                [13] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      alertingPattern                   [14] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      ccbs-Call                         [15] IMPLICIT NULL OPTIONAL, 
+      supportedCCBS-Phase               [16] IMPLICIT INTEGER ( 1 .. 127 ) OPTIONAL, 
+      additionalSignalInfo              [17] IMPLICIT SEQUENCE {
+         ext-ProtocolId       ENUMERATED {
+            ets-300356    ( 1 ), 
+            ...  }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      istSupportIndicator               [18] IMPLICIT ENUMERATED {
+         basicISTSupported      ( 0 ), 
+         istCommandSupported    ( 1 ), 
+         ...  } OPTIONAL, 
+      pre-pagingSupported               [19] IMPLICIT NULL OPTIONAL, 
+      callDiversionTreatmentIndicator   [20] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      longFTN-Supported                 [21] IMPLICIT NULL OPTIONAL, 
+      suppress-VT-CSI                   [22] IMPLICIT NULL OPTIONAL, 
+      suppressIncomingCallBarring       [23] IMPLICIT NULL OPTIONAL, 
+      gsmSCF-InitiatedCall              [24] IMPLICIT NULL OPTIONAL, 
+      basicServiceGroup2                [25] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+      networkSignalInfo2                [26] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      suppressMTSS                      [27] IMPLICIT BIT STRING {
+         suppressCUG  (0 ), 
+         suppressCCBS  (1 )} ( SIZE( 2 .. 16 ) ) OPTIONAL}
+   RESULT     [3] IMPLICIT SEQUENCE {
+      imsi                              [9] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      extendedRoutingInfo               CHOICE {
+         routingInfo          CHOICE {
+            roamingNumber      OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+            forwardingData     SEQUENCE {
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               extensionContainer      [7] IMPLICIT SEQUENCE {
+                  privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        extId      MAP-EXTENSION .&extensionId  ( {
+                           , 
+                           ...} ) , 
+                        extType    MAP-EXTENSION .&ExtensionType  ( {
+                           , 
+                           ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                  pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                     ... } OPTIONAL, 
+                  ... } OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}}, 
+         camelRoutingInfo     [8] IMPLICIT SEQUENCE {
+            forwardingData              SEQUENCE {
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               extensionContainer      [7] IMPLICIT SEQUENCE {
+                  privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        extId      MAP-EXTENSION .&extensionId  ( {
+                           , 
+                           ...} ) , 
+                        extType    MAP-EXTENSION .&ExtensionType  ( {
+                           , 
+                           ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                  pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                     ... } OPTIONAL, 
+                  ... } OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL} OPTIONAL, 
+            gmscCamelSubscriptionInfo   [0] IMPLICIT SEQUENCE {
+               t-CSI                           [0] IMPLICIT SEQUENCE {
+                  t-BcsmCamelTDPDataList    SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        t-BcsmTriggerDetectionPoint   ENUMERATED {
+                           termAttemptAuthorized    ( 12 ), 
+                           ... , 
+                           tBusy                    ( 13 ), 
+                           tNoAnswer                ( 14 ) }, 
+                        serviceKey                    INTEGER ( 0 .. 2147483647 ), 
+                        gsmSCF-Address                [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+                        defaultCallHandling           [1] IMPLICIT ENUMERATED {
+                           continueCall    ( 0 ), 
+                           releaseCall     ( 1 ), 
+                           ...  }, 
+                        extensionContainer            [2] IMPLICIT SEQUENCE {
+                           privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                              SEQUENCE {
+                                 extId      MAP-EXTENSION .&extensionId  ( {
+                                    , 
+                                    ...} ) , 
+                                 extType    MAP-EXTENSION .&ExtensionType  ( {
+                                    , 
+                                    ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                           pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                              ... } OPTIONAL, 
+                           ... } OPTIONAL, 
+                        ... }, 
+                  extensionContainer        SEQUENCE {
+                     privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                        SEQUENCE {
+                           extId      MAP-EXTENSION .&extensionId  ( {
+                              , 
+                              ...} ) , 
+                           extType    MAP-EXTENSION .&ExtensionType  ( {
+                              , 
+                              ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                     pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                        ... } OPTIONAL, 
+                     ... } OPTIONAL, 
+                  ... , 
+                  camelCapabilityHandling   [0] IMPLICIT INTEGER ( 1 .. 16 ) OPTIONAL, 
+                  notificationToCSE         [1] IMPLICIT NULL OPTIONAL, 
+                  csi-Active                [2] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+               o-CSI                           [1] IMPLICIT SEQUENCE {
+                  o-BcsmCamelTDPDataList    SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        o-BcsmTriggerDetectionPoint   ENUMERATED {
+                           collectedInfo         ( 2 ), 
+                           ... , 
+                           routeSelectFailure    ( 4 ) }, 
+                        serviceKey                    INTEGER ( 0 .. 2147483647 ), 
+                        gsmSCF-Address                [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+                        defaultCallHandling           [1] IMPLICIT ENUMERATED {
+                           continueCall    ( 0 ), 
+                           releaseCall     ( 1 ), 
+                           ...  }, 
+                        extensionContainer            [2] IMPLICIT SEQUENCE {
+                           privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                              SEQUENCE {
+                                 extId      MAP-EXTENSION .&extensionId  ( {
+                                    , 
+                                    ...} ) , 
+                                 extType    MAP-EXTENSION .&ExtensionType  ( {
+                                    , 
+                                    ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                           pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                              ... } OPTIONAL, 
+                           ... } OPTIONAL, 
+                        ... }, 
+                  extensionContainer        SEQUENCE {
+                     privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                        SEQUENCE {
+                           extId      MAP-EXTENSION .&extensionId  ( {
+                              , 
+                              ...} ) , 
+                           extType    MAP-EXTENSION .&ExtensionType  ( {
+                              , 
+                              ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                     pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                        ... } OPTIONAL, 
+                     ... } OPTIONAL, 
+                  ... , 
+                  camelCapabilityHandling   [0] IMPLICIT INTEGER ( 1 .. 16 ) OPTIONAL, 
+                  notificationToCSE         [1] IMPLICIT NULL OPTIONAL, 
+                  csiActive                 [2] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+               extensionContainer              [2] IMPLICIT SEQUENCE {
+                  privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        extId      MAP-EXTENSION .&extensionId  ( {
+                           , 
+                           ...} ) , 
+                        extType    MAP-EXTENSION .&ExtensionType  ( {
+                           , 
+                           ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                  pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                     ... } OPTIONAL, 
+                  ... } OPTIONAL, 
+               ... , 
+               o-BcsmCamelTDP-CriteriaList     [3] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     o-BcsmTriggerDetectionPoint   ENUMERATED {
+                        collectedInfo         ( 2 ), 
+                        ... , 
+                        routeSelectFailure    ( 4 ) }, 
+                     destinationNumberCriteria     [0] IMPLICIT SEQUENCE {
+                        matchType                     [0] IMPLICIT ENUMERATED {
+                           inhibiting    ( 0 ), 
+                           enabling      ( 1 ) }, 
+                        destinationNumberList         [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                           OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                        destinationNumberLengthList   [2] IMPLICIT SEQUENCE  ( SIZE( 1 .. 3 ) ) OF
+                           INTEGER ( 1 .. 15 ) OPTIONAL, 
+                        ... } OPTIONAL, 
+                     basicServiceCriteria          [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+                        CHOICE {
+                           ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+                           ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+                     callTypeCriteria              [2] IMPLICIT ENUMERATED {
+                        forwarded       ( 0 ), 
+                        notForwarded    ( 1 ) } OPTIONAL, 
+                     ... , 
+                     o-CauseValueCriteria          [3] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+                        OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+                     extensionContainer            [4] IMPLICIT SEQUENCE {
+                        privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                           SEQUENCE {
+                              extId      MAP-EXTENSION .&extensionId  ( {
+                                 , 
+                                 ...} ) , 
+                              extType    MAP-EXTENSION .&ExtensionType  ( {
+                                 , 
+                                 ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                        pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                           ... } OPTIONAL, 
+                        ... } OPTIONAL} OPTIONAL, 
+               t-BCSM-CAMEL-TDP-CriteriaList   [4] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     t-BCSM-TriggerDetectionPoint   ENUMERATED {
+                        termAttemptAuthorized    ( 12 ), 
+                        ... , 
+                        tBusy                    ( 13 ), 
+                        tNoAnswer                ( 14 ) }, 
+                     basicServiceCriteria           [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+                        CHOICE {
+                           ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+                           ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+                     t-CauseValueCriteria           [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+                        OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+                     ... } OPTIONAL, 
+               d-csi                           [5] IMPLICIT SEQUENCE {
+                  dp-AnalysedInfoCriteriaList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        dialledNumber         OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+                        serviceKey            INTEGER ( 0 .. 2147483647 ), 
+                        gsmSCF-Address        OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+                        defaultCallHandling   ENUMERATED {
+                           continueCall    ( 0 ), 
+                           releaseCall     ( 1 ), 
+                           ...  }, 
+                        extensionContainer    SEQUENCE {
+                           privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                              SEQUENCE {
+                                 extId      MAP-EXTENSION .&extensionId  ( {
+                                    , 
+                                    ...} ) , 
+                                 extType    MAP-EXTENSION .&ExtensionType  ( {
+                                    , 
+                                    ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                           pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                              ... } OPTIONAL, 
+                           ... } OPTIONAL, 
+                        ... } OPTIONAL, 
+                  camelCapabilityHandling       [1] IMPLICIT INTEGER ( 1 .. 16 ) OPTIONAL, 
+                  extensionContainer            [2] IMPLICIT SEQUENCE {
+                     privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                        SEQUENCE {
+                           extId      MAP-EXTENSION .&extensionId  ( {
+                              , 
+                              ...} ) , 
+                           extType    MAP-EXTENSION .&ExtensionType  ( {
+                              , 
+                              ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                     pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                        ... } OPTIONAL, 
+                     ... } OPTIONAL, 
+                  notificationToCSE             [3] IMPLICIT NULL OPTIONAL, 
+                  csi-Active                    [4] IMPLICIT NULL OPTIONAL, 
+                  ... } OPTIONAL}, 
+            extensionContainer          [1] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... }} OPTIONAL, 
+      cug-CheckInfo                     [3] IMPLICIT SEQUENCE {
+         cug-Interlock        OCTET STRING ( SIZE( 4 ) ), 
+         cug-OutgoingAccess   NULL OPTIONAL, 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      cugSubscriptionFlag               [6] IMPLICIT NULL OPTIONAL, 
+      subscriberInfo                    [7] IMPLICIT SEQUENCE {
+         locationInformation       [0] IMPLICIT SEQUENCE {
+            ageOfLocationInformation           INTEGER ( 0 .. 32767 ) OPTIONAL, 
+            geographicalInformation            [0] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+            vlr-number                         [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            locationNumber                     [2] IMPLICIT OCTET STRING ( SIZE( 2 .. 10 ) ) OPTIONAL, 
+            cellGlobalIdOrServiceAreaIdOrLAI   [3] CHOICE {
+               cellGlobalIdOrServiceAreaIdFixedLength     [0] IMPLICIT OCTET STRING ( SIZE( 7 ) ), 
+               laiFixedLength                             [1] IMPLICIT OCTET STRING ( SIZE( 5 ) )} OPTIONAL, 
+            extensionContainer                 [4] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... , 
+            selectedLSA-Id                     [5] IMPLICIT OCTET STRING ( SIZE( 3 ) ) OPTIONAL, 
+            msc-Number                         [6] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            geodeticInformation                [7] IMPLICIT OCTET STRING ( SIZE( 10 ) ) OPTIONAL, 
+            currentLocationRetrieved           [8] IMPLICIT NULL OPTIONAL, 
+            sai-Present                        [9] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+         subscriberState           [1] CHOICE {
+            assumedIdle            [0] IMPLICIT NULL, 
+            camelBusy              [1] IMPLICIT NULL, 
+            netDetNotReachable     ENUMERATED {
+               msPurged          ( 0 ), 
+               imsiDetached      ( 1 ), 
+               restrictedArea    ( 2 ), 
+               notRegistered     ( 3 ) }, 
+            notProvidedFromVLR     [2] IMPLICIT NULL} OPTIONAL, 
+         extensionContainer        [2] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         locationInformationGPRS   [3] IMPLICIT SEQUENCE {
+            cellGlobalIdOrServiceAreaIdOrLAI   [0] CHOICE {
+               cellGlobalIdOrServiceAreaIdFixedLength     [0] IMPLICIT OCTET STRING ( SIZE( 7 ) ), 
+               laiFixedLength                             [1] IMPLICIT OCTET STRING ( SIZE( 5 ) )} OPTIONAL, 
+            routeingAreaIdentity               [1] IMPLICIT OCTET STRING ( SIZE( 6 ) ) OPTIONAL, 
+            geographicalInformation            [2] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+            sgsn-Number                        [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            selectedLSAIdentity                [4] IMPLICIT OCTET STRING ( SIZE( 3 ) ) OPTIONAL, 
+            extensionContainer                 [5] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... , 
+            sai-Present                        [6] IMPLICIT NULL OPTIONAL, 
+            geodeticInformation                [7] IMPLICIT OCTET STRING ( SIZE( 10 ) ) OPTIONAL, 
+            currentLocationRetrieved           [8] IMPLICIT NULL OPTIONAL, 
+            ageOfLocationInformation           [9] IMPLICIT INTEGER ( 0 .. 32767 ) OPTIONAL} OPTIONAL, 
+         ps-SubscriberState        [4] CHOICE {
+            notProvidedFromSGSN                    [0] IMPLICIT NULL, 
+            ps-Detached                            [1] IMPLICIT NULL, 
+            ps-AttachedNotReachableForPaging       [2] IMPLICIT NULL, 
+            ps-AttachedReachableForPaging          [3] IMPLICIT NULL, 
+            ps-PDP-ActiveNotReachableForPaging     [4] IMPLICIT SEQUENCE  ( SIZE( 1 .. 50 ) ) OF
+               SEQUENCE {
+                  pdp-ContextIdentifier     [0] IMPLICIT INTEGER ( 1 .. 50 ), 
+                  pdp-ContextActive         [1] IMPLICIT NULL OPTIONAL, 
+                  pdp-Type                  [2] IMPLICIT OCTET STRING ( SIZE( 2 ) ), 
+                  pdp-Address               [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 16 ) ) OPTIONAL, 
+                  apn-Subscribed            [4] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+                  apn-InUse                 [5] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+                  nsapi                     [6] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+                  transactionId             [7] IMPLICIT OCTET STRING ( SIZE( 1 .. 2 ) ) OPTIONAL, 
+                  teid-ForGnAndGp           [8] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  teid-ForIu                [9] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  ggsn-Address              [10] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+                  qos-Subscribed            [11] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  qos-Requested             [12] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  qos-Negotiated            [13] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  chargingId                [14] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  chargingCharacteristics   [15] IMPLICIT OCTET STRING ( SIZE( 2 ) ) OPTIONAL, 
+                  rnc-Address               [16] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+                  extensionContainer        [17] IMPLICIT SEQUENCE {
+                     privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                        SEQUENCE {
+                           extId      MAP-EXTENSION .&extensionId  ( {
+                              , 
+                              ...} ) , 
+                           extType    MAP-EXTENSION .&ExtensionType  ( {
+                              , 
+                              ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                     pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                        ... } OPTIONAL, 
+                     ... } OPTIONAL, 
+                  ... , 
+                  qos2-Subscribed           [18] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL, 
+                  qos2-Requested            [19] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL, 
+                  qos2-Negotiated           [20] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL}, 
+            ps-PDP-ActiveReachableForPaging        [5] IMPLICIT SEQUENCE  ( SIZE( 1 .. 50 ) ) OF
+               SEQUENCE {
+                  pdp-ContextIdentifier     [0] IMPLICIT INTEGER ( 1 .. 50 ), 
+                  pdp-ContextActive         [1] IMPLICIT NULL OPTIONAL, 
+                  pdp-Type                  [2] IMPLICIT OCTET STRING ( SIZE( 2 ) ), 
+                  pdp-Address               [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 16 ) ) OPTIONAL, 
+                  apn-Subscribed            [4] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+                  apn-InUse                 [5] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+                  nsapi                     [6] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+                  transactionId             [7] IMPLICIT OCTET STRING ( SIZE( 1 .. 2 ) ) OPTIONAL, 
+                  teid-ForGnAndGp           [8] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  teid-ForIu                [9] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  ggsn-Address              [10] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+                  qos-Subscribed            [11] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  qos-Requested             [12] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  qos-Negotiated            [13] IMPLICIT OCTET STRING ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+                  chargingId                [14] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+                  chargingCharacteristics   [15] IMPLICIT OCTET STRING ( SIZE( 2 ) ) OPTIONAL, 
+                  rnc-Address               [16] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+                  extensionContainer        [17] IMPLICIT SEQUENCE {
+                     privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                        SEQUENCE {
+                           extId      MAP-EXTENSION .&extensionId  ( {
+                              , 
+                              ...} ) , 
+                           extType    MAP-EXTENSION .&ExtensionType  ( {
+                              , 
+                              ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                     pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                        ... } OPTIONAL, 
+                     ... } OPTIONAL, 
+                  ... , 
+                  qos2-Subscribed           [18] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL, 
+                  qos2-Requested            [19] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL, 
+                  qos2-Negotiated           [20] IMPLICIT OCTET STRING ( SIZE( 1 .. 3 ) ) OPTIONAL}, 
+            netDetNotReachable                     ENUMERATED {
+               msPurged          ( 0 ), 
+               imsiDetached      ( 1 ), 
+               restrictedArea    ( 2 ), 
+               notRegistered     ( 3 ) }} OPTIONAL, 
+         imei                      [5] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+         ms-Classmark2             [6] IMPLICIT OCTET STRING ( SIZE( 3 ) ) OPTIONAL, 
+         gprs-MS-Class             [7] IMPLICIT SEQUENCE {
+            mSNetworkCapability       [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 8 ) ), 
+            mSRadioAccessCapability   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 50 ) ) OPTIONAL} OPTIONAL, 
+         mnpInfoRes                [8] IMPLICIT SEQUENCE {
+            routeingNumber            [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ) OPTIONAL, 
+            imsi                      [1] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+            msisdn                    [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            numberPortabilityStatus   [3] IMPLICIT ENUMERATED {
+               notKnownToBePorted                     ( 0 ), 
+               ownNumberPortedOut                     ( 1 ), 
+               foreignNumberPortedToForeignNetwork    ( 2 ), 
+               ... , 
+               ownNumberNotPortedOut                  ( 4 ), 
+               foreignNumberPortedIn                  ( 5 ) } OPTIONAL, 
+            extensionContainer        [4] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... } OPTIONAL} OPTIONAL, 
+      ss-List                           [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 30 ) ) OF
+         OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      basicService                      [5] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+      forwardingInterrogationRequired   [4] IMPLICIT NULL OPTIONAL, 
+      vmsc-Address                      [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      extensionContainer                [0] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      naea-PreferredCI                  [10] IMPLICIT SEQUENCE {
+         naea-PreferredCIC    [0] IMPLICIT OCTET STRING ( SIZE( 3 ) ), 
+         extensionContainer   [1] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ccbs-Indicators                   [11] IMPLICIT SEQUENCE {
+         ccbs-Possible            [0] IMPLICIT NULL OPTIONAL, 
+         keepCCBS-CallIndicator   [1] IMPLICIT NULL OPTIONAL, 
+         extensionContainer       [2] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      msisdn                            [12] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      numberPortabilityStatus           [13] IMPLICIT ENUMERATED {
+         notKnownToBePorted                     ( 0 ), 
+         ownNumberPortedOut                     ( 1 ), 
+         foreignNumberPortedToForeignNetwork    ( 2 ), 
+         ... , 
+         ownNumberNotPortedOut                  ( 4 ), 
+         foreignNumberPortedIn                  ( 5 ) } OPTIONAL, 
+      istAlertTimer                     [14] IMPLICIT INTEGER ( 15 .. 255 ) OPTIONAL, 
+      supportedCamelPhasesInVMSC        [15] IMPLICIT BIT STRING {
+         phase1  (0 ), 
+         phase2  (1 ), 
+         phase3  (2 ), 
+         phase4  (3 )} ( SIZE( 1 .. 16 ) ) OPTIONAL, 
+      offeredCamel4CSIsInVMSC           [16] IMPLICIT BIT STRING {
+         o-csi  (0 ), 
+         d-csi  (1 ), 
+         vt-csi  (2 ), 
+         t-csi  (3 ), 
+         mt-sms-csi  (4 ), 
+         mg-csi  (5 ), 
+         psi-enhancements  (6 )} ( SIZE( 7 .. 16 ) ) OPTIONAL, 
+      routingInfo2                      [17] CHOICE {
+         roamingNumber      OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         forwardingData     SEQUENCE {
+            forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            forwardedToSubaddress   [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+            forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+            extensionContainer      [7] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... , 
+            longForwardedToNumber   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}} OPTIONAL, 
+      ss-List2                          [18] IMPLICIT SEQUENCE  ( SIZE( 1 .. 30 ) ) OF
+         OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      basicService2                     [19] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+      allowedServices                   [20] IMPLICIT BIT STRING {
+         firstServiceAllowed  (0 ), 
+         secondServiceAllowed  (1 )} ( SIZE( 2 .. 8 ) ) OPTIONAL, 
+      unavailabilityCause               [21] IMPLICIT ENUMERATED {
+         bearerServiceNotProvisioned    ( 1 ), 
+         teleserviceNotProvisioned      ( 2 ), 
+         absentSubscriber               ( 3 ), 
+         busySubscriber                 ( 4 ), 
+         callBarred                     ( 5 ), 
+         cug-Reject                     ( 6 ), 
+         ...  } OPTIONAL, 
+      releaseResourcesSupported         [22] IMPLICIT NULL OPTIONAL, 
+      gsm-BearerCapability              [23] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      or-NotAllowed | 
+      unknownSubscriber | 
+      numberChanged | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      absentSubscriber | 
+      busySubscriber | 
+      noSubscriberReply | 
+      callBarred | 
+      cug-Reject | 
+      forwardingViolation }
+   CODE     local      : 22
+   }
+
+provideRoamingNumber OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                                      [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      msc-Number                                [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      msisdn                                    [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      lmsi                                      [4] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+      gsm-BearerCapability                      [5] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      networkSignalInfo                         [6] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      suppressionOfAnnouncement                 [7] IMPLICIT NULL OPTIONAL, 
+      gmsc-Address                              [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      callReferenceNumber                       [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 8 ) ) OPTIONAL, 
+      or-Interrogation                          [10] IMPLICIT NULL OPTIONAL, 
+      extensionContainer                        [11] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      alertingPattern                           [12] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      ccbs-Call                                 [13] IMPLICIT NULL OPTIONAL, 
+      supportedCamelPhasesInInterrogatingNode   [15] IMPLICIT BIT STRING {
+         phase1  (0 ), 
+         phase2  (1 ), 
+         phase3  (2 ), 
+         phase4  (3 )} ( SIZE( 1 .. 16 ) ) OPTIONAL, 
+      additionalSignalInfo                      [14] IMPLICIT SEQUENCE {
+         ext-ProtocolId       ENUMERATED {
+            ets-300356    ( 1 ), 
+            ...  }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      orNotSupportedInGMSC                      [16] IMPLICIT NULL OPTIONAL, 
+      pre-pagingSupported                       [17] IMPLICIT NULL OPTIONAL, 
+      longFTN-Supported                         [18] IMPLICIT NULL OPTIONAL, 
+      suppress-VT-CSI                           [19] IMPLICIT NULL OPTIONAL, 
+      offeredCamel4CSIsInInterrogatingNode      [20] IMPLICIT BIT STRING {
+         o-csi  (0 ), 
+         d-csi  (1 ), 
+         vt-csi  (2 ), 
+         t-csi  (3 ), 
+         mt-sms-csi  (4 ), 
+         mg-csi  (5 ), 
+         psi-enhancements  (6 )} ( SIZE( 7 .. 16 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      roamingNumber               OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      extensionContainer          SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      releaseResourcesSupported   NULL OPTIONAL}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      or-NotAllowed | 
+      absentSubscriber | 
+      noRoamingNumberAvailable }
+   CODE     local      : 4
+   }
+
+resumeCallHandling OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      callReferenceNumber          [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 8 ) ) OPTIONAL, 
+      basicServiceGroup            [1] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+      forwardingData               [2] IMPLICIT SEQUENCE {
+         forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+         forwardedToSubaddress   [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+         forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         extensionContainer      [7] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         longForwardedToNumber   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL} OPTIONAL, 
+      imsi                         [3] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      cug-CheckInfo                [4] IMPLICIT SEQUENCE {
+         cug-Interlock        OCTET STRING ( SIZE( 4 ) ), 
+         cug-OutgoingAccess   NULL OPTIONAL, 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      o-CSI                        [5] IMPLICIT SEQUENCE {
+         o-BcsmCamelTDPDataList    SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               o-BcsmTriggerDetectionPoint   ENUMERATED {
+                  collectedInfo         ( 2 ), 
+                  ... , 
+                  routeSelectFailure    ( 4 ) }, 
+               serviceKey                    INTEGER ( 0 .. 2147483647 ), 
+               gsmSCF-Address                [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+               defaultCallHandling           [1] IMPLICIT ENUMERATED {
+                  continueCall    ( 0 ), 
+                  releaseCall     ( 1 ), 
+                  ...  }, 
+               extensionContainer            [2] IMPLICIT SEQUENCE {
+                  privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        extId      MAP-EXTENSION .&extensionId  ( {
+                           , 
+                           ...} ) , 
+                        extType    MAP-EXTENSION .&ExtensionType  ( {
+                           , 
+                           ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                  pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                     ... } OPTIONAL, 
+                  ... } OPTIONAL, 
+               ... }, 
+         extensionContainer        SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         camelCapabilityHandling   [0] IMPLICIT INTEGER ( 1 .. 16 ) OPTIONAL, 
+         notificationToCSE         [1] IMPLICIT NULL OPTIONAL, 
+         csiActive                 [2] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+      extensionContainer           [7] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ccbs-Possible                [8] IMPLICIT NULL OPTIONAL, 
+      msisdn                       [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      uu-Data                      [10] IMPLICIT SEQUENCE {
+         uuIndicator          [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         uui                  [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 131 ) ) OPTIONAL, 
+         uusCFInteraction     [2] IMPLICIT NULL OPTIONAL, 
+         extensionContainer   [3] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      allInformationSent           [11] IMPLICIT NULL OPTIONAL, 
+      ... , 
+      d-csi                        [12] IMPLICIT SEQUENCE {
+         dp-AnalysedInfoCriteriaList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               dialledNumber         OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+               serviceKey            INTEGER ( 0 .. 2147483647 ), 
+               gsmSCF-Address        OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+               defaultCallHandling   ENUMERATED {
+                  continueCall    ( 0 ), 
+                  releaseCall     ( 1 ), 
+                  ...  }, 
+               extensionContainer    SEQUENCE {
+                  privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                     SEQUENCE {
+                        extId      MAP-EXTENSION .&extensionId  ( {
+                           , 
+                           ...} ) , 
+                        extType    MAP-EXTENSION .&ExtensionType  ( {
+                           , 
+                           ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+                  pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                     ... } OPTIONAL, 
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+         camelCapabilityHandling       [1] IMPLICIT INTEGER ( 1 .. 16 ) OPTIONAL, 
+         extensionContainer            [2] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         notificationToCSE             [3] IMPLICIT NULL OPTIONAL, 
+         csi-Active                    [4] IMPLICIT NULL OPTIONAL, 
+         ... } OPTIONAL, 
+      o-BcsmCamelTDPCriteriaList   [13] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+         SEQUENCE {
+            o-BcsmTriggerDetectionPoint   ENUMERATED {
+               collectedInfo         ( 2 ), 
+               ... , 
+               routeSelectFailure    ( 4 ) }, 
+            destinationNumberCriteria     [0] IMPLICIT SEQUENCE {
+               matchType                     [0] IMPLICIT ENUMERATED {
+                  inhibiting    ( 0 ), 
+                  enabling      ( 1 ) }, 
+               destinationNumberList         [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               destinationNumberLengthList   [2] IMPLICIT SEQUENCE  ( SIZE( 1 .. 3 ) ) OF
+                  INTEGER ( 1 .. 15 ) OPTIONAL, 
+               ... } OPTIONAL, 
+            basicServiceCriteria          [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+               CHOICE {
+                  ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+                  ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL, 
+            callTypeCriteria              [2] IMPLICIT ENUMERATED {
+               forwarded       ( 0 ), 
+               notForwarded    ( 1 ) } OPTIONAL, 
+            ... , 
+            o-CauseValueCriteria          [3] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+               OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+            extensionContainer            [4] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL} OPTIONAL, 
+      basicServiceGroup2           [14] CHOICE {
+         ext-BearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) ), 
+         ext-Teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 5 ) )} OPTIONAL}
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      forwardingFailed | 
+      or-NotAllowed | 
+      unexpectedDataValue | 
+      dataMissing }
+   CODE     local      : 6
+   }
+
+setReportingState OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      lmsi                 [1] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+      ccbs-Monitoring      [2] IMPLICIT ENUMERATED {
+         stopMonitoring     ( 0 ), 
+         startMonitoring    ( 1 ), 
+         ...  } OPTIONAL, 
+      extensionContainer   [3] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      ccbs-SubscriberStatus   [0] IMPLICIT ENUMERATED {
+         ccbsNotIdle         ( 0 ), 
+         ccbsIdle            ( 1 ), 
+         ccbsNotReachable    ( 2 ), 
+         ...  } OPTIONAL, 
+      extensionContainer      [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      unidentifiedSubscriber | 
+      unexpectedDataValue | 
+      dataMissing | 
+      resourceLimitation | 
+      facilityNotSupported }
+   CODE     local      : 73
+   }
+
+statusReport OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      eventReportData      [1] IMPLICIT SEQUENCE {
+         ccbs-SubscriberStatus   [0] IMPLICIT ENUMERATED {
+            ccbsNotIdle         ( 0 ), 
+            ccbsIdle            ( 1 ), 
+            ccbsNotReachable    ( 2 ), 
+            ...  } OPTIONAL, 
+         extensionContainer      [1] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      callReportdata       [2] IMPLICIT SEQUENCE {
+         monitoringMode       [0] IMPLICIT ENUMERATED {
+            a-side      ( 0 ), 
+            b-side      ( 1 ), 
+            ...  } OPTIONAL, 
+         callOutcome          [1] IMPLICIT ENUMERATED {
+            success     ( 0 ), 
+            failure     ( 1 ), 
+            busy        ( 2 ), 
+            ...  } OPTIONAL, 
+         extensionContainer   [2] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      extensionContainer   [3] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      extensionContainer   [0] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      unknownSubscriber | 
+      systemFailure | 
+      unexpectedDataValue | 
+      dataMissing }
+   CODE     local      : 74
+   }
+
+remoteUserFree OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      callInfo             [1] IMPLICIT SEQUENCE {
+         protocolId           ENUMERATED {
+            gsm-0408        ( 1 ), 
+            gsm-0806        ( 2 ), 
+            gsm-BSSMAP      ( 3 ), 
+            ets-300102-1    ( 4 ) }, 
+         signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... }, 
+      ccbs-Feature         [2] IMPLICIT SEQUENCE {
+         ccbs-Index               [0] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+         b-subscriberNumber       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+         b-subscriberSubaddress   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+         basicServiceGroup        [3] CHOICE {
+            bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... }, 
+      translatedB-Number   [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      replaceB-Number      [4] IMPLICIT NULL OPTIONAL, 
+      alertingPattern      [5] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      extensionContainer   [6] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      ruf-Outcome          [0] IMPLICIT ENUMERATED {
+         accepted                ( 0 ), 
+         rejected                ( 1 ), 
+         noResponseFromFreeMS    ( 2 ), 
+         noResponseFromBusyMS    ( 3 ), 
+         udubFromFreeMS          ( 4 ), 
+         udubFromBusyMS          ( 5 ), 
+         ...  }, 
+      extensionContainer   [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      unexpectedDataValue | 
+      dataMissing | 
+      incompatibleTerminal | 
+      absentSubscriber | 
+      systemFailure | 
+      busySubscriber }
+   CODE     local      : 75
+   }
+
+ist-Alert  OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      extensionContainer   [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      istAlertTimer              [0] IMPLICIT INTEGER ( 15 .. 255 ) OPTIONAL, 
+      istInformationWithdraw     [1] IMPLICIT NULL OPTIONAL, 
+      callTerminationIndicator   [2] IMPLICIT ENUMERATED {
+         terminateCallActivityReferred    ( 0 ), 
+         terminateAllCallActivities       ( 1 ), 
+         ...  } OPTIONAL, 
+      extensionContainer         [3] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      unexpectedDataValue | 
+      resourceLimitation | 
+      unknownSubscriber | 
+      systemFailure | 
+      facilityNotSupported }
+   CODE     local      : 87
+   }
+
+ist-Command OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      extensionContainer   [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      unexpectedDataValue | 
+      resourceLimitation | 
+      unknownSubscriber | 
+      systemFailure | 
+      facilityNotSupported }
+   CODE     local      : 88
+   }
+
+releaseResources OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      msrn                 OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      unexpectedDataValue | 
+      systemFailure }
+   CODE     local      : 20
+   }
+
+END

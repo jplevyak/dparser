@@ -1,0 +1,374 @@
+--Expanded ASN1 Module 'MAP-ShortMessageServiceOperations'
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 12:59:39            
+
+MAP-ShortMessageServiceOperations{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-ShortMessageServiceOperations (9) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   sendRoutingInfoForSM, 
+   mo-ForwardSM, 
+   mt-ForwardSM, 
+   reportSM-DeliveryStatus, 
+   alertServiceCentre, 
+   informServiceCentre, 
+   readyForSM, 
+   mt-ForwardSM-VGCS;
+
+
+sendRoutingInfoForSM OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      msisdn                 [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      sm-RP-PRI              [1] IMPLICIT BOOLEAN, 
+      serviceCentreAddress   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+      extensionContainer     [6] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      gprsSupportIndicator   [7] IMPLICIT NULL OPTIONAL, 
+      sm-RP-MTI              [8] IMPLICIT INTEGER ( 0 .. 10 ) OPTIONAL, 
+      sm-RP-SMEA             [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 12 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      imsi                   OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      locationInfoWithLMSI   [0] IMPLICIT SEQUENCE {
+         networkNode-Number   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         lmsi                 OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+         extensionContainer   SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         gprsNodeIndicator    [5] IMPLICIT NULL OPTIONAL, 
+         additional-Number    [6] CHOICE {
+            msc-Number      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+            sgsn-Number     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )} OPTIONAL}, 
+      extensionContainer     [4] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      unknownSubscriber | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      absentSubscriberSM }
+   CODE     local      : 45
+   }
+
+mo-ForwardSM OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      sm-RP-DA             CHOICE {
+         imsi                       [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+         lmsi                       [1] IMPLICIT OCTET STRING ( SIZE( 4 ) ), 
+         serviceCentreAddressDA     [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+         noSM-RP-DA                 [5] IMPLICIT NULL}, 
+      sm-RP-OA             CHOICE {
+         msisdn                     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         serviceCentreAddressOA     [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+         noSM-RP-OA                 [5] IMPLICIT NULL}, 
+      sm-RP-UI             OCTET STRING ( SIZE( 1 .. 200 ) ), 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      imsi                 OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      sm-RP-UI             OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      sm-DeliveryFailure }
+   CODE     local      : 46
+   }
+
+mt-ForwardSM OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      sm-RP-DA             CHOICE {
+         imsi                       [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+         lmsi                       [1] IMPLICIT OCTET STRING ( SIZE( 4 ) ), 
+         serviceCentreAddressDA     [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+         noSM-RP-DA                 [5] IMPLICIT NULL}, 
+      sm-RP-OA             CHOICE {
+         msisdn                     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         serviceCentreAddressOA     [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+         noSM-RP-OA                 [5] IMPLICIT NULL}, 
+      sm-RP-UI             OCTET STRING ( SIZE( 1 .. 200 ) ), 
+      moreMessagesToSend   NULL OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      sm-RP-UI             OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      unidentifiedSubscriber | 
+      illegalSubscriber | 
+      illegalEquipment | 
+      subscriberBusyForMT-SMS | 
+      sm-DeliveryFailure | 
+      absentSubscriberSM }
+   CODE     local      : 44
+   }
+
+reportSM-DeliveryStatus OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      msisdn                                   OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      serviceCentreAddress                     OCTET STRING ( SIZE( 1 .. 20 ) ), 
+      sm-DeliveryOutcome                       ENUMERATED {
+         memoryCapacityExceeded    ( 0 ), 
+         absentSubscriber          ( 1 ), 
+         successfulTransfer        ( 2 ) }, 
+      absentSubscriberDiagnosticSM             [0] IMPLICIT INTEGER ( 0 .. 255 ) OPTIONAL, 
+      extensionContainer                       [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      gprsSupportIndicator                     [2] IMPLICIT NULL OPTIONAL, 
+      deliveryOutcomeIndicator                 [3] IMPLICIT NULL OPTIONAL, 
+      additionalSM-DeliveryOutcome             [4] IMPLICIT ENUMERATED {
+         memoryCapacityExceeded    ( 0 ), 
+         absentSubscriber          ( 1 ), 
+         successfulTransfer        ( 2 ) } OPTIONAL, 
+      additionalAbsentSubscriberDiagnosticSM   [5] IMPLICIT INTEGER ( 0 .. 255 ) OPTIONAL}
+   RESULT     SEQUENCE {
+      storedMSISDN         OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      dataMissing | 
+      unexpectedDataValue | 
+      unknownSubscriber | 
+      messageWaitingListFull }
+   CODE     local      : 47
+   }
+
+alertServiceCentre OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      msisdn                 OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      serviceCentreAddress   OCTET STRING ( SIZE( 1 .. 20 ) ), 
+      ... }
+   RETURN  RESULT     TRUE
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue }
+   CODE     local      : 64
+   }
+
+informServiceCentre OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      storedMSISDN                             OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      mw-Status                                BIT STRING {
+         sc-AddressNotIncluded  (0 ), 
+         mnrf-Set  (1 ), 
+         mcef-Set  (2 ), 
+         mnrg-Set  (3 )} ( SIZE( 6 .. 16 ) ) OPTIONAL, 
+      extensionContainer                       SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      absentSubscriberDiagnosticSM             INTEGER ( 0 .. 255 ) OPTIONAL, 
+      additionalAbsentSubscriberDiagnosticSM   [0] IMPLICIT INTEGER ( 0 .. 255 ) OPTIONAL}
+   CODE     local      : 63
+   }
+
+readyForSM OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                   [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      alertReason            ENUMERATED {
+         ms-Present         ( 0 ), 
+         memoryAvailable    ( 1 ) }, 
+      alertReasonIndicator   NULL OPTIONAL, 
+      extensionContainer     SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      unknownSubscriber }
+   CODE     local      : 66
+   }
+
+mt-ForwardSM-VGCS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      asciCallReference    OCTET STRING ( SIZE( 1 .. 8 ) ), 
+      sm-RP-OA             CHOICE {
+         msisdn                     [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         serviceCentreAddressOA     [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ), 
+         noSM-RP-OA                 [5] IMPLICIT NULL}, 
+      sm-RP-UI             OCTET STRING ( SIZE( 1 .. 200 ) ), 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      sm-RP-UI             [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL, 
+      dispatcherList       [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+         OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      ongoingCall          NULL OPTIONAL, 
+      extensionContainer   [2] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      unexpectedDataValue }
+   CODE     local      : 21
+   }
+
+END

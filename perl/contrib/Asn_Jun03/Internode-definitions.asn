@@ -1,0 +1,394 @@
+Internode-definitions DEFINITIONS AUTOMATIC TAGS ::=
+
+BEGIN
+
+IMPORTS
+
+	HandoverToUTRANCommand,
+	MeasurementReport,
+	PhysicalChannelReconfiguration,
+	RadioBearerReconfiguration,
+	RadioBearerRelease,
+	RadioBearerSetup,
+	RRC-FailureInfo,
+	TransportChannelReconfiguration
+FROM PDU-definitions
+
+-- Core Network IEs :
+	CN-DomainIdentity,
+	CN-DomainInformationList,
+	CN-DRX-CycleLengthCoefficient,
+	NAS-SystemInformationGSM-MAP,
+-- UTRAN Mobility IEs :
+	CellIdentity,
+	URA-Identity,
+-- User Equipment IEs :
+	C-RNTI,
+	DL-PhysChCapabilityFDD-v380ext,
+	FailureCauseWithProtErr,
+	RRC-MessageSequenceNumber,
+	STARTList,
+	STARTSingle,
+	START-Value,
+	U-RNTI,
+	UE-RadioAccessCapability,
+	UE-RadioAccessCapability-v370ext,
+	UE-RadioAccessCapability-v380ext,
+	UE-RadioAccessCapability-v3a0ext,
+	UESpecificBehaviourInformation1interRAT,
+	UESpecificBehaviourInformation1idle,
+-- Radio Bearer IEs :
+	PredefinedConfigStatusList,
+	PredefinedConfigValueTag,
+	RAB-InformationSetupList,
+	RB-Identity,
+	SRB-InformationSetupList,
+-- Transport Channel IEs :
+	CPCH-SetID,
+	DL-CommonTransChInfo,
+	DL-AddReconfTransChInfoList,
+	DRAC-StaticInformationList,
+	UL-CommonTransChInfo,
+	UL-AddReconfTransChInfoList,
+-- Measurement IEs :
+	MeasurementIdentity,
+	MeasurementReportingMode,
+	MeasurementType,
+	AdditionalMeasurementID-List,
+	PositionEstimate,
+-- Other IEs :
+	InterRAT-UE-RadioAccessCapabilityList
+FROM InformationElements
+
+	maxCNdomains,
+	maxNoOfMeas,
+	maxRB,
+	maxSRBsetup
+FROM Constant-definitions;
+
+
+-- Part 1: Class definitions similar to what has been defined in 11.1 for RRC messages
+-- Information that is tranferred in the same direction and across the same path is grouped
+
+-- ***************************************************
+--
+-- RRC information, to target RNC
+--
+-- ***************************************************
+-- RRC Information to target RNC sent either from source RNC or from another RAT
+
+ToTargetRNC-Container ::= CHOICE {
+	interRAThandover					InterRATHandoverInfoWithInterRATCapabilities,
+	srncRelocation						SRNC-RelocationInfo,
+	extension							NULL
+}
+
+-- ***************************************************
+--
+-- RRC information, target RNC to source RNC
+--
+-- ***************************************************
+
+
+TargetRNC-ToSourceRNC-Container::= CHOICE {
+	radioBearerSetup					RadioBearerSetup,
+	radioBearerReconfiguration			RadioBearerReconfiguration,
+	radioBearerRelease					RadioBearerRelease,
+	transportChannelReconfiguration		TransportChannelReconfiguration,
+	physicalChannelReconfiguration		PhysicalChannelReconfiguration,
+	rrc-FailureInfo						RRC-FailureInfo,
+	-- IE dl-DCCHmessage consists of an octet string that includes
+	-- the IE DL-DCCH-Message
+	dL-DCCHmessage						OCTET STRING,
+	extension							NULL
+}
+
+-- Part2: Container definitions, similar to the PDU definitions in 11.2 for RRC messages
+-- In alphabetical order
+
+
+-- ***************************************************
+--
+-- Handover to UTRAN information
+--
+-- ***************************************************
+
+InterRATHandoverInfoWithInterRATCapabilities ::= CHOICE {
+	r3								SEQUENCE {
+		-- IE InterRATHandoverInfoWithInterRATCapabilities-r3-IEs also
+		-- includes non critical extensions
+		interRAThandoverInfo-r3			InterRATHandoverInfoWithInterRATCapabilities-r3-IEs,
+		v390NonCriticalExtensions			SEQUENCE {
+			interRATHandoverInfoWithInterRATCapabilities-v390ext			InterRATHandoverInfoWithInterRATCapabilities-v390ext-IEs,
+			-- Reserved for future non critical extension
+			nonCriticalExtensions			SEQUENCE {}	OPTIONAL
+		}		OPTIONAL
+	},
+	criticalExtensions				SEQUENCE {}
+}
+
+InterRATHandoverInfoWithInterRATCapabilities-r3-IEs::=		SEQUENCE {
+		-- The order of the IEs may not reflect the tabular format
+		-- but has been chosen to simplify the handling of the information in the BSC
+	--	Other IEs
+		ue-RATSpecificCapability		InterRAT-UE-RadioAccessCapabilityList	OPTIONAL,
+		-- interRATHandoverInfo, Octet string is used to obtain 8 bit length field prior to
+		-- actual information.  This makes it possible for BSS to transparently handle information
+		-- received via GSM air interface even when it includes non critical extensions.
+		-- The octet string shall include the InterRATHandoverInfo information
+		-- The BSS can re-use the 04.18 length field received from the MS
+		interRATHandoverInfo			OCTET STRING (SIZE (0..255))
+}
+
+InterRATHandoverInfoWithInterRATCapabilities-v390ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		failureCauseWithProtErr				FailureCauseWithProtErr					OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SRNC Relocation information
+--
+-- ***************************************************
+
+SRNC-RelocationInfo ::= CHOICE {
+	r3								SEQUENCE {
+		sRNC-RelocationInfo-r3			SRNC-RelocationInfo-r3-IEs,
+		v380NonCriticalExtensions			SEQUENCE {
+			sRNC-RelocationInfo-v380ext	SRNC-RelocationInfo-v380ext-IEs,
+			-- Reserved for future non critical extension
+			v390NonCriticalExtensions			SEQUENCE {
+				sRNC-RelocationInfo-v390ext			SRNC-RelocationInfo-v390ext-IEs,
+				v3a0NonCriticalExtensions			SEQUENCE {
+					sRNC-RelocationInfo-v3a0ext			SRNC-RelocationInfo-v3a0ext-IEs,
+					v3b0NonCriticalExtensions			SEQUENCE {
+						sRNC-RelocationInfo-v3b0ext			SRNC-RelocationInfo-v3b0ext-IEs,
+						v3c0NonCriticalExtensions			SEQUENCE {
+							sRNC-RelocationInfo-v3c0ext			SRNC-RelocationInfo-v3c0ext-IEs,
+							laterNonCriticalExtensions			SEQUENCE {
+								sRNC-RelocationInfo-v3d0ext			SRNC-RelocationInfo-v3d0ext-IEs,
+								-- Container for additional R99 extensions 
+								sRNC-RelocationInfo-r3-add-ext		BIT STRING	OPTIONAL,
+								-- Reserved for future non critical extension
+								nonCriticalExtensions			SEQUENCE {}	OPTIONAL
+							}		OPTIONAL
+						}		OPTIONAL
+					}		OPTIONAL
+				}		OPTIONAL
+			}		OPTIONAL
+		}		OPTIONAL
+	},
+	criticalExtensions				SEQUENCE {}
+}
+
+SRNC-RelocationInfo-r3-IEs ::=				SEQUENCE {
+	-- Non-RRC IEs
+		stateOfRRC						StateOfRRC,
+		stateOfRRC-Procedure			StateOfRRC-Procedure,
+	-- Ciphering related information IEs
+	-- If the extension v380 is included use the extension for the ciphering status per CN domain
+		cipheringStatus					CipheringStatus,
+		calculationTimeForCiphering		CalculationTimeForCiphering			OPTIONAL,
+		-- The order of occurrence in the IE cipheringInfoPerRB-List is the
+		-- same as the RBs in SRB-InformationSetupList in RAB-InformationSetupList.
+		-- The signalling RBs are supposed to be listed
+		-- first. Only UM and AM RBs that are ciphered are listed here
+		cipheringInfoPerRB-List			CipheringInfoPerRB-List				OPTIONAL,
+		count-C-List					COUNT-C-List						OPTIONAL,
+		integrityProtectionStatus		IntegrityProtectionStatus,
+     -- In the IE srb-SpecificIntegrityProtInfo, the first information listed corresponds to
+     -- signalling radio bearer RB0 and after the order of occurrence is the same as the SRBs in
+     -- SRB-InformationSetupList
+		srb-SpecificIntegrityProtInfo	SRB-SpecificIntegrityProtInfoList,
+		implementationSpecificParams	ImplementationSpecificParams		OPTIONAL,
+	-- User equipment IEs
+		u-RNTI							U-RNTI,
+		c-RNTI							C-RNTI								OPTIONAL,
+		ue-RadioAccessCapability		UE-RadioAccessCapability,
+		ue-Positioning-LastKnownPos		UE-Positioning-LastKnownPos			OPTIONAL,
+	-- Other IEs
+		ue-RATSpecificCapability		InterRAT-UE-RadioAccessCapabilityList	OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Core network IEs
+		cn-CommonGSM-MAP-NAS-SysInfo	NAS-SystemInformationGSM-MAP,
+		cn-DomainInformationList		CN-DomainInformationList			OPTIONAL,
+	-- Measurement IEs
+		ongoingMeasRepList				OngoingMeasRepList					OPTIONAL,
+	-- Radio bearer IEs
+		predefinedConfigStatusList		PredefinedConfigStatusList,
+		srb-InformationList				SRB-InformationSetupList,
+		rab-InformationList				RAB-InformationSetupList			OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-TransChInfoList				UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificInfo				CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				transChDRAC-Info				DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-TransChInfoList				DL-AddReconfTransChInfoList			OPTIONAL,
+	-- Measurement report
+		measurementReport				MeasurementReport					OPTIONAL
+}
+
+SRNC-RelocationInfo-v380ext-IEs ::= SEQUENCE {
+	-- Ciphering related information IEs
+		cn-DomainIdentity					CN-DomainIdentity,
+		cipheringStatusList					CipheringStatusList
+}
+
+SRNC-RelocationInfo-v390ext-IEs ::= SEQUENCE {
+		cn-DomainInformationList-v390ext	CN-DomainInformationList-v390ext		OPTIONAL,
+		ue-RadioAccessCapability-v370ext	UE-RadioAccessCapability-v370ext		OPTIONAL,
+		ue-RadioAccessCapability-v380ext	UE-RadioAccessCapability-v380ext		OPTIONAL,
+		dl-PhysChCapabilityFDD-v380ext		DL-PhysChCapabilityFDD-v380ext,
+		failureCauseWithProtErr				FailureCauseWithProtErr					OPTIONAL
+}
+
+SRNC-RelocationInfo-v3a0ext-IEs ::= SEQUENCE {
+		cipheringInfoForSRB1-v3a0ext		CipheringInfoPerRB-List-v3a0ext,
+		ue-RadioAccessCapability-v3a0ext	UE-RadioAccessCapability-v3a0ext		OPTIONAL,
+		-- cn-domain identity for IE startValueForCiphering-v3a0ext is specified
+		-- in subsequent extension (SRNC-RelocationInfo-v3b0ext-IEs)
+		startValueForCiphering-v3a0ext		START-Value
+}
+
+SRNC-RelocationInfo-v3b0ext-IEs ::= SEQUENCE {
+		-- cn-domain identity for IE startValueForCiphering-v3a0ext included in previous extension
+		cn-DomainIdentity				CN-DomainIdentity,
+		-- the IE startValueForCiphering-v3b0ext contains the start values for each CN Domain. The 
+		-- value of start indicated by the IE startValueForCiphering-v3a0ext should be set to the
+		-- same value as the start-Value for the corresponding cn-DomainIdentity in the IE 
+		-- startValueForCiphering-v3b0ext
+		startValueForCiphering-v3b0ext		STARTList2								OPTIONAL
+}
+
+SRNC-RelocationInfo-v3c0ext-IEs ::= SEQUENCE {
+		-- IE rb-IdentityForHOMessage includes the identity of the RB used by the source SRNC
+		-- to send the message contained in the IE "TargetRNC-ToSourceRNC-Container".
+		-- Only included if type is "UE involved"
+		rb-IdentityForHOMessage				RB-Identity  		OPTIONAL
+}
+
+SRNC-RelocationInfo-v3d0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		uESpecificBehaviourInformation1idle		UESpecificBehaviourInformation1idle		OPTIONAL,
+		uESpecificBehaviourInformation1interRAT		UESpecificBehaviourInformation1interRAT		OPTIONAL
+}
+
+STARTList2 ::=						SEQUENCE (SIZE (2..maxCNdomains)) OF
+										STARTSingle
+
+CipheringInfoPerRB-List-v3a0ext ::= SEQUENCE {
+		dl-UM-SN						BIT STRING (SIZE (7))
+}
+
+CipheringStatusList ::=				SEQUENCE (SIZE (1..maxCNdomains)) OF
+										CipheringStatusCNdomain
+
+CipheringStatusCNdomain ::=			SEQUENCE {
+		cn-DomainIdentity				CN-DomainIdentity,
+		cipheringStatus					CipheringStatus
+}
+
+-- IE definitions
+
+CalculationTimeForCiphering ::=		SEQUENCE {
+	cell-Id								CellIdentity,
+	sfn									INTEGER (0..4095)
+}
+
+CipheringInfoPerRB ::=				SEQUENCE {
+	dl-HFN								BIT STRING (SIZE (20..25)),
+	ul-HFN								BIT STRING (SIZE (20..25))
+}
+
+-- TABULAR: CipheringInfoPerRB-List, multiplicity value numberOfRadioBearers
+-- has been replaced with maxRB.
+CipheringInfoPerRB-List ::=			SEQUENCE (SIZE (1..maxRB)) OF
+										CipheringInfoPerRB
+
+CipheringStatus ::=					ENUMERATED {
+										started, notStarted }
+
+CN-DomainInformation-v390ext ::=		SEQUENCE {
+	cn-DRX-CycleLengthCoeff				CN-DRX-CycleLengthCoefficient
+}
+
+CN-DomainInformationList-v390ext ::=	SEQUENCE (SIZE (1..maxCNdomains)) OF
+										CN-DomainInformation-v390ext
+
+COUNT-C-List ::=						SEQUENCE (SIZE (1..maxCNdomains)) OF
+										COUNT-CSingle
+
+COUNT-CSingle ::=						SEQUENCE {
+	cn-DomainIdentity					CN-DomainIdentity,
+	count-C								BIT STRING (SIZE (32))			
+}
+
+ImplementationSpecificParams ::=	BIT STRING (SIZE (1..512))
+
+
+IntegrityProtectionStatus ::=		ENUMERATED {
+										started, notStarted }
+
+MeasurementCommandWithType ::=		CHOICE {
+	setup								MeasurementType,
+	modify								NULL,
+	release								NULL
+}
+
+OngoingMeasRep ::=					SEQUENCE {
+	measurementIdentity			MeasurementIdentity,
+	-- TABULAR: The CHOICE Measurement in the tabular description is included
+	-- in MeasurementCommandWithType
+	measurementCommandWithType			MeasurementCommandWithType,
+	measurementReportingMode			MeasurementReportingMode			OPTIONAL,
+	additionalMeasurementID-List		AdditionalMeasurementID-List		OPTIONAL
+}
+
+OngoingMeasRepList ::=				SEQUENCE (SIZE (1..maxNoOfMeas)) OF
+										OngoingMeasRep
+
+SRB-SpecificIntegrityProtInfo ::=	SEQUENCE {
+	ul-RRC-HFN							BIT STRING (SIZE (28)),
+	dl-RRC-HFN							BIT STRING (SIZE (28)),
+	ul-RRC-SequenceNumber				RRC-MessageSequenceNumber,
+	dl-RRC-SequenceNumber				RRC-MessageSequenceNumber
+}
+
+SRB-SpecificIntegrityProtInfoList ::= SEQUENCE (SIZE (4..maxSRBsetup)) OF
+										SRB-SpecificIntegrityProtInfo
+
+StateOfRRC ::=						ENUMERATED {
+										cell-DCH, cell-FACH,
+										cell-PCH, ura-PCH }
+
+StateOfRRC-Procedure ::=			ENUMERATED {
+										awaitNoRRC-Message,
+										awaitRB-ReleaseComplete,
+										awaitRB-SetupComplete,
+										awaitRB-ReconfigurationComplete,
+										awaitTransportCH-ReconfigurationComplete,
+										awaitPhysicalCH-ReconfigurationComplete,
+										awaitActiveSetUpdateComplete,
+										awaitHandoverComplete,
+										sendCellUpdateConfirm,
+										sendUraUpdateConfirm,
+										-- dummy is not used in this version of specification
+										-- It should not be sent
+										dummy,
+										otherStates
+}
+
+UE-Positioning-LastKnownPos ::=		SEQUENCE {
+		sfn								INTEGER (0..4095),
+		cell-id							CellIdentity,
+		positionEstimate				PositionEstimate
+}
+
+END

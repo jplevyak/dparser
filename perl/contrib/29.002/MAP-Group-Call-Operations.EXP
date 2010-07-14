@@ -1,0 +1,234 @@
+--   Expanded ASN1 Module 'MAP-Group-Call-Operations'    
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 12:59:47            
+
+MAP-Group-Call-Operations{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-Group-Call-Operations (22) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   prepareGroupCall, 
+   sendGroupCallEndSignal, 
+   forwardGroupCallSignalling, 
+   processGroupCallSignalling, 
+   sendGroupCallInfo;
+
+
+prepareGroupCall OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      teleservice            OCTET STRING ( SIZE( 1 .. 5 ) ), 
+      asciCallReference      OCTET STRING ( SIZE( 1 .. 8 ) ), 
+      codec-Info             OCTET STRING ( SIZE( 5 .. 10 ) ), 
+      cipheringAlgorithm     OCTET STRING ( SIZE( 1 ) ), 
+      groupKeyNumber-Vk-Id   [0] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+      groupKey               [1] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+      priority               [2] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+      uplinkFree             [3] IMPLICIT NULL OPTIONAL, 
+      extensionContainer     [4] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      vstk                   [5] IMPLICIT OCTET STRING ( SIZE( 16 ) ) OPTIONAL, 
+      vstk-rand              [6] IMPLICIT OCTET STRING ( SIZE( 5 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      groupCallNumber      OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      noGroupCallNumberAvailable | 
+      unexpectedDataValue }
+   CODE     local      : 39
+   }
+
+sendGroupCallEndSignal OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                 OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      talkerPriority       [0] IMPLICIT ENUMERATED {
+         normal        ( 0 ), 
+         privileged    ( 1 ), 
+         emergency     ( 2 ) } OPTIONAL, 
+      additionalInfo       [1] IMPLICIT BIT STRING ( SIZE( 1 .. 136 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 40
+   }
+
+processGroupCallSignalling OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      uplinkRequest                   [0] IMPLICIT NULL OPTIONAL, 
+      uplinkReleaseIndication         [1] IMPLICIT NULL OPTIONAL, 
+      releaseGroupCall                [2] IMPLICIT NULL OPTIONAL, 
+      extensionContainer              SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      talkerPriority                  [3] IMPLICIT ENUMERATED {
+         normal        ( 0 ), 
+         privileged    ( 1 ), 
+         emergency     ( 2 ) } OPTIONAL, 
+      additionalInfo                  [4] IMPLICIT BIT STRING ( SIZE( 1 .. 136 ) ) OPTIONAL, 
+      emergencyModeResetCommandFlag   [5] IMPLICIT NULL OPTIONAL, 
+      notificationData                [6] IMPLICIT OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL}
+   CODE     local      : 41
+   }
+
+forwardGroupCallSignalling OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                            OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      uplinkRequestAck                [0] IMPLICIT NULL OPTIONAL, 
+      uplinkReleaseIndication         [1] IMPLICIT NULL OPTIONAL, 
+      uplinkRejectCommand             [2] IMPLICIT NULL OPTIONAL, 
+      uplinkSeizedCommand             [3] IMPLICIT NULL OPTIONAL, 
+      uplinkReleaseCommand            [4] IMPLICIT NULL OPTIONAL, 
+      extensionContainer              SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      stateAttributes                 [5] IMPLICIT SEQUENCE {
+         downlinkAttached    [5] IMPLICIT NULL OPTIONAL, 
+         uplinkAttached      [6] IMPLICIT NULL OPTIONAL, 
+         dualCommunication   [7] IMPLICIT NULL OPTIONAL, 
+         callOriginator      [8] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+      talkerPriority                  [6] IMPLICIT ENUMERATED {
+         normal        ( 0 ), 
+         privileged    ( 1 ), 
+         emergency     ( 2 ) } OPTIONAL, 
+      additionalInfo                  [7] IMPLICIT BIT STRING ( SIZE( 1 .. 136 ) ) OPTIONAL, 
+      emergencyModeResetCommandFlag   [8] IMPLICIT NULL OPTIONAL, 
+      sm-RP-UI                        [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL, 
+      notificationData                [10] IMPLICIT OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL}
+   CODE     local      : 42
+   }
+
+sendGroupCallInfo OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      requestedInfo        ENUMERATED {
+         anchorMSC-AddressAndASCI-CallReference            ( 0 ), 
+         imsiAndAdditionalInfoAndAdditionalSubscription    ( 1 ), 
+         ...  }, 
+      groupId              OCTET STRING ( SIZE( 4 ) ), 
+      teleservice          OCTET STRING ( SIZE( 1 .. 5 ) ), 
+      cellId               [0] IMPLICIT OCTET STRING ( SIZE( 5 .. 7 ) ) OPTIONAL, 
+      imsi                 [1] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      tmsi                 [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 4 ) ) OPTIONAL, 
+      additionalInfo       [3] IMPLICIT BIT STRING ( SIZE( 1 .. 136 ) ) OPTIONAL, 
+      talkerPriority       [4] IMPLICIT ENUMERATED {
+         normal        ( 0 ), 
+         privileged    ( 1 ), 
+         emergency     ( 2 ) } OPTIONAL, 
+      cksn                 [5] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      extensionContainer   [6] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      anchorMSC-Address         [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      asciCallReference         [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 8 ) ) OPTIONAL, 
+      imsi                      [2] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      additionalInfo            [3] IMPLICIT BIT STRING ( SIZE( 1 .. 136 ) ) OPTIONAL, 
+      additionalSubscriptions   [4] IMPLICIT BIT STRING {
+         privilegedUplinkRequest  (0 ), 
+         emergencyUplinkRequest  (1 ), 
+         emergencyReset  (2 )} ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      kc                        [5] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+      extensionContainer        [6] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      ongoingGroupCall | 
+      unexpectedDataValue | 
+      dataMissing | 
+      teleserviceNotProvisioned | 
+      unknownSubscriber }
+   CODE     local      : 84
+   }
+
+END

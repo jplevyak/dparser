@@ -1,0 +1,2571 @@
+--**************************************************************
+--
+-- TABULAR: The message type and integrity check info are not
+-- visible in this module as they are defined in the class module.
+-- Also, all FDD/TDD specific choices have the FDD option first
+-- and TDD second, just for consistency.
+--
+--**************************************************************
+
+PDU-definitions DEFINITIONS AUTOMATIC TAGS ::=
+	
+BEGIN
+
+--**************************************************************
+--
+-- IE parameter types from other modules
+--
+--**************************************************************
+
+IMPORTS
+
+-- Core Network IEs :
+	CN-DomainIdentity,
+	CN-InformationInfo,
+	CN-InformationInfoFull,
+	NAS-Message,
+	PagingRecordTypeID,
+-- UTRAN Mobility IEs :
+	URA-Identity,
+-- User Equipment IEs :
+	ActivationTime,
+	C-RNTI,
+	CapabilityUpdateRequirement,
+	CellUpdateCause,
+	CipheringAlgorithm,
+	CipheringModeInfo,
+	DSCH-RNTI,
+	EstablishmentCause,
+	FailureCauseWithProtErr,
+	FailureCauseWithProtErrTrId,	
+	UESpecificBehaviourInformation1interRAT,
+	UESpecificBehaviourInformation1idle,
+	InitialUE-Identity,
+	IntegrityProtActivationInfo,
+	IntegrityProtectionModeInfo,
+	N-308,
+	PagingCause,
+	PagingRecordList,
+	ProtocolErrorIndicator,
+	ProtocolErrorIndicatorWithMoreInfo,
+	Rb-timer-indicator,
+	RedirectionInfo,
+	RejectionCause,
+	ReleaseCause,
+	RRC-StateIndicator,
+	RRC-TransactionIdentifier,
+	SecurityCapability,
+	START-Value,
+	STARTList,
+	U-RNTI,
+	U-RNTI-Short,
+	UE-RadioAccessCapability,
+	UE-RadioAccessCapability-v370ext,
+	UE-RadioAccessCapability-v380ext,
+	UE-RadioAccessCapability-v3a0ext,
+	DL-PhysChCapabilityFDD-v380ext,
+	UE-ConnTimersAndConstants,
+	UE-ConnTimersAndConstants-v3a0ext,
+	UE-SecurityInformation,
+	URA-UpdateCause,
+	UTRAN-DRX-CycleLengthCoefficient,
+	WaitTime,
+-- Radio Bearer IEs :
+	DefaultConfigIdentity,
+	DefaultConfigMode,
+	DL-CounterSynchronisationInfo,
+	PredefinedConfigIdentity,
+	PredefinedConfigStatusList,
+	RAB-Info,
+	RAB-Info-Post,
+	RAB-InformationList,
+	RAB-InformationReconfigList,
+	RAB-InformationSetupList,
+	RB-ActivationTimeInfoList,
+	RB-COUNT-C-InformationList,
+	RB-COUNT-C-MSB-InformationList,
+	RB-IdentityList,
+	RB-InformationAffectedList,
+	RB-InformationReconfigList,
+	RB-InformationReleaseList,
+	SRB-InformationSetupList,
+	SRB-InformationSetupList2,
+	UL-CounterSynchronisationInfo,
+-- Transport Channel IEs:
+	CPCH-SetID,
+	DL-AddReconfTransChInfo2List,
+	DL-AddReconfTransChInfoList,
+	DL-CommonTransChInfo,
+	DL-DeletedTransChInfoList,
+	DRAC-StaticInformationList,
+	TFC-Subset,
+	TFCS-Identity,
+	UL-AddReconfTransChInfoList,
+	UL-CommonTransChInfo,
+	UL-DeletedTransChInfoList,
+-- Physical Channel IEs :
+	Alpha,
+	CCTrCH-PowerControlInfo,
+	ConstantValue,
+	ConstantValueTdd,
+	CPCH-SetInfo,
+	DL-CommonInformation,
+	DL-CommonInformationPost,
+	DL-InformationPerRL,
+	DL-InformationPerRL-List,
+	DL-InformationPerRL-ListPostFDD,
+	DL-InformationPerRL-PostTDD,
+	DL-PDSCH-Information,
+	DPCH-CompressedModeStatusInfo,
+	FrequencyInfo,
+	FrequencyInfoFDD,
+	FrequencyInfoTDD,
+	MaxAllowedUL-TX-Power,
+	PDSCH-CapacityAllocationInfo,
+	PDSCH-Identity,
+	PrimaryCCPCH-TX-Power,
+	PUSCH-CapacityAllocationInfo,
+	PUSCH-Identity,
+	RL-AdditionInformationList,
+	RL-RemovalInformationList,
+	SpecialBurstScheduling,
+	SSDT-Information,
+	TFC-ControlDuration,
+	TimeslotList,
+	TX-DiversityMode,
+	UL-ChannelRequirement,
+	UL-ChannelRequirementWithCPCH-SetID,
+	UL-DPCH-Info,
+	UL-DPCH-InfoPostFDD,
+	UL-DPCH-InfoPostTDD,
+	UL-TimingAdvance,
+	UL-TimingAdvanceControl,
+-- Measurement IEs :
+	AdditionalMeasurementID-List,
+	Frequency-Band,
+	EventResults,
+	InterRAT-TargetCellDescription,
+	MeasuredResults,
+	MeasuredResults-v390ext,
+	MeasuredResultsList,
+	MeasuredResultsOnRACH,
+	MeasurementCommand,
+	MeasurementIdentity,
+	MeasurementReportingMode,
+	PrimaryCCPCH-RSCP,
+	SFN-Offset-Validity,
+	TimeslotListWithISCP,
+	TrafficVolumeMeasuredResultsList,
+	UE-Positioning-GPS-AssistanceData,
+	UE-Positioning-Measurement-v390ext,
+	UE-Positioning-OTDOA-AssistanceData,
+	UE-Positioning-OTDOA-AssistanceData-UEB,
+-- Other IEs :
+	BCCH-ModificationInfo,
+	CDMA2000-MessageList,
+	GSM-MessageList,
+	InterRAT-ChangeFailureCause,
+	InterRAT-HO-FailureCause,
+	InterRAT-UE-RadioAccessCapabilityList,	
+	InterRAT-UE-SecurityCapList,
+	IntraDomainNasNodeSelector,
+	ProtocolErrorMoreInformation,
+	Rplmn-Information,
+	SegCount,
+	SegmentIndex,
+	SFN-Prime,
+	SIB-Data-fixed,
+	SIB-Data-variable,
+	SIB-Type
+FROM InformationElements
+
+	maxSIBperMsg
+FROM Constant-definitions;
+
+-- ***************************************************
+--
+-- ACTIVE SET UPDATE (FDD only)
+--
+-- ***************************************************
+
+ActiveSetUpdate ::= CHOICE {
+	r3								SEQUENCE {
+		activeSetUpdate-r3				ActiveSetUpdate-r3-IEs,
+		laterNonCriticalExtensions		SEQUENCE {
+			-- Container for additional R99 extensions
+			activeSetUpdate-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+ActiveSetUpdate-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		-- dummy and dummy2 are not used in this version of the specification, they should
+		-- not be sent and if received they should be ignored.
+		dummy						IntegrityProtectionModeInfo			OPTIONAL,
+		dummy2						CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		newU-RNTI						U-RNTI								OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- Radio bearer IEs
+		-- dummy3 is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored.
+		dummy3						DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Physical channel IEs
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		rl-AdditionInformationList		RL-AdditionInformationList			OPTIONAL,
+		rl-RemovalInformationList		RL-RemovalInformationList			OPTIONAL,
+		tx-DiversityMode				TX-DiversityMode					OPTIONAL,
+		ssdt-Information				SSDT-Information					OPTIONAL
+}
+
+-- ***************************************************
+--
+-- ACTIVE SET UPDATE COMPLETE (FDD only)
+--
+-- ***************************************************
+
+ActiveSetUpdateComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		-- dummy is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored.
+		dummy						IntegrityProtActivationInfo			OPTIONAL,
+	-- Radio bearer IEs
+		-- dummy2 and dummy3 are not used in this version of the specification, they should
+		-- not be sent and if received they should be ignored.
+		dummy2						RB-ActivationTimeInfoList			OPTIONAL,
+		dummy3						UL-CounterSynchronisationInfo		OPTIONAL,
+
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			activeSetUpdateComplete-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- ACTIVE SET UPDATE FAILURE (FDD only)
+--
+-- ***************************************************
+
+ActiveSetUpdateFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions
+			activeSetUpdateFailure-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- Assistance Data Delivery
+--
+-- ***************************************************
+
+AssistanceDataDelivery ::= CHOICE {
+	r3								SEQUENCE {
+		assistanceDataDelivery-r3		AssistanceDataDelivery-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			assistanceDataDelivery-v3a0ext	AssistanceDataDelivery-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE{
+				-- Container for additional R99 extensions
+				assistanceDataDelivery-r3-add-ext	BIT STRING	OPTIONAL,
+				nonCriticalExtensions				SEQUENCE {}	OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+AssistanceDataDelivery-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Measurement Information Elements
+		ue-positioning-GPS-AssistanceData			UE-Positioning-GPS-AssistanceData				OPTIONAL,
+		ue-positioning-OTDOA-AssistanceData-UEB		UE-Positioning-OTDOA-AssistanceData-UEB			OPTIONAL
+}
+
+AssistanceDataDelivery-v3a0ext ::= SEQUENCE {
+	sfn-Offset-Validity					SFN-Offset-Validity		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- CELL CHANGE ORDER FROM UTRAN
+--
+-- ***************************************************
+
+CellChangeOrderFromUTRAN ::= CHOICE {
+	r3								SEQUENCE {
+		cellChangeOrderFromUTRAN-IEs		CellChangeOrderFromUTRAN-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			cellChangeOrderFromUTRAN-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+CellChangeOrderFromUTRAN-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		-- dummy is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored.
+		dummy							IntegrityProtectionModeInfo			OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		-- the IE rab-InformationList is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored. The IE may be used in a later
+		-- version of the protocol and hence it is not changed into a dummy
+		rab-InformationList				RAB-InformationList					OPTIONAL,
+		interRAT-TargetCellDescription	InterRAT-TargetCellDescription
+}
+
+-- ***************************************************
+--
+-- CELL CHANGE ORDER FROM UTRAN FAILURE
+--
+-- ***************************************************
+
+CellChangeOrderFromUTRANFailure ::= CHOICE {
+	r3								SEQUENCE {
+		cellChangeOrderFromUTRANFailure-r3
+										CellChangeOrderFromUTRANFailure-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			cellChangeOrderFromUTRANFailure-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	-- dummy is not used in this version of the specification and it
+	-- should be ignored.
+	dummy								SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+CellChangeOrderFromUTRANFailure-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		-- dummy is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored.
+		dummy							IntegrityProtectionModeInfo			OPTIONAL,
+		interRAT-ChangeFailureCause		InterRAT-ChangeFailureCause
+}
+
+-- ***************************************************
+--
+-- CELL UPDATE
+--
+-- ***************************************************
+
+CellUpdate ::= SEQUENCE {
+	-- User equipment IEs
+		u-RNTI							U-RNTI,
+		startList		STARTList,
+		am-RLC-ErrorIndicationRb2-3or4		BOOLEAN,
+		am-RLC-ErrorIndicationRb5orAbove	BOOLEAN,
+		cellUpdateCause					CellUpdateCause,
+		-- TABULAR: RRC transaction identifier is nested in FailureCauseWithProtErrTrId
+		failureCause					FailureCauseWithProtErrTrId			OPTIONAL,
+		rb-timer-indicator				Rb-timer-indicator,
+	-- Measurement IEs
+		measuredResultsOnRACH			MeasuredResultsOnRACH				OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			cellUpdate-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- CELL UPDATE CONFIRM
+--
+-- ***************************************************
+
+CellUpdateConfirm ::= CHOICE {
+	r3								SEQUENCE {
+		cellUpdateConfirm-r3			CellUpdateConfirm-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			cellUpdateConfirm-v3a0ext		CellUpdateConfirm-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				cellUpdateConfirm-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+CellUpdateConfirm-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+		rlc-Re-establishIndicatorRb2-3or4	BOOLEAN,
+		rlc-Re-establishIndicatorRb5orAbove	BOOLEAN,
+	-- CN information elements
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		rb-InformationReleaseList		RB-InformationReleaseList			OPTIONAL,
+		rb-InformationReconfigList		RB-InformationReconfigList			OPTIONAL,
+		rb-InformationAffectedList		RB-InformationAffectedList			OPTIONAL,
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-deletedTransChInfoList		UL-DeletedTransChInfoList			OPTIONAL,
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificTransChInfo			CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				addReconfTransChDRAC-Info		DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-DeletedTransChInfoList		DL-DeletedTransChInfoList			OPTIONAL,
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfoList			OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		modeSpecificPhysChInfo			CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+CellUpdateConfirm-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- CELL UPDATE CONFIRM for CCCH
+--
+-- ***************************************************
+
+CellUpdateConfirm-CCCH ::= CHOICE {
+	r3								SEQUENCE {
+		-- User equipment IEs
+			u-RNTI						U-RNTI,
+		-- The rest of the message is identical to the one sent on DCCH.
+			cellUpdateConfirm-r3				CellUpdateConfirm-r3-IEs,
+			laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			cellUpdateConfirm-CCCH-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+-- ***************************************************
+--
+-- COUNTER CHECK
+--
+-- ***************************************************
+
+CounterCheck ::= CHOICE {
+	r3								SEQUENCE {
+		counterCheck-r3					CounterCheck-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			counterCheck-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+CounterCheck-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Radio bearer IEs
+		rb-COUNT-C-MSB-InformationList	RB-COUNT-C-MSB-InformationList
+}
+
+-- ***************************************************
+--
+-- COUNTER CHECK RESPONSE
+--
+-- ***************************************************
+
+CounterCheckResponse ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Radio bearer IEs
+		rb-COUNT-C-InformationList		RB-COUNT-C-InformationList			OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			counterCheckResponse-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- DOWNLINK DIRECT TRANSFER
+--
+-- ***************************************************
+
+DownlinkDirectTransfer ::= CHOICE {
+	r3								SEQUENCE {
+		downlinkDirectTransfer-r3		DownlinkDirectTransfer-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			downlinkDirectTransfer-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+DownlinkDirectTransfer-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+		nas-Message						NAS-Message
+}
+
+-- ***************************************************
+--
+-- HANDOVER TO UTRAN COMMAND
+--
+-- ***************************************************
+
+
+HandoverToUTRANCommand ::= CHOICE {
+	r3								SEQUENCE {
+		handoverToUTRANCommand-r3		HandoverToUTRANCommand-r3-IEs,
+		nonCriticalExtensions			SEQUENCE {}	OPTIONAL
+	},
+	criticalExtensions				SEQUENCE {}
+}
+
+HandoverToUTRANCommand-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		new-U-RNTI						U-RNTI-Short,
+		-- dummy is not used in this version of the specification, it should
+		-- not be sent and if received it should be ignored.
+		dummy							ActivationTime						OPTIONAL,
+		cipheringAlgorithm				CipheringAlgorithm					OPTIONAL,
+	-- Radio bearer IEs
+	-- Specification mode information
+		specificationMode				CHOICE {
+			complete						SEQUENCE {
+				srb-InformationSetupList		SRB-InformationSetupList,
+				rab-InformationSetupList		RAB-InformationSetupList			OPTIONAL,
+				ul-CommonTransChInfo			UL-CommonTransChInfo,
+				ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList,
+				dl-CommonTransChInfo			DL-CommonTransChInfo,
+				dl-AddReconfTransChInfoList		DL-AddReconfTransChInfoList,
+				ul-DPCH-Info					UL-DPCH-Info,
+				modeSpecificInfo				CHOICE {
+					fdd								SEQUENCE {
+						dl-PDSCH-Information			DL-PDSCH-Information OPTIONAL,
+						cpch-SetInfo					CPCH-SetInfo		OPTIONAL
+					},
+					tdd								NULL
+				},
+				dl-CommonInformation			DL-CommonInformation,
+				dl-InformationPerRL-List		DL-InformationPerRL-List,
+				frequencyInfo					FrequencyInfo
+			},
+			preconfiguration				SEQUENCE {
+-- All IEs that include an FDD/TDD choice are split in two IEs for this message,
+-- one for the FDD only elements and one for the TDD only elements, so that one
+-- FDD/TDD choice in this level is sufficient.
+				preConfigMode					CHOICE {
+					predefinedConfigIdentity		PredefinedConfigIdentity,
+					defaultConfig					SEQUENCE {
+						defaultConfigMode				DefaultConfigMode,
+						defaultConfigIdentity			DefaultConfigIdentity
+					}
+				},
+				rab-Info						RAB-Info-Post		OPTIONAL,
+				modeSpecificInfo				CHOICE {
+					fdd								SEQUENCE {
+						ul-DPCH-Info					UL-DPCH-InfoPostFDD,
+						dl-CommonInformationPost		DL-CommonInformationPost,
+						dl-InformationPerRL-List		DL-InformationPerRL-ListPostFDD,
+						frequencyInfo					FrequencyInfoFDD
+					},
+					tdd									SEQUENCE {
+						ul-DPCH-Info					UL-DPCH-InfoPostTDD,
+						dl-CommonInformationPost		DL-CommonInformationPost,
+						dl-InformationPerRL				DL-InformationPerRL-PostTDD,
+						frequencyInfo					FrequencyInfoTDD,
+						primaryCCPCH-TX-Power			PrimaryCCPCH-TX-Power
+					}
+
+				}
+			}
+		},
+	-- Physical channel IEs
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power
+}
+
+-- ***************************************************
+--
+-- HANDOVER TO UTRAN COMPLETE
+--
+-- ***************************************************
+
+HandoverToUTRANComplete ::= SEQUENCE {
+	--TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		-- TABULAR: startList is conditional on history.
+		startList						STARTList							OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		laterNonCriticalExtensions	SEQUENCE {
+			-- Container for additional R99 extensions 
+			handoverToUTRANComplete-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- INITIAL DIRECT TRANSFER
+--
+-- ***************************************************
+
+InitialDirectTransfer ::= SEQUENCE {
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+		intraDomainNasNodeSelector		IntraDomainNasNodeSelector,
+		nas-Message						NAS-Message,
+	-- Measurement IEs
+		measuredResultsOnRACH			MeasuredResultsOnRACH				OPTIONAL,
+		v3a0NonCriticalExtensions		SEQUENCE {
+		initialDirectTransfer-v3a0ext	InitialDirectTransfer-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				initialDirectTransfer-r3-add-ext	BIT STRING		OPTIONAL,
+				nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+}
+
+InitialDirectTransfer-v3a0ext ::= SEQUENCE {
+		-- the START value shall always be included in this version of the specification
+		start-Value				START-Value									OPTIONAL
+}
+
+-- ***************************************************
+--
+-- HANDOVER FROM UTRAN COMMAND
+--
+-- ***************************************************
+
+HandoverFromUTRANCommand-GSM ::= CHOICE {
+	r3								SEQUENCE {
+		handoverFromUTRANCommand-GSM-r3
+										HandoverFromUTRANCommand-GSM-r3-IEs,
+		-- UTRAN should not include the IE nonCriticalExtensions when it sets
+		-- the IE gsm-message included in handoverFromUTRANCommand-GSM-r3 to single-GSM-Message
+		-- The UE behaviour upon receiving a message including this combination of IE values is
+		-- not specified
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			handoverFromUTRANCommand-GSM-r3-add-ext	
+												BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+HandoverFromUTRANCommand-GSM-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		activationTime					ActivationTime						OPTIONAL,
+	-- Radio bearer IEs
+		toHandoverRAB-Info				RAB-Info							OPTIONAL,
+	-- Measurement IEs
+		frequency-band					Frequency-Band,
+	-- Other IEs
+		gsm-message			CHOICE {
+			-- In the single-GSM-Message case the following rules apply:
+			-- 1> the GSM message directly follows the basic production; the final padding that
+			--    results when PER encoding the abstract syntax value is removed prior to appending 
+			--    the GSM message.
+			-- 2> the RRC message excluding the GSM part, does not contain a length determinant; 
+			--    there is no explicit parameter indicating the size of the included GSM message.
+			-- 3> depending on need, final padding (all "0"s) is added to ensure the final result
+			--    comprises a full number of octets
+			single-GSM-Message				SEQUENCE {},
+			gsm-MessageList					SEQUENCE {
+				gsm-Messages					GSM-MessageList
+			}
+		}
+}
+
+HandoverFromUTRANCommand-CDMA2000 ::= CHOICE {
+	r3								SEQUENCE {
+		handoverFromUTRANCommand-CDMA2000-r3
+										HandoverFromUTRANCommand-CDMA2000-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			handoverFromUTRANCommand-CDMA2000-r3-add-ext		
+												BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+HandoverFromUTRANCommand-CDMA2000-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		activationTime					ActivationTime						OPTIONAL,
+	-- Radio bearer IEs
+		toHandoverRAB-Info				RAB-Info							OPTIONAL,
+	-- Other IEs
+		cdma2000-MessageList			CDMA2000-MessageList
+}
+
+-- ***************************************************
+--
+-- HANDOVER FROM UTRAN FAILURE
+--
+-- ***************************************************
+
+HandoverFromUTRANFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Other IEs
+		interRAT-HO-FailureCause		InterRAT-HO-FailureCause			OPTIONAL,
+		interRATMessage					CHOICE {
+			gsm								SEQUENCE {
+				gsm-MessageList						GSM-MessageList
+			},
+			cdma2000							SEQUENCE {
+				cdma2000-MessageList				CDMA2000-MessageList
+			}
+		}				OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			handoverFromUTRANFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- INTER RAT HANDOVER INFO
+--
+-- ***************************************************
+
+InterRATHandoverInfo ::= SEQUENCE {
+	-- This structure is defined for historical reasons, backward compatibility with 04.18
+	predefinedConfigStatusList		CHOICE {
+		absent							NULL,
+		present							PredefinedConfigStatusList
+	},
+	uE-SecurityInformation			CHOICE {
+		absent							NULL,
+		present							UE-SecurityInformation
+	},
+	ue-CapabilityContainer			CHOICE {
+		absent							NULL,
+		-- present is an octet aligned string containing IE UE-RadioAccessCapabilityInfo
+		present							OCTET STRING (SIZE (0..63))
+	},
+	-- Non critical extensions
+	v390NonCriticalExtensions		CHOICE {
+		absent							NULL,
+		present							SEQUENCE {
+			interRATHandoverInfo-v390ext	InterRATHandoverInfo-v390ext-IEs,
+			-- Reserved for future non critical extension
+			v3a0NonCriticalExtensions			SEQUENCE {
+				interRATHandoverInfo-v3a0ext	InterRATHandoverInfo-v3a0ext-IEs,
+				laterNonCriticalExtensions			SEQUENCE {
+					interRATHandoverInfo-v3d0ext 	InterRATHandoverInfo-v3d0ext-IEs,
+					-- Container for additional R99 extensions 
+					interRATHandoverInfo-r3-add-ext		BIT STRING		OPTIONAL,
+					nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+				}	OPTIONAL
+			}	OPTIONAL
+		}
+	}
+}
+
+InterRATHandoverInfo-v390ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v380ext	UE-RadioAccessCapability-v380ext		OPTIONAL,
+		dl-PhysChCapabilityFDD-v380ext		DL-PhysChCapabilityFDD-v380ext
+}
+
+InterRATHandoverInfo-v3a0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v3a0ext	UE-RadioAccessCapability-v3a0ext		OPTIONAL
+}
+
+InterRATHandoverInfo-v3d0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		uESpecificBehaviourInformation1interRAT		UESpecificBehaviourInformation1interRAT		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- MEASUREMENT CONTROL
+--
+-- ***************************************************
+
+MeasurementControl ::= CHOICE {
+	r3								SEQUENCE {
+		measurementControl-r3			MeasurementControl-r3-IEs,
+		v390nonCriticalExtensions		SEQUENCE {
+			measurementControl-v390ext		MeasurementControl-v390ext,
+			v3a0NonCriticalExtensions			SEQUENCE {
+				measurementControl-v3a0ext			MeasurementControl-v3a0ext,
+				laterNonCriticalExtensions				SEQUENCE{
+					-- Container for additional R99 extensions 
+					measurementControl-r3-add-ext			BIT STRING		OPTIONAL,
+					nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+				}	OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+MeasurementControl-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Measurement IEs
+		measurementIdentity				MeasurementIdentity,
+		-- TABULAR: The measurement type is included in MeasurementCommand.
+		measurementCommand				MeasurementCommand,
+		measurementReportingMode		MeasurementReportingMode			OPTIONAL,
+		additionalMeasurementList		AdditionalMeasurementID-List		OPTIONAL,
+	-- Physical channel IEs
+		dpch-CompressedModeStatusInfo	DPCH-CompressedModeStatusInfo		OPTIONAL
+}
+
+MeasurementControl-v390ext ::= SEQUENCE {
+		ue-Positioning-Measurement-v390ext		UE-Positioning-Measurement-v390ext	OPTIONAL
+}
+
+MeasurementControl-v3a0ext ::= SEQUENCE {
+		sfn-Offset-Validity			SFN-Offset-Validity		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- MEASUREMENT CONTROL FAILURE
+--
+-- ***************************************************
+
+MeasurementControlFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			measurementControlFailure-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- MEASUREMENT REPORT
+--
+-- ***************************************************
+
+MeasurementReport ::= SEQUENCE {
+	-- Measurement IEs
+		measurementIdentity		MeasurementIdentity,
+		measuredResults					MeasuredResults						OPTIONAL,
+		measuredResultsOnRACH			MeasuredResultsOnRACH				OPTIONAL,
+		additionalMeasuredResults		MeasuredResultsList					OPTIONAL,
+		eventResults					EventResults						OPTIONAL,
+	-- Non-critical extensions
+		v390nonCriticalExtensions		SEQUENCE {
+			measurementReport-v390ext		MeasurementReport-v390ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				measurementReport-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}		OPTIONAL
+}
+
+MeasurementReport-v390ext ::= SEQUENCE{
+		measuredResults-v390ext			MeasuredResults-v390ext				OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PAGING TYPE 1
+--
+-- ***************************************************
+
+PagingType1 ::= SEQUENCE {
+	-- User equipment IEs
+		pagingRecordList				PagingRecordList					OPTIONAL,
+	-- Other IEs
+		bcch-ModificationInfo			BCCH-ModificationInfo				OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			pagingType1-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PAGING TYPE 2
+--
+-- ***************************************************
+
+PagingType2 ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		pagingCause						PagingCause,
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+		pagingRecordTypeID				PagingRecordTypeID,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			pagingType2-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PHYSICAL CHANNEL RECONFIGURATION
+--
+-- ***************************************************
+
+PhysicalChannelReconfiguration ::= CHOICE {
+	r3								SEQUENCE {
+		physicalChannelReconfiguration-r3
+										PhysicalChannelReconfiguration-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			physicalChannelReconfiguration-v3a0ext	PhysicalChannelReconfiguration-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				physicalChannelReconfiguration-r3-add-ext	BIT STRING		OPTIONAL,
+				nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+PhysicalChannelReconfiguration-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		-- TABULAR: UL-ChannelRequirementWithCPCH-SetID contains the choice
+		-- between UL DPCH info, CPCH SET info and CPCH set ID.
+		ul-ChannelRequirement			UL-ChannelRequirementWithCPCH-SetID		OPTIONAL,
+		modeSpecificInfo				CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+PhysicalChannelReconfiguration-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PHYSICAL CHANNEL RECONFIGURATION COMPLETE
+--
+-- ***************************************************
+
+PhysicalChannelReconfigurationComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+		-- TABULAR: UL-TimingAdvance is applicable for TDD mode only.
+		ul-TimingAdvance				UL-TimingAdvance					OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions
+			physicalChannelReconfigurationComplete-r3-add-ext
+												BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PHYSICAL CHANNEL RECONFIGURATION FAILURE
+--
+-- ***************************************************
+
+PhysicalChannelReconfigurationFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier			OPTIONAL,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			physicalChannelReconfigurationFailure-r3-add-ext
+											BIT STRING		OPTIONAL,
+			nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- PHYSICAL SHARED CHANNEL ALLOCATION (TDD only)
+--
+-- ***************************************************
+
+PhysicalSharedChannelAllocation ::= CHOICE {
+	r3								SEQUENCE {
+		physicalSharedChannelAllocation-r3
+										PhysicalSharedChannelAllocation-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			physicalSharedChannelAllocation-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+PhysicalSharedChannelAllocation-r3-IEs ::= SEQUENCE {
+	-- TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		dsch-RNTI						DSCH-RNTI							OPTIONAL,
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Physical channel IEs
+		ul-TimingAdvance				UL-TimingAdvanceControl				OPTIONAL,
+		pusch-CapacityAllocationInfo	PUSCH-CapacityAllocationInfo		OPTIONAL,
+		pdsch-CapacityAllocationInfo	PDSCH-CapacityAllocationInfo		OPTIONAL,
+		-- TABULAR: If confirmRequest is not present, the default value "No Confirm"
+		-- shall be used as specified in 10.2.25.
+		confirmRequest					ENUMERATED {
+											confirmPDSCH, confirmPUSCH }	OPTIONAL,
+		trafficVolumeReportRequest		INTEGER (0..255)					OPTIONAL,	
+		iscpTimeslotList				TimeslotList						OPTIONAL,
+		requestPCCPCHRSCP				BOOLEAN
+}
+
+-- ***************************************************
+--
+-- PUSCH CAPACITY REQUEST (TDD only)
+--
+-- ***************************************************
+
+PUSCHCapacityRequest ::= SEQUENCE {
+	-- User equipment IEs
+		dsch-RNTI						DSCH-RNTI							OPTIONAL,
+	-- Measurement IEs
+		trafficVolume					TrafficVolumeMeasuredResultsList	OPTIONAL,
+		timeslotListWithISCP			TimeslotListWithISCP				OPTIONAL,
+		primaryCCPCH-RSCP				PrimaryCCPCH-RSCP					OPTIONAL,
+		allocationConfirmation			CHOICE {
+			pdschConfirmation				PDSCH-Identity,
+			puschConfirmation				PUSCH-Identity
+		}																	OPTIONAL,
+		protocolErrorIndicator			ProtocolErrorIndicatorWithMoreInfo,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			puschCapacityRequest-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RECONFIGURATION
+--
+-- ***************************************************
+
+RadioBearerReconfiguration ::= CHOICE {
+	r3								SEQUENCE {
+		radioBearerReconfiguration-r3	RadioBearerReconfiguration-r3-IEs,
+		v3aoNonCriticalExtensions		SEQUENCE {
+			radioBearerReconfiguration-v3a0ext		RadioBearerReconfiguration-v3a0ext,
+			laterNonCriticalExtensions					SEQUENCE {
+				-- Container for additional R99 extensions 
+				radioBearerReconfiguration-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RadioBearerReconfiguration-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		rab-InformationReconfigList		RAB-InformationReconfigList			OPTIONAL,
+		-- NOTE: IE rb-InformationReconfigList should be optional in later versions
+		-- of this message
+		rb-InformationReconfigList		RB-InformationReconfigList,
+		rb-InformationAffectedList		RB-InformationAffectedList			OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-deletedTransChInfoList		UL-DeletedTransChInfoList			OPTIONAL,
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificTransChInfo			CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				addReconfTransChDRAC-Info		DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		}																	OPTIONAL,
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-DeletedTransChInfoList		DL-DeletedTransChInfoList			OPTIONAL,
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfo2List		OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		modeSpecificPhysChInfo			CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		-- NOTE: IE dl-InformationPerRL-List should be optional in later versions
+		-- of this message
+		dl-InformationPerRL-List		DL-InformationPerRL-List
+}
+
+RadioBearerReconfiguration-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RECONFIGURATION COMPLETE
+--
+-- ***************************************************
+
+RadioBearerReconfigurationComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+		-- TABULAR: UL-TimingAdvance is applicable for TDD mode only.
+		ul-TimingAdvance				UL-TimingAdvance					OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerReconfigurationComplete-r3-add-ext
+											BIT STRING		OPTIONAL,
+			nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RECONFIGURATION FAILURE
+--
+-- ***************************************************
+
+RadioBearerReconfigurationFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+	-- Radio bearer IEs
+		potentiallySuccesfulBearerList	RB-IdentityList						OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerReconfigurationFailure-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions							SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RELEASE
+--
+-- ***************************************************
+
+RadioBearerRelease ::= CHOICE {
+	r3								SEQUENCE {
+		radioBearerRelease-r3			RadioBearerRelease-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			radioBearerRelease-v3a0ext		RadioBearerRelease-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				radioBearerRelease-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RadioBearerRelease-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+		signallingConnectionRelIndication	CN-DomainIdentity		   	OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		rab-InformationReconfigList		RAB-InformationReconfigList			OPTIONAL,
+		rb-InformationReleaseList		RB-InformationReleaseList,
+		rb-InformationAffectedList		RB-InformationAffectedList			OPTIONAL,
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-deletedTransChInfoList		UL-DeletedTransChInfoList			OPTIONAL,
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificTransChInfo			CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				addReconfTransChDRAC-Info		DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		}																	OPTIONAL,
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-DeletedTransChInfoList		DL-DeletedTransChInfoList			OPTIONAL,
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfo2List		OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		modeSpecificPhysChInfo			CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd							NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+RadioBearerRelease-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RELEASE COMPLETE
+--
+-- ***************************************************
+
+RadioBearerReleaseComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+		-- TABULAR: UL-TimingAdvance is applicable for TDD mode only.
+		ul-TimingAdvance				UL-TimingAdvance					OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerReleaseComplete-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER RELEASE FAILURE
+--
+-- ***************************************************
+
+RadioBearerReleaseFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+	-- Radio bearer IEs
+		potentiallySuccesfulBearerList	RB-IdentityList						OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerReleaseFailure-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER SETUP
+--
+-- ***************************************************
+
+RadioBearerSetup ::= CHOICE {
+	r3								SEQUENCE {
+		radioBearerSetup-r3				RadioBearerSetup-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			radioBearerSetup-v3a0ext		RadioBearerSetup-v3a0ext,
+			laterNonCriticalExtensions	SEQUENCE {
+				-- Container for additional R99 extensions 
+				radioBearerSetup-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RadioBearerSetup-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- Radio bearer IEs
+		srb-InformationSetupList		SRB-InformationSetupList			OPTIONAL,
+		rab-InformationSetupList		RAB-InformationSetupList			OPTIONAL,
+		rb-InformationAffectedList		RB-InformationAffectedList			OPTIONAL,
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-deletedTransChInfoList		UL-DeletedTransChInfoList			OPTIONAL,
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificTransChInfo			CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				addReconfTransChDRAC-Info		DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		}																	OPTIONAL,
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-DeletedTransChInfoList		DL-DeletedTransChInfoList			OPTIONAL,
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfoList			OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		modeSpecificPhysChInfo			CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd								NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+RadioBearerSetup-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER SETUP COMPLETE
+--
+-- ***************************************************
+
+RadioBearerSetupComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+		-- TABULAR: UL-TimingAdvance is applicable for TDD mode only.
+		ul-TimingAdvance				UL-TimingAdvance					OPTIONAL,
+		start-Value				START-Value									OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerSetupComplete-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RADIO BEARER SETUP FAILURE
+--
+-- ***************************************************
+
+RadioBearerSetupFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+	-- Radio bearer IEs
+		potentiallySuccesfulBearerList	RB-IdentityList						OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			radioBearerSetupFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION REJECT
+--
+-- ***************************************************
+
+RRCConnectionReject ::= CHOICE {
+	r3								SEQUENCE {
+		rrcConnectionReject-r3			RRCConnectionReject-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcConnectionReject-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RRCConnectionReject-r3-IEs ::= SEQUENCE {
+	-- TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		initialUE-Identity				InitialUE-Identity,
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		rejectionCause					RejectionCause,
+		waitTime						WaitTime,
+		redirectionInfo					RedirectionInfo						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION RELEASE
+--
+-- ***************************************************
+
+RRCConnectionRelease ::= CHOICE {
+	r3								SEQUENCE {
+		rrcConnectionRelease-r3			RRCConnectionRelease-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcConnectionRelease-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RRCConnectionRelease-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		-- n-308 is conditional on the UE state.
+		n-308							N-308								OPTIONAL,
+		releaseCause					ReleaseCause,
+		rplmn-information				Rplmn-Information					OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION RELEASE for CCCH
+--
+-- ***************************************************
+
+RRCConnectionRelease-CCCH ::= CHOICE {
+	r3								SEQUENCE {
+		rrcConnectionRelease-CCCH-r3	RRCConnectionRelease-CCCH-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcConnectionRelease-CCCH-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RRCConnectionRelease-CCCH-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		u-RNTI							U-RNTI,
+	-- The rest of the message is identical to the one sent on DCCH.
+		rrcConnectionRelease			RRCConnectionRelease-r3-IEs
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION RELEASE COMPLETE
+--
+-- ***************************************************
+
+RRCConnectionReleaseComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		errorIndication					FailureCauseWithProtErr				OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcConnectionReleaseComplete-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION REQUEST
+--
+-- ***************************************************
+
+RRCConnectionRequest ::= SEQUENCE {
+	-- TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		initialUE-Identity				InitialUE-Identity,
+		establishmentCause				EstablishmentCause,
+		-- protocolErrorIndicator is MD, but for compactness reasons no default value
+		-- has been assigned to it.
+		protocolErrorIndicator			ProtocolErrorIndicator,
+	-- Measurement IEs
+		measuredResultsOnRACH			MeasuredResultsOnRACH				OPTIONAL,
+	--	Non critical Extensions
+		v3d0NonCriticalExtensions			SEQUENCE {
+		rRCConnectionRequest-v3d0ext 	RRCConnectionRequest-v3d0ext-IEs,
+		-- Reserved for future non critical extension
+			nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+RRCConnectionRequest-v3d0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		uESpecificBehaviourInformation1idle		UESpecificBehaviourInformation1idle		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION SETUP
+--
+-- ***************************************************
+
+RRCConnectionSetup ::= CHOICE {
+	r3								SEQUENCE {
+		rrcConnectionSetup-r3			RRCConnectionSetup-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcConnectionSetup-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+RRCConnectionSetup-r3-IEs ::= SEQUENCE {
+	-- TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		initialUE-Identity				InitialUE-Identity,
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI,
+		new-c-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient,
+		-- TABULAR: If capabilityUpdateRequirement is not present, the default value
+		-- defined in 10.3.3.2 shall be used.
+		capabilityUpdateRequirement		CapabilityUpdateRequirement			OPTIONAL,
+	-- Radio bearer IEs
+		srb-InformationSetupList		SRB-InformationSetupList2,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		-- NOTE: ul-AddReconfTransChInfoList should be optional in later versions
+		-- of this message
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList,
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		-- NOTE: dl-AddReconfTransChInfoList should be optional in later versions
+		-- of this message
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfoList,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC CONNECTION SETUP COMPLETE
+--
+-- ***************************************************
+
+RRCConnectionSetupComplete ::= SEQUENCE {
+	-- TABULAR: Integrity protection shall not be performed on this message.
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		startList						STARTList,
+		ue-RadioAccessCapability		UE-RadioAccessCapability			OPTIONAL,
+	--	Other IEs
+		ue-RATSpecificCapability		InterRAT-UE-RadioAccessCapabilityList	OPTIONAL,
+	-- Non critical extensions
+		v370NonCriticalExtensions			SEQUENCE {
+			rrcConnectionSetupComplete-v370ext	RRCConnectionSetupComplete-v370ext,
+			v380NonCriticalExtensions			SEQUENCE {
+				rrcConnectionSetupComplete-v380ext	RRCConnectionSetupComplete-v380ext-IEs,
+				-- Reserved for future non critical extension
+				v3a0NonCriticalExtensions			SEQUENCE {
+					rrcConnectionSetupComplete-v3a0ext	RRCConnectionSetupComplete-v3a0ext-IEs,
+					laterNonCriticalExtensions		SEQUENCE {
+						-- Container for additional R99 extensions 
+						rrcConnectionSetupComplete-r3-add-ext		BIT STRING			OPTIONAL,
+						nonCriticalExtensions						SEQUENCE {}			OPTIONAL
+					}		OPTIONAL
+				}		OPTIONAL
+			}		OPTIONAL
+		}		OPTIONAL
+}
+
+RRCConnectionSetupComplete-v370ext ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v370ext	UE-RadioAccessCapability-v370ext	OPTIONAL
+}
+
+RRCConnectionSetupComplete-v380ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v380ext	UE-RadioAccessCapability-v380ext	OPTIONAL,
+		dl-PhysChCapabilityFDD-v380ext		DL-PhysChCapabilityFDD-v380ext
+}
+
+RRCConnectionSetupComplete-v3a0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v3a0ext	UE-RadioAccessCapability-v3a0ext	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- RRC FAILURE INFO
+--
+-- ***************************************************
+
+RRC-FailureInfo ::= CHOICE {
+	r3											SEQUENCE {
+		rRC-FailureInfo-r3							RRC-FailureInfo-r3-IEs,
+		laterNonCriticalExtensions						SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrc-FailureInfo-r3-add-ext						BIT STRING		OPTIONAL,
+			nonCriticalExtensions							SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	criticalExtensions							SEQUENCE {}
+}
+
+RRC-FailureInfo-r3-IEs ::= SEQUENCE {
+	-- Non-RRC IEs
+		failureCauseWithProtErr						FailureCauseWithProtErr
+}
+
+-- ***************************************************
+--
+-- RRC STATUS
+--
+-- ***************************************************
+
+RRCStatus ::= SEQUENCE {
+	-- Other IEs
+		-- TABULAR:  Identification of received message is nested in
+		-- ProtocolErrorMoreInformation
+		protocolErrorInformation		ProtocolErrorMoreInformation,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			rrcStatus-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SECURITY MODE COMMAND
+--
+-- ***************************************************
+
+SecurityModeCommand ::= CHOICE {
+	r3								SEQUENCE {
+		securityModeCommand-r3			SecurityModeCommand-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			securityModeCommand-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+SecurityModeCommand-r3-IEs ::= SEQUENCE {
+-- TABULAR: Integrity protection shall always be performed on this message.
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		securityCapability				SecurityCapability,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+	--	Other IEs
+		ue-SystemSpecificSecurityCap	InterRAT-UE-SecurityCapList			OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SECURITY MODE COMPLETE
+--
+-- ***************************************************
+
+SecurityModeComplete ::= SEQUENCE {
+-- TABULAR: Integrity protection shall always be performed on this message.
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+	-- Radio bearer IEs
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			securityModeComplete-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SECURITY MODE FAILURE
+--
+-- ***************************************************
+
+SecurityModeFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			securityModeFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SIGNALLING CONNECTION RELEASE
+--
+-- ***************************************************
+
+SignallingConnectionRelease ::= CHOICE {
+	r3								SEQUENCE {
+		signallingConnectionRelease-r3	SignallingConnectionRelease-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			signallingConnectionRelease-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+SignallingConnectionRelease-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity
+}
+
+-- ***************************************************
+--
+-- SIGNALLING CONNECTION RELEASE INDICATION
+--
+-- ***************************************************
+
+SignallingConnectionReleaseIndication ::= SEQUENCE {
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			signallingConnectionReleaseIndication-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions									SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- SYSTEM INFORMATION for BCH
+--
+-- ***************************************************
+
+SystemInformation-BCH ::= SEQUENCE {
+	-- Other information elements
+		sfn-Prime						SFN-Prime,
+		payload						CHOICE {
+			noSegment						NULL,
+			firstSegment					FirstSegment,
+			subsequentSegment				SubsequentSegment,
+			lastSegmentShort						LastSegmentShort,
+			lastAndFirst					SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				firstSegment					FirstSegmentShort
+			},
+			lastAndComplete					SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				completeSIB-List				CompleteSIB-List
+			},
+			lastAndCompleteAndFirst			SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				completeSIB-List				CompleteSIB-List,
+				firstSegment					FirstSegmentShort
+			},
+			completeSIB-List				CompleteSIB-List,
+			completeAndFirst				SEQUENCE {
+				completeSIB-List				CompleteSIB-List,
+				firstSegment					FirstSegmentShort
+			},
+			completeSIB						CompleteSIB,
+			lastSegment						LastSegment,
+			spare5							NULL,
+			spare4							NULL,
+			spare3							NULL,
+			spare2							NULL,
+			spare1							NULL
+		}
+}
+
+-- ***************************************************
+--
+-- SYSTEM INFORMATION for FACH
+--
+-- ***************************************************
+
+SystemInformation-FACH ::= SEQUENCE {
+	-- Other information elements
+		payload						CHOICE {
+			noSegment						NULL,
+			firstSegment					FirstSegment,
+			subsequentSegment				SubsequentSegment,
+			lastSegmentShort				LastSegmentShort,
+			lastAndFirst					SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				firstSegment					FirstSegmentShort
+			},
+			lastAndComplete					SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				completeSIB-List				CompleteSIB-List
+			},
+			lastAndCompleteAndFirst			SEQUENCE {
+				lastSegmentShort				LastSegmentShort,
+				completeSIB-List				CompleteSIB-List,
+				firstSegment					FirstSegmentShort
+			},
+			completeSIB-List				CompleteSIB-List,
+			completeAndFirst				SEQUENCE {
+				completeSIB-List				CompleteSIB-List,
+				firstSegment					FirstSegmentShort
+			},
+			completeSIB						CompleteSIB,
+			lastSegment						LastSegment,
+			spare5							NULL,
+			spare4							NULL,
+			spare3							NULL,
+			spare2							NULL,
+			spare1							NULL
+		}
+}
+
+-- ***************************************************
+--
+-- First segment
+--
+-- ***************************************************
+
+FirstSegment ::=					SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		seg-Count						SegCount,
+		sib-Data-fixed					SIB-Data-fixed
+}
+
+-- ***************************************************
+--
+-- First segment (short)
+--
+-- ***************************************************
+
+FirstSegmentShort ::=				SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		seg-Count						SegCount,
+		sib-Data-variable				SIB-Data-variable
+}
+
+-- ***************************************************
+--
+-- Subsequent segment
+--
+-- ***************************************************
+
+SubsequentSegment ::=				SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		segmentIndex					SegmentIndex,
+		sib-Data-fixed					SIB-Data-fixed
+}
+
+-- ***************************************************
+--
+-- Last segment
+--
+-- ***************************************************
+
+LastSegment ::=						SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		segmentIndex					SegmentIndex,
+		-- for sib-Data-fixed, in case the SIB data is less than 222 bits, padding
+		-- shall be used. The same padding bits shall be used as defined in clause 12.1
+		sib-Data-fixed					SIB-Data-fixed
+}
+
+LastSegmentShort ::=						SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		segmentIndex					SegmentIndex,
+		sib-Data-variable				SIB-Data-variable
+}
+
+-- ***************************************************
+--
+-- Complete SIB
+--
+-- ***************************************************
+
+CompleteSIB-List ::=				SEQUENCE (SIZE (1..maxSIBperMsg)) OF
+										CompleteSIBshort
+
+CompleteSIB ::=						SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		-- for sib-Data-fixed, in case the SIB data is less than 226 bits, padding
+		-- shall be used. The same padding bits shall be used as defined in clause 12.1
+		sib-Data-fixed					BIT STRING (SIZE (226))
+}
+
+CompleteSIBshort ::=						SEQUENCE {
+	-- Other information elements
+		sib-Type						SIB-Type,
+		sib-Data-variable				SIB-Data-variable
+}
+
+-- ***************************************************
+--
+-- SYSTEM INFORMATION CHANGE INDICATION
+--
+-- ***************************************************
+
+SystemInformationChangeIndication ::=	SEQUENCE {
+	-- Other IEs
+		bcch-ModificationInfo				BCCH-ModificationInfo,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			systemInformationChangeIndication-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions								SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- TRANSPORT CHANNEL RECONFIGURATION
+--
+-- ***************************************************
+
+TransportChannelReconfiguration ::= CHOICE {
+	r3								SEQUENCE {
+		transportChannelReconfiguration-r3
+										TransportChannelReconfiguration-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			transportChannelReconfiguration-v3a0ext
+											TransportChannelReconfiguration-v3a0ext,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				transportChannelReconfiguration-r3-add-ext	BIT STRING		OPTIONAL,
+				nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+TransportChannelReconfiguration-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		activationTime					ActivationTime						OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- Core network IEs
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Transport channel IEs
+		ul-CommonTransChInfo			UL-CommonTransChInfo				OPTIONAL,
+		ul-AddReconfTransChInfoList		UL-AddReconfTransChInfoList			OPTIONAL,
+		modeSpecificTransChInfo			CHOICE {
+			fdd								SEQUENCE {
+				cpch-SetID						CPCH-SetID					OPTIONAL,
+				addReconfTransChDRAC-Info		DRAC-StaticInformationList	OPTIONAL
+			},
+			tdd								NULL
+		}																	OPTIONAL,
+		dl-CommonTransChInfo			DL-CommonTransChInfo				OPTIONAL,
+		dl-AddReconfTransChInfoList		DL-AddReconfTransChInfoList			OPTIONAL,
+	-- Physical channel IEs
+		frequencyInfo					FrequencyInfo						OPTIONAL,
+		maxAllowedUL-TX-Power			MaxAllowedUL-TX-Power				OPTIONAL,
+		ul-ChannelRequirement			UL-ChannelRequirement				OPTIONAL,
+		modeSpecificPhysChInfo			CHOICE {
+			fdd								SEQUENCE {
+				dl-PDSCH-Information			DL-PDSCH-Information		OPTIONAL
+			},
+			tdd							NULL
+		},
+		dl-CommonInformation			DL-CommonInformation				OPTIONAL,
+		dl-InformationPerRL-List		DL-InformationPerRL-List			OPTIONAL
+}
+
+TransportChannelReconfiguration-v3a0ext ::= SEQUENCE {
+	new-DSCH-RNTI					DSCH-RNTI						OPTIONAL
+}
+
+-- ***************************************************
+--
+-- TRANSPORT CHANNEL RECONFIGURATION COMPLETE
+--
+-- ***************************************************
+
+TransportChannelReconfigurationComplete ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+		-- TABULAR: UL-TimingAdvance is applicable for TDD mode only.
+		ul-TimingAdvance				UL-TimingAdvance					OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			transportChannelReconfigurationComplete-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions									SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- TRANSPORT CHANNEL RECONFIGURATION FAILURE
+--
+-- ***************************************************
+
+TransportChannelReconfigurationFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			transportChannelReconfigurationFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions									SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- TRANSPORT FORMAT COMBINATION CONTROL
+--
+-- ***************************************************
+
+TransportFormatCombinationControl ::= SEQUENCE {
+	-- rrc-TransactionIdentifier is always included in this version of the
+	-- specification.
+	rrc-TransactionIdentifier		RRC-TransactionIdentifier			OPTIONAL,
+	modeSpecificInfo					CHOICE {
+		fdd									NULL,
+		tdd									SEQUENCE {
+			tfcs-ID								TFCS-Identity	OPTIONAL
+		}	
+	},
+	dpch-TFCS-InUplink					TFC-Subset,
+	activationTimeForTFCSubset			ActivationTime						OPTIONAL,
+	tfc-ControlDuration					TFC-ControlDuration					OPTIONAL,
+	laterNonCriticalExtensions			SEQUENCE {
+		-- Container for additional R99 extensions 
+		transportFormatCombinationControl-r3-add-ext
+											BIT STRING		OPTIONAL,
+		nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+	}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- TRANSPORT FORMAT COMBINATION CONTROL FAILURE
+--
+-- ***************************************************
+
+TransportFormatCombinationControlFailure ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			transportFormatCombinationControlFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions									SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- UE CAPABILITY ENQUIRY
+--
+-- ***************************************************
+
+UECapabilityEnquiry ::= CHOICE {
+	r3								SEQUENCE {
+		ueCapabilityEnquiry-r3			UECapabilityEnquiry-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			ueCapabilityEnquiry-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+UECapabilityEnquiry-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		capabilityUpdateRequirement		CapabilityUpdateRequirement
+}
+
+-- ***************************************************
+--
+-- UE CAPABILITY INFORMATION
+--
+-- ***************************************************
+
+UECapabilityInformation ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier			OPTIONAL,
+		ue-RadioAccessCapability		UE-RadioAccessCapability			OPTIONAL,
+	-- Other IEs
+		ue-RATSpecificCapability		InterRAT-UE-RadioAccessCapabilityList				OPTIONAL,
+	-- Non critical extensions
+		v370NonCriticalExtensions			SEQUENCE {
+			ueCapabilityInformation-v370ext	UECapabilityInformation-v370ext,
+			v380NonCriticalExtensions			SEQUENCE {
+				ueCapabilityInformation-v380ext		UECapabilityInformation-v380ext-IEs,
+				-- Reserved for future non critical extension
+				v3a0NonCriticalExtensions			SEQUENCE {
+					ueCapabilityInformation-v3a0ext	UECapabilityInformation-v3a0ext-IEs,
+					laterNonCriticalExtensions			SEQUENCE {
+						-- Container for additional R99 extensions 
+						ueCapabilityInformation-r3-add-ext		BIT STRING		OPTIONAL,
+						nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+					}	OPTIONAL
+				}		OPTIONAL
+			}		OPTIONAL
+		}		OPTIONAL
+}
+
+UECapabilityInformation-v370ext::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v370ext		UE-RadioAccessCapability-v370ext		OPTIONAL
+}
+
+UECapabilityInformation-v380ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v380ext		UE-RadioAccessCapability-v380ext		OPTIONAL,
+		dl-PhysChCapabilityFDD-v380ext			DL-PhysChCapabilityFDD-v380ext
+}
+
+UECapabilityInformation-v3a0ext-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		ue-RadioAccessCapability-v3a0ext		UE-RadioAccessCapability-v3a0ext		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- UE CAPABILITY INFORMATION CONFIRM
+--
+-- ***************************************************
+
+UECapabilityInformationConfirm ::= CHOICE {
+	r3								SEQUENCE {
+		ueCapabilityInformationConfirm-r3
+										UECapabilityInformationConfirm-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			ueCapabilityInformationConfirm-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+UECapabilityInformationConfirm-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier
+}
+
+-- ***************************************************
+--
+-- UPLINK DIRECT TRANSFER
+--
+-- ***************************************************
+
+UplinkDirectTransfer ::= SEQUENCE {
+	-- Core network IEs
+		cn-DomainIdentity				CN-DomainIdentity,
+		nas-Message						NAS-Message,
+	-- Measurement IEs
+		measuredResultsOnRACH			MeasuredResultsOnRACH				OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			uplinkDirectTransfer-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- UPLINK PHYSICAL CHANNEL CONTROL
+--
+-- ***************************************************
+
+UplinkPhysicalChannelControl ::= CHOICE {
+	r3								SEQUENCE {
+		uplinkPhysicalChannelControl-r3	UplinkPhysicalChannelControl-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			uplinkPhysicalChannelControl-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions						SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+
+UplinkPhysicalChannelControl-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+	-- Physical channel IEs
+		ccTrCH-PowerControlInfo			CCTrCH-PowerControlInfo				OPTIONAL,
+		timingAdvance					UL-TimingAdvanceControl				OPTIONAL,
+		alpha							Alpha								OPTIONAL,
+		specialBurstScheduling			SpecialBurstScheduling				OPTIONAL,
+		prach-ConstantValue				ConstantValueTdd					OPTIONAL,
+		pusch-ConstantValue				ConstantValueTdd					OPTIONAL
+}
+
+-- ***************************************************
+--
+-- URA UPDATE
+--
+-- ***************************************************
+
+URAUpdate ::= SEQUENCE {
+	-- User equipment IEs
+		u-RNTI							U-RNTI,
+		ura-UpdateCause					URA-UpdateCause,
+		protocolErrorIndicator			ProtocolErrorIndicatorWithMoreInfo,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			uraUpdate-r3-add-ext				BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- URA UPDATE CONFIRM
+--
+-- ***************************************************
+
+URAUpdateConfirm ::= CHOICE {
+	r3								SEQUENCE {
+		uraUpdateConfirm-r3				URAUpdateConfirm-r3-IEs,
+		laterNonCriticalExtensions		SEQUENCE {
+			-- Container for additional R99 extensions 
+			uraUpdateConfirm-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+URAUpdateConfirm-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		rrc-StateIndicator				RRC-StateIndicator,
+		utran-DRX-CycleLengthCoeff		UTRAN-DRX-CycleLengthCoefficient	OPTIONAL,
+	-- CN information elements
+		cn-InformationInfo				CN-InformationInfo					OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL
+}
+
+-- ***************************************************
+--
+-- URA UPDATE CONFIRM for CCCH
+--
+-- ***************************************************
+
+URAUpdateConfirm-CCCH ::= CHOICE {
+	r3								SEQUENCE {
+		uraUpdateConfirm-CCCH-r3		URAUpdateConfirm-CCCH-r3-IEs,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			uraUpdateConfirm-CCCH-r3-add-ext	BIT STRING		OPTIONAL,
+			nonCriticalExtensions				SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+URAUpdateConfirm-CCCH-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		u-RNTI							U-RNTI,
+	-- The rest of the message is identical to the one sent on DCCH.
+		uraUpdateConfirm				URAUpdateConfirm-r3-IEs
+}
+
+-- ***************************************************
+--
+-- UTRAN MOBILITY INFORMATION
+--
+-- ***************************************************
+
+UTRANMobilityInformation ::= CHOICE {
+	r3								SEQUENCE {
+		utranMobilityInformation-r3		UTRANMobilityInformation-r3-IEs,
+		v3a0NonCriticalExtensions		SEQUENCE {
+			utranMobilityInformation-v3a0ext	UTRANMobilityInformation-v3a0ext-IEs,
+			laterNonCriticalExtensions			SEQUENCE {
+				-- Container for additional R99 extensions 
+				utranMobilityInformation-r3-add-ext		BIT STRING		OPTIONAL,
+				nonCriticalExtensions					SEQUENCE {}		OPTIONAL
+			}	OPTIONAL
+		}	OPTIONAL
+	},
+	later-than-r3					SEQUENCE {
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		criticalExtensions				SEQUENCE {}
+	}
+}
+
+UTRANMobilityInformation-r3-IEs ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		integrityProtectionModeInfo		IntegrityProtectionModeInfo			OPTIONAL,
+		cipheringModeInfo				CipheringModeInfo					OPTIONAL,
+		new-U-RNTI						U-RNTI								OPTIONAL,
+		new-C-RNTI						C-RNTI								OPTIONAL,
+		ue-ConnTimersAndConstants		UE-ConnTimersAndConstants			OPTIONAL,
+	-- CN information elements
+		cn-InformationInfo				CN-InformationInfoFull				OPTIONAL,
+	-- UTRAN mobility IEs
+		ura-Identity					URA-Identity						OPTIONAL,
+	-- Radio bearer IEs
+		dl-CounterSynchronisationInfo	DL-CounterSynchronisationInfo		OPTIONAL,
+	-- Extension mechanism for non- release99 information
+		nonCriticalExtensions			SEQUENCE {}		OPTIONAL
+}
+
+UTRANMobilityInformation-v3a0ext-IEs ::= SEQUENCE {
+	ue-ConnTimersAndConstants-v3a0ext		UE-ConnTimersAndConstants-v3a0ext
+}
+
+-- ***************************************************
+--
+-- UTRAN MOBILITY INFORMATION CONFIRM
+--
+-- ***************************************************
+
+UTRANMobilityInformationConfirm ::= SEQUENCE {
+	-- User equipment IEs
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		ul-IntegProtActivationInfo		IntegrityProtActivationInfo			OPTIONAL,
+	-- Radio bearer IEs
+		count-C-ActivationTime			ActivationTime						OPTIONAL,
+		rb-UL-CiphActivationTimeInfo	RB-ActivationTimeInfoList			OPTIONAL,
+		ul-CounterSynchronisationInfo	UL-CounterSynchronisationInfo		OPTIONAL,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			utranMobilityInformationConfirm-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions							SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+-- ***************************************************
+--
+-- UTRAN MOBILITY INFORMATION FAILURE
+--
+-- ***************************************************
+
+UTRANMobilityInformationFailure ::= SEQUENCE {
+	-- UE information elements
+		rrc-TransactionIdentifier		RRC-TransactionIdentifier,
+		failureCause					FailureCauseWithProtErr,
+		laterNonCriticalExtensions			SEQUENCE {
+			-- Container for additional R99 extensions 
+			utranMobilityInformationFailure-r3-add-ext		BIT STRING		OPTIONAL,
+			nonCriticalExtensions							SEQUENCE {}		OPTIONAL
+		}	OPTIONAL
+}
+
+END

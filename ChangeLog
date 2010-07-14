@@ -1,0 +1,174 @@
+2010-07-09  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* configure.ac:
+	* perl/D.pm.in (symbol_name):
+	linked version to autoconf
+	added AUTOLOAD, XSLoader, inspired from BerckeleyDB.pm
+
+2010-07-07  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* perl/Makefile.PL.in ():
+	* perl/Makefile.am:
+	creation, compiled target all.
+
+	* python/Makefile.am (__init__.py):
+	improved target and use of automatic variable.
+
+2010-07-02  U-STE\cmont  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* perl/Makefile.PL.in: creation
+
+2010-07-01  U-STE\cmont  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* Makefile.am:
+	removed dist_man_MANS
+
+	* python/Makefile.am:
+	managed check-install
+
+	* python/parser_dparser.py:
+	contains interface for extra python classes.
+	merged into __init__.py
+
+	* python/pydparser.h ():
+	contains now SWIG and C declarations related to python.
+
+	* python/dparser.i:
+	generalised the swig filed and moved SWIG declarations in pydparser.h.
+
+
+2010-06-28  U-STE\cmont  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* python/pydparser.c:
+	added SWIG_MakePtr()...from old verison of swig
+
+	* python/dparser.i:
+	changed for new generations of "swig"
+
+	* python/make_tables.c:
+	removed include paths sections
+
+	* driver_parsetree.c:
+	changed unreferenced variable into  "parser_tables_dparser_gram".
+
+	* verilog/main.c:
+	localised global 'verbose_level'
+
+	* verilog/Makefile.am ():
+	compile clean and check
+
+2010-06-25  U-STE\cmont  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* tests/Makefile.am ():
+	managed run (with 3 of 89 tests failed) "check".
+	g10,g25,python.test.g1 are failing.
+
+2010-06-23  U-STE\cmont  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* test_parser.c (main):
+	file arguments test before help usage decremented by one.
+
+
+1.14	Support generation of code from a grammar to print
+          the parse tree instead of executing the actions (Wlodzimierz Bzyl)
+        Support user-defined print functions (Wlodzimierz Bzyl)
+        Support disambiguation based on greedyness (optional)
+        Fixed a bug in the python support which prevented
+          the use of associativity and priority
+        Add support for 64-bit systems to the python interface
+
+1.13	Fixed compilation issue with use of GC option.
+	Fixed memory leak with reusing a parser with a whitespace production.
+	Fixed a potential memory leak in the python interface.
+	Fixed memory leaks with the mkdparser library.
+
+1.12	Fixed some portability ANSI-C issues.
+	Fixed a bug where actions would not fire with regex productions.
+	Changed the binary interface ${action} placement.
+
+1.11	Added new interfaces for binary output to memory/file
+	Fixed bug in ambiguity handling
+
+1.10	Fixed bug in binary output
+	Port to x64
+
+1.9	Fixed bug in error recovery
+	Added support for trailing context in regex ("foo/bar")
+        Fixed bug in longest match scanning
+	Fixed bug in d_ws_before
+	Use str(r)chr instead of non-standard (r)index
+	Binary table format for python (Brian Sabbey)
+
+1.8	Added the ability to 'include' subgrammars
+	Add %< %> as global code indicators
+	Add $#n for number of children of element n
+	Add ${child 1,2,3} for 3rd child of 2nd child of 1st child
+	Added option for fixup_EBNF_productions
+	Changed the way fixups work to be more consistent
+	Add naming of regex productions
+	Add support for dynamic scoping to symtab
+	Improved line numbering of generated code
+	Add -I option identify grammar by filename
+ 	Fixed support for very large scanners
+
+1.7	Another fix for MINGW32
+	Fix to state splitting
+	Add start_state to table of symbols
+	Updated python interface (thanx to Brian Sabbey)
+	Added option terminal option $name to name terminals
+	Add option to set extension of generated code file
+
+1.6	Fixed missing test files
+ 	Fixed ${declare subparser XXX}
+	Fixed bug with multiple passes
+	Split states based on symboltable and globals
+	Added print_scope
+
+1.5	Fixed web pages
+        Fixed DEBUG compilation error
+        Fixed ${scan XXX} example (g4.test.g)
+        Fixed strings/chars in ANSI-C grammar 
+        Fixed OSX/Darwin compilation
+        Fixed ws_before/ws_after
+        Added support for \xNN \d00 escape sequences
+        Added support for /i (ignore case) strings/regexes
+        Added support for starting in arbitrary states
+
+1.4	Added embedded actions
+ 	Added default actions
+	Added support for multi-pass compilation
+        Added support for mixed all/longest scanners
+	Enhanced python interface
+
+1.3     Made GC version end in _gc
+	Fixed symtab, changed interface and added test cases
+        Fixed other bugs
+ 	Added verilog grammar
+ 	Added python grammar
+	Added support for regular expression 'productions'
+
+1.2	Fixed a bug in cmp_reduction_priorities that could result in crashes 
+	Fixed a bug which could result in ambiguity on final result
+          (thanx Thomas)
+	Fixed a bug in fixup of internal reductions which could result
+	  in incorrectly ordered actions (thanx Tomas)
+	Fixed a bug in stack comparison pruning which could result in
+	  incorrectly ruling out legal parses
+	Added python support (thanx to Brian Sabbey)
+	Added non-longest-match-only scanning
+
+1.1	Fixed bug in fixing up internal productions
+	Made the default using left recursion for EBNF internal productions
+
+1.0	Added full unambiguous ANSI C grammar
+	Added tokenizers (scanners shared over sets of states)
+ 	Added support for subparsers
+	Cleanup of header files
+	Fixed bugs in error recovery
+
+1.0b2	Improved memory utilization
+	Fixed bug with right epsilon grammars
+	Added simple error recovery
+	General bug fixes
+
+1.0b1	First release

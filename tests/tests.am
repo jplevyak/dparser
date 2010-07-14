@@ -1,0 +1,375 @@
+check_PROGRAMS=
+check_PROGRAMS+= ansic.test.g.sp
+ansic_test_g_sp_SOURCES= ansic.test.g.d_parser.c
+ansic_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+ansic.test.g.d_parser.c:ansic.test.g
+check_PROGRAMS+= g1.test.g.sp
+g1_test_g_sp_SOURCES= g1.test.g.d_parser.c
+g1_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g1.test.g.d_parser.c:g1.test.g
+check_PROGRAMS+= g10.test.g.sp
+g10_test_g_sp_SOURCES= g10.test.g.d_parser.c
+g10_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g10.test.g.d_parser.c:g10.test.g
+check_PROGRAMS+= g11.test.g.sp
+g11_test_g_sp_SOURCES= g11.test.g.d_parser.c
+g11_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g11.test.g.d_parser.c:g11.test.g
+check_PROGRAMS+= g12.test.g.sp
+g12_test_g_sp_SOURCES= g12.test.g.d_parser.c
+g12_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g12.test.g.d_parser.c:g12.test.g
+check_PROGRAMS+= g13.test.g.sp
+g13_test_g_sp_SOURCES= g13.test.g.d_parser.c
+g13_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g13.test.g.d_parser.c:g13.test.g
+check_PROGRAMS+= g14.test.g.sp
+g14_test_g_sp_SOURCES= g14.test.g.d_parser.c
+g14_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g14.test.g.d_parser.c:g14.test.g
+check_PROGRAMS+= g15.test.g.sp
+g15_test_g_sp_SOURCES= g15.test.g.d_parser.c
+g15_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g15.test.g.d_parser.c:g15.test.g
+check_PROGRAMS+= g16.test.g.sp
+g16_test_g_sp_SOURCES= g16.test.g.d_parser.c
+g16_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g16.test.g.d_parser.c:g16.test.g
+check_PROGRAMS+= g17.test.g.sp
+g17_test_g_sp_SOURCES= g17.test.g.d_parser.c
+g17_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g17.test.g.d_parser.c:g17.test.g
+check_PROGRAMS+= g18.test.g.sp
+g18_test_g_sp_SOURCES= g18.test.g.d_parser.c
+g18_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g18.test.g.d_parser.c:g18.test.g
+check_PROGRAMS+= g19.test.g.sp
+g19_test_g_sp_SOURCES= g19.test.g.d_parser.c
+g19_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g19.test.g.d_parser.c:g19.test.g
+check_PROGRAMS+= g2.test.g.sp
+g2_test_g_sp_SOURCES= g2.test.g.d_parser.c
+g2_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g2.test.g.d_parser.c:g2.test.g
+check_PROGRAMS+= g20.test.g.sp
+g20_test_g_sp_SOURCES= g20.test.g.d_parser.c
+g20_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g20.test.g.d_parser.c:g20.test.g
+check_PROGRAMS+= g21.test.g.sp
+g21_test_g_sp_SOURCES= g21.test.g.d_parser.c
+g21_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g21.test.g.d_parser.c:g21.test.g
+check_PROGRAMS+= g22.test.g.sp
+g22_test_g_sp_SOURCES= g22.test.g.d_parser.c
+g22_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g22.test.g.d_parser.c:g22.test.g
+check_PROGRAMS+= g23.test.g.sp
+g23_test_g_sp_SOURCES= g23.test.g.d_parser.c
+g23_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g23.test.g.d_parser.c:g23.test.g
+check_PROGRAMS+= g24.test.g.sp
+g24_test_g_sp_SOURCES= g24.test.g.d_parser.c
+g24_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g24.test.g.d_parser.c:g24.test.g
+check_PROGRAMS+= g25.test.g.sp
+g25_test_g_sp_SOURCES= g25.test.g.d_parser.c
+g25_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g25.test.g.d_parser.c:g25.test.g
+check_PROGRAMS+= g26.test.g.sp
+g26_test_g_sp_SOURCES= g26.test.g.d_parser.c
+g26_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g26.test.g.d_parser.c:g26.test.g
+check_PROGRAMS+= g27.test.g.sp
+g27_test_g_sp_SOURCES= g27.test.g.d_parser.c
+g27_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g27.test.g.d_parser.c:g27.test.g
+check_PROGRAMS+= g28.test.g.sp
+g28_test_g_sp_SOURCES= g28.test.g.d_parser.c
+g28_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g28.test.g.d_parser.c:g28.test.g
+check_PROGRAMS+= g29.test.g.sp
+g29_test_g_sp_SOURCES= g29.test.g.d_parser.c
+g29_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g29.test.g.d_parser.c:g29.test.g
+check_PROGRAMS+= g3.test.g.sp
+g3_test_g_sp_SOURCES= g3.test.g.d_parser.c
+g3_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g3.test.g.d_parser.c:g3.test.g
+check_PROGRAMS+= g30.test.g.sp
+g30_test_g_sp_SOURCES= g30.test.g.d_parser.c
+g30_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g30.test.g.d_parser.c:g30.test.g
+check_PROGRAMS+= g31.test.g.sp
+g31_test_g_sp_SOURCES= g31.test.g.d_parser.c
+g31_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g31.test.g.d_parser.c:g31.test.g
+check_PROGRAMS+= g32.test.g.sp
+g32_test_g_sp_SOURCES= g32.test.g.d_parser.c
+g32_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g32.test.g.d_parser.c:g32.test.g
+check_PROGRAMS+= g33.test.g.sp
+g33_test_g_sp_SOURCES= g33.test.g.d_parser.c
+g33_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g33.test.g.d_parser.c:g33.test.g
+check_PROGRAMS+= g34.test.g.sp
+g34_test_g_sp_SOURCES= g34.test.g.d_parser.c
+g34_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g34.test.g.d_parser.c:g34.test.g
+check_PROGRAMS+= g35.test.g.sp
+g35_test_g_sp_SOURCES= g35.test.g.d_parser.c
+g35_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g35.test.g.d_parser.c:g35.test.g
+check_PROGRAMS+= g36.test.g.sp
+g36_test_g_sp_SOURCES= g36.test.g.d_parser.c
+g36_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g36.test.g.d_parser.c:g36.test.g
+check_PROGRAMS+= g37.test.g.sp
+g37_test_g_sp_SOURCES= g37.test.g.d_parser.c
+g37_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g37.test.g.d_parser.c:g37.test.g
+check_PROGRAMS+= g38.test.g.sp
+g38_test_g_sp_SOURCES= g38.test.g.d_parser.c
+g38_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g38.test.g.d_parser.c:g38.test.g
+check_PROGRAMS+= g39.test.g.sp
+g39_test_g_sp_SOURCES= g39.test.g.d_parser.c
+g39_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g39.test.g.d_parser.c:g39.test.g
+check_PROGRAMS+= g4.test.g.sp
+g4_test_g_sp_SOURCES= g4.test.g.d_parser.c
+g4_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g4.test.g.d_parser.c:g4.test.g
+check_PROGRAMS+= g40.test.g.sp
+g40_test_g_sp_SOURCES= g40.test.g.d_parser.c
+g40_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g40.test.g.d_parser.c:g40.test.g
+check_PROGRAMS+= g41.test.g.sp
+g41_test_g_sp_SOURCES= g41.test.g.d_parser.c
+g41_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g41.test.g.d_parser.c:g41.test.g
+check_PROGRAMS+= g42.test.g.sp
+g42_test_g_sp_SOURCES= g42.test.g.d_parser.c
+g42_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g42.test.g.d_parser.c:g42.test.g
+check_PROGRAMS+= g43.test.g.sp
+g43_test_g_sp_SOURCES= g43.test.g.d_parser.c
+g43_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g43.test.g.d_parser.c:g43.test.g
+check_PROGRAMS+= g44.test.g.sp
+g44_test_g_sp_SOURCES= g44.test.g.d_parser.c
+g44_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g44.test.g.d_parser.c:g44.test.g
+check_PROGRAMS+= g45.test.g.sp
+g45_test_g_sp_SOURCES= g45.test.g.d_parser.c
+g45_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g45.test.g.d_parser.c:g45.test.g
+check_PROGRAMS+= g46.test.g.sp
+g46_test_g_sp_SOURCES= g46.test.g.d_parser.c
+g46_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g46.test.g.d_parser.c:g46.test.g
+check_PROGRAMS+= g5.test.g.sp
+g5_test_g_sp_SOURCES= g5.test.g.d_parser.c
+g5_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g5.test.g.d_parser.c:g5.test.g
+check_PROGRAMS+= g6.test.g.sp
+g6_test_g_sp_SOURCES= g6.test.g.d_parser.c
+g6_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g6.test.g.d_parser.c:g6.test.g
+check_PROGRAMS+= g7.test.g.sp
+g7_test_g_sp_SOURCES= g7.test.g.d_parser.c
+g7_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g7.test.g.d_parser.c:g7.test.g
+check_PROGRAMS+= g8.test.g.sp
+g8_test_g_sp_SOURCES= g8.test.g.d_parser.c
+g8_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g8.test.g.d_parser.c:g8.test.g
+check_PROGRAMS+= g9.test.g.sp
+g9_test_g_sp_SOURCES= g9.test.g.d_parser.c
+g9_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+g9.test.g.d_parser.c:g9.test.g
+check_PROGRAMS+= python.test.g.sp
+python_test_g_sp_SOURCES= python.test.g.d_parser.c
+python_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+python.test.g.d_parser.c:python.test.g
+check_PROGRAMS+= sample.test.g.sp
+sample_test_g_sp_SOURCES= sample.test.g.d_parser.c
+sample_test_g_sp_LDFLAGS=$(check_LIBRARIES) -ldparser
+sample.test.g.d_parser.c:sample.test.g
+ansic.test.g.1.check.diff:ansic.test.g.1.check.out
+ansic.test.g.1.check.out:ansic.test.g.1.check
+ansic.test.g.2.check.diff:ansic.test.g.2.check.out
+ansic.test.g.2.check.out:ansic.test.g.2.check
+g1.test.g.1.check.diff:g1.test.g.1.check.out
+g1.test.g.1.check.out:g1.test.g.1.check
+g10.test.g.1.check.diff:g10.test.g.1.check.out
+g10.test.g.1.check.out:g10.test.g.1.check
+g11.test.g.1.check.diff:g11.test.g.1.check.out
+g11.test.g.1.check.out:g11.test.g.1.check
+g11.test.g.2.check.diff:g11.test.g.2.check.out
+g11.test.g.2.check.out:g11.test.g.2.check
+g11.test.g.3.check.diff:g11.test.g.3.check.out
+g11.test.g.3.check.out:g11.test.g.3.check
+g12.test.g.1.check.diff:g12.test.g.1.check.out
+g12.test.g.1.check.out:g12.test.g.1.check
+g13.test.g.1.check.diff:g13.test.g.1.check.out
+g13.test.g.1.check.out:g13.test.g.1.check
+g14.test.g.1.check.diff:g14.test.g.1.check.out
+g14.test.g.1.check.out:g14.test.g.1.check
+g15.test.g.1.check.diff:g15.test.g.1.check.out
+g15.test.g.1.check.out:g15.test.g.1.check
+g16.test.g.1.check.diff:g16.test.g.1.check.out
+g16.test.g.1.check.out:g16.test.g.1.check
+g17.test.g.1.check.diff:g17.test.g.1.check.out
+g17.test.g.1.check.out:g17.test.g.1.check
+g18.test.g.1.check.diff:g18.test.g.1.check.out
+g18.test.g.1.check.out:g18.test.g.1.check
+g19.test.g.1.check.diff:g19.test.g.1.check.out
+g19.test.g.1.check.out:g19.test.g.1.check
+g2.test.g.1.check.diff:g2.test.g.1.check.out
+g2.test.g.1.check.out:g2.test.g.1.check
+g20.test.g.1.check.diff:g20.test.g.1.check.out
+g20.test.g.1.check.out:g20.test.g.1.check
+g21.test.g.1.check.diff:g21.test.g.1.check.out
+g21.test.g.1.check.out:g21.test.g.1.check
+g22.test.g.1.check.diff:g22.test.g.1.check.out
+g22.test.g.1.check.out:g22.test.g.1.check
+g23.test.g.1.check.diff:g23.test.g.1.check.out
+g23.test.g.1.check.out:g23.test.g.1.check
+g24.test.g.1.check.diff:g24.test.g.1.check.out
+g24.test.g.1.check.out:g24.test.g.1.check
+g25.test.g.1.check.diff:g25.test.g.1.check.out
+g25.test.g.1.check.out:g25.test.g.1.check
+g26.test.g.1.check.diff:g26.test.g.1.check.out
+g26.test.g.1.check.out:g26.test.g.1.check
+g27.test.g.1.check.diff:g27.test.g.1.check.out
+g27.test.g.1.check.out:g27.test.g.1.check
+g28.test.g.1.check.diff:g28.test.g.1.check.out
+g28.test.g.1.check.out:g28.test.g.1.check
+g28.test.g.2.check.diff:g28.test.g.2.check.out
+g28.test.g.2.check.out:g28.test.g.2.check
+g29.test.g.1.check.diff:g29.test.g.1.check.out
+g29.test.g.1.check.out:g29.test.g.1.check
+g3.test.g.1.check.diff:g3.test.g.1.check.out
+g3.test.g.1.check.out:g3.test.g.1.check
+g30.test.g.1.check.diff:g30.test.g.1.check.out
+g30.test.g.1.check.out:g30.test.g.1.check
+g31.test.g.1.check.diff:g31.test.g.1.check.out
+g31.test.g.1.check.out:g31.test.g.1.check
+g32.test.g.1.check.diff:g32.test.g.1.check.out
+g32.test.g.1.check.out:g32.test.g.1.check
+g33.test.g.1.check.diff:g33.test.g.1.check.out
+g33.test.g.1.check.out:g33.test.g.1.check
+g34.test.g.1.check.diff:g34.test.g.1.check.out
+g34.test.g.1.check.out:g34.test.g.1.check
+g35.test.g.1.check.diff:g35.test.g.1.check.out
+g35.test.g.1.check.out:g35.test.g.1.check
+g36.test.g.1.check.diff:g36.test.g.1.check.out
+g36.test.g.1.check.out:g36.test.g.1.check
+g37.test.g.1.check.diff:g37.test.g.1.check.out
+g37.test.g.1.check.out:g37.test.g.1.check
+g38.test.g.1.check.diff:g38.test.g.1.check.out
+g38.test.g.1.check.out:g38.test.g.1.check
+g39.test.g.1.check.diff:g39.test.g.1.check.out
+g39.test.g.1.check.out:g39.test.g.1.check
+g4.test.g.1.check.diff:g4.test.g.1.check.out
+g4.test.g.1.check.out:g4.test.g.1.check
+g40.test.g.1.check.diff:g40.test.g.1.check.out
+g40.test.g.1.check.out:g40.test.g.1.check
+g41.test.g.1.check.diff:g41.test.g.1.check.out
+g41.test.g.1.check.out:g41.test.g.1.check
+g42.test.g.1.check.diff:g42.test.g.1.check.out
+g42.test.g.1.check.out:g42.test.g.1.check
+g43.test.g.1.check.diff:g43.test.g.1.check.out
+g43.test.g.1.check.out:g43.test.g.1.check
+g43.test.g.2.check.diff:g43.test.g.2.check.out
+g43.test.g.2.check.out:g43.test.g.2.check
+g43.test.g.3.check.diff:g43.test.g.3.check.out
+g43.test.g.3.check.out:g43.test.g.3.check
+g44.test.g.1.check.diff:g44.test.g.1.check.out
+g44.test.g.1.check.out:g44.test.g.1.check
+g45.test.g.1.check.diff:g45.test.g.1.check.out
+g45.test.g.1.check.out:g45.test.g.1.check
+g46.test.g.1.check.diff:g46.test.g.1.check.out
+g46.test.g.1.check.out:g46.test.g.1.check
+g5.test.g.1.check.diff:g5.test.g.1.check.out
+g5.test.g.1.check.out:g5.test.g.1.check
+g6.test.g.1.check.diff:g6.test.g.1.check.out
+g6.test.g.1.check.out:g6.test.g.1.check
+g7.test.g.1.check.diff:g7.test.g.1.check.out
+g7.test.g.1.check.out:g7.test.g.1.check
+g7.test.g.2.check.diff:g7.test.g.2.check.out
+g7.test.g.2.check.out:g7.test.g.2.check
+g8.test.g.1.check.diff:g8.test.g.1.check.out
+g8.test.g.1.check.out:g8.test.g.1.check
+g9.test.g.1.check.diff:g9.test.g.1.check.out
+g9.test.g.1.check.out:g9.test.g.1.check
+python.test.g.1.check.diff:python.test.g.1.check.out
+python.test.g.1.check.out:python.test.g.1.check
+sample.test.g.0.check.diff:sample.test.g.0.check.out
+sample.test.g.0.check.out:sample.test.g.0.check
+sample.test.g.1.check.diff:sample.test.g.1.check.out
+sample.test.g.1.check.out:sample.test.g.1.check
+sample.test.g.10.check.diff:sample.test.g.10.check.out
+sample.test.g.10.check.out:sample.test.g.10.check
+sample.test.g.11.check.diff:sample.test.g.11.check.out
+sample.test.g.11.check.out:sample.test.g.11.check
+sample.test.g.12.check.diff:sample.test.g.12.check.out
+sample.test.g.12.check.out:sample.test.g.12.check
+sample.test.g.13.check.diff:sample.test.g.13.check.out
+sample.test.g.13.check.out:sample.test.g.13.check
+sample.test.g.14.check.diff:sample.test.g.14.check.out
+sample.test.g.14.check.out:sample.test.g.14.check
+sample.test.g.15.check.diff:sample.test.g.15.check.out
+sample.test.g.15.check.out:sample.test.g.15.check
+sample.test.g.16.check.diff:sample.test.g.16.check.out
+sample.test.g.16.check.out:sample.test.g.16.check
+sample.test.g.17.check.diff:sample.test.g.17.check.out
+sample.test.g.17.check.out:sample.test.g.17.check
+sample.test.g.18.check.diff:sample.test.g.18.check.out
+sample.test.g.18.check.out:sample.test.g.18.check
+sample.test.g.19.check.diff:sample.test.g.19.check.out
+sample.test.g.19.check.out:sample.test.g.19.check
+sample.test.g.2.check.diff:sample.test.g.2.check.out
+sample.test.g.2.check.out:sample.test.g.2.check
+sample.test.g.20.check.diff:sample.test.g.20.check.out
+sample.test.g.20.check.out:sample.test.g.20.check
+sample.test.g.21.check.diff:sample.test.g.21.check.out
+sample.test.g.21.check.out:sample.test.g.21.check
+sample.test.g.22.check.diff:sample.test.g.22.check.out
+sample.test.g.22.check.out:sample.test.g.22.check
+sample.test.g.23.check.diff:sample.test.g.23.check.out
+sample.test.g.23.check.out:sample.test.g.23.check
+sample.test.g.24.check.diff:sample.test.g.24.check.out
+sample.test.g.24.check.out:sample.test.g.24.check
+sample.test.g.25.check.diff:sample.test.g.25.check.out
+sample.test.g.25.check.out:sample.test.g.25.check
+sample.test.g.26.check.diff:sample.test.g.26.check.out
+sample.test.g.26.check.out:sample.test.g.26.check
+sample.test.g.27.check.diff:sample.test.g.27.check.out
+sample.test.g.27.check.out:sample.test.g.27.check
+sample.test.g.28.check.diff:sample.test.g.28.check.out
+sample.test.g.28.check.out:sample.test.g.28.check
+sample.test.g.29.check.diff:sample.test.g.29.check.out
+sample.test.g.29.check.out:sample.test.g.29.check
+sample.test.g.3.check.diff:sample.test.g.3.check.out
+sample.test.g.3.check.out:sample.test.g.3.check
+sample.test.g.30.check.diff:sample.test.g.30.check.out
+sample.test.g.30.check.out:sample.test.g.30.check
+sample.test.g.31.check.diff:sample.test.g.31.check.out
+sample.test.g.31.check.out:sample.test.g.31.check
+sample.test.g.32.check.diff:sample.test.g.32.check.out
+sample.test.g.32.check.out:sample.test.g.32.check
+sample.test.g.33.check.diff:sample.test.g.33.check.out
+sample.test.g.33.check.out:sample.test.g.33.check
+sample.test.g.4.check.diff:sample.test.g.4.check.out
+sample.test.g.4.check.out:sample.test.g.4.check
+sample.test.g.5.check.diff:sample.test.g.5.check.out
+sample.test.g.5.check.out:sample.test.g.5.check
+sample.test.g.6.check.diff:sample.test.g.6.check.out
+sample.test.g.6.check.out:sample.test.g.6.check
+sample.test.g.7.check.diff:sample.test.g.7.check.out
+sample.test.g.7.check.out:sample.test.g.7.check
+sample.test.g.8.check.diff:sample.test.g.8.check.out
+sample.test.g.8.check.out:sample.test.g.8.check
+sample.test.g.9.check.diff:sample.test.g.9.check.out
+sample.test.g.9.check.out:sample.test.g.9.check

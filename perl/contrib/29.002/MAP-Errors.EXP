@@ -1,0 +1,1008 @@
+--           Expanded ASN1 Module 'MAP-Errors'           
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 13:00:07            
+
+MAP-Errors{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-Errors (10) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   systemFailure, 
+   dataMissing, 
+   unexpectedDataValue, 
+   facilityNotSupported, 
+   incompatibleTerminal, 
+   resourceLimitation, 
+   unknownSubscriber, 
+   numberChanged, 
+   unknownMSC, 
+   unidentifiedSubscriber, 
+   unknownEquipment, 
+   roamingNotAllowed, 
+   illegalSubscriber, 
+   illegalEquipment, 
+   bearerServiceNotProvisioned, 
+   teleserviceNotProvisioned, 
+   noHandoverNumberAvailable, 
+   subsequentHandoverFailure, 
+   targetCellOutsideGroupCallArea, 
+   tracingBufferFull, 
+   or-NotAllowed, 
+   noRoamingNumberAvailable, 
+   busySubscriber, 
+   noSubscriberReply, 
+   absentSubscriber, 
+   callBarred, 
+   forwardingViolation, 
+   forwardingFailed, 
+   cug-Reject, 
+   ati-NotAllowed, 
+   atsi-NotAllowed, 
+   atm-NotAllowed, 
+   informationNotAvailable, 
+   illegalSS-Operation, 
+   ss-ErrorStatus, 
+   ss-NotAvailable, 
+   ss-SubscriptionViolation, 
+   ss-Incompatibility, 
+   unknownAlphabet, 
+   ussd-Busy, 
+   pw-RegistrationFailure, 
+   negativePW-Check, 
+   numberOfPW-AttemptsViolation, 
+   shortTermDenial, 
+   longTermDenial, 
+   subscriberBusyForMT-SMS, 
+   sm-DeliveryFailure, 
+   messageWaitingListFull, 
+   absentSubscriberSM, 
+   noGroupCallNumberAvailable, 
+   ongoingGroupCall, 
+   unauthorizedRequestingNetwork, 
+   unauthorizedLCSClient, 
+   positionMethodFailure, 
+   unknownOrUnreachableLCSClient, 
+   mm-EventNotSupported;
+
+
+systemFailure ERROR  ::=  {
+   PARAMETER     CHOICE {
+      networkResource                  ENUMERATED {
+         plmn              ( 0 ), 
+         hlr               ( 1 ), 
+         vlr               ( 2 ), 
+         pvlr              ( 3 ), 
+         controllingMSC    ( 4 ), 
+         vmsc              ( 5 ), 
+         eir               ( 6 ), 
+         rss               ( 7 ) }, 
+      extensibleSystemFailureParam     SEQUENCE {
+         networkResource             ENUMERATED {
+            plmn              ( 0 ), 
+            hlr               ( 1 ), 
+            vlr               ( 2 ), 
+            pvlr              ( 3 ), 
+            controllingMSC    ( 4 ), 
+            vmsc              ( 5 ), 
+            eir               ( 6 ), 
+            rss               ( 7 ) } OPTIONAL, 
+         extensionContainer          SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         additionalNetworkResource   [0] IMPLICIT ENUMERATED {
+            sgsn        ( 0 ), 
+            ggsn        ( 1 ), 
+            gmlc        ( 2 ), 
+            gsmSCF      ( 3 ), 
+            nplr        ( 4 ), 
+            auc         ( 5 ), 
+            ...  } OPTIONAL}}
+   CODE     local      : 34
+   }
+
+dataMissing ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 35
+   }
+
+unexpectedDataValue ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 36
+   }
+
+facilityNotSupported ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer                             SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      shapeOfLocationEstimateNotSupported            [0] IMPLICIT NULL OPTIONAL, 
+      neededLcsCapabilityNotSupportedInServingNode   [1] IMPLICIT NULL OPTIONAL}
+   CODE     local      : 21
+   }
+
+incompatibleTerminal ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 28
+   }
+
+resourceLimitation ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 51
+   }
+
+unknownSubscriber ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer            SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      unknownSubscriberDiagnostic   ENUMERATED {
+         imsiUnknown                ( 0 ), 
+         gprsSubscriptionUnknown    ( 1 ), 
+         ... , 
+         npdbMismatch               ( 2 ) } OPTIONAL}
+   CODE     local      : 1
+   }
+
+numberChanged ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 44
+   }
+
+unknownMSC ERROR  ::=  {
+   CODE     local      : 3
+   }
+
+unidentifiedSubscriber ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 5
+   }
+
+unknownEquipment ERROR  ::=  {
+   CODE     local      : 7
+   }
+
+roamingNotAllowed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      roamingNotAllowedCause             ENUMERATED {
+         plmnRoamingNotAllowed        ( 0 ), 
+         operatorDeterminedBarring    ( 3 ) }, 
+      extensionContainer                 SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      additionalRoamingNotAllowedCause   [0] IMPLICIT ENUMERATED {
+         supportedRAT-TypesNotAllowed    ( 0 ), 
+         ...  } OPTIONAL}
+   CODE     local      : 8
+   }
+
+illegalSubscriber ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 9
+   }
+
+illegalEquipment ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 12
+   }
+
+bearerServiceNotProvisioned ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 10
+   }
+
+teleserviceNotProvisioned ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 11
+   }
+
+noHandoverNumberAvailable ERROR  ::=  {
+   CODE     local      : 25
+   }
+
+subsequentHandoverFailure ERROR  ::=  {
+   CODE     local      : 26
+   }
+
+targetCellOutsideGroupCallArea ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 42
+   }
+
+tracingBufferFull ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 40
+   }
+
+noRoamingNumberAvailable ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 39
+   }
+
+absentSubscriber ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer       SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      absentSubscriberReason   [0] IMPLICIT ENUMERATED {
+         imsiDetach        ( 0 ), 
+         restrictedArea    ( 1 ), 
+         noPageResponse    ( 2 ), 
+         ... , 
+         purgedMS          ( 3 ) } OPTIONAL}
+   CODE     local      : 27
+   }
+
+busySubscriber ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      ccbs-Possible        [0] IMPLICIT NULL OPTIONAL, 
+      ccbs-Busy            [1] IMPLICIT NULL OPTIONAL}
+   CODE     local      : 45
+   }
+
+noSubscriberReply ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 46
+   }
+
+callBarred ERROR  ::=  {
+   PARAMETER     CHOICE {
+      callBarringCause              ENUMERATED {
+         barringServiceActive    ( 0 ), 
+         operatorBarring         ( 1 ) }, 
+      extensibleCallBarredParam     SEQUENCE {
+         callBarringCause                ENUMERATED {
+            barringServiceActive    ( 0 ), 
+            operatorBarring         ( 1 ) } OPTIONAL, 
+         extensionContainer              SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         unauthorisedMessageOriginator   [1] IMPLICIT NULL OPTIONAL}}
+   CODE     local      : 13
+   }
+
+forwardingViolation ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 14
+   }
+
+forwardingFailed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 47
+   }
+
+cug-Reject ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      cug-RejectCause      ENUMERATED {
+         incomingCallsBarredWithinCUG                    ( 0 ), 
+         subscriberNotMemberOfCUG                        ( 1 ), 
+         requestedBasicServiceViolatesCUG-Constraints    ( 5 ), 
+         calledPartySS-InteractionViolation              ( 7 ) } OPTIONAL, 
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 15
+   }
+
+or-NotAllowed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 48
+   }
+
+ati-NotAllowed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 49
+   }
+
+atsi-NotAllowed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 60
+   }
+
+atm-NotAllowed ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 61
+   }
+
+informationNotAvailable ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 62
+   }
+
+illegalSS-Operation ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 16
+   }
+
+ss-ErrorStatus ERROR  ::=  {
+   PARAMETER     OCTET STRING ( SIZE( 1 ) )
+   CODE     local      : 17
+   }
+
+ss-NotAvailable ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 18
+   }
+
+ss-SubscriptionViolation ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 19
+   }
+
+ss-Incompatibility ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      ss-Code        [1] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      basicService   CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      ss-Status      [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      ... }
+   CODE     local      : 20
+   }
+
+unknownAlphabet ERROR  ::=  {
+   CODE     local      : 71
+   }
+
+ussd-Busy  ERROR  ::=  {
+   CODE     local      : 72
+   }
+
+pw-RegistrationFailure ERROR  ::=  {
+   PARAMETER     ENUMERATED {
+      undetermined            ( 0 ), 
+      invalidFormat           ( 1 ), 
+      newPasswordsMismatch    ( 2 ) }
+   CODE     local      : 37
+   }
+
+negativePW-Check ERROR  ::=  {
+   CODE     local      : 38
+   }
+
+numberOfPW-AttemptsViolation ERROR  ::=  {
+   CODE     local      : 43
+   }
+
+shortTermDenial ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      ... }
+   CODE     local      : 29
+   }
+
+longTermDenial ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      ... }
+   CODE     local      : 30
+   }
+
+subscriberBusyForMT-SMS ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer        SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      gprsConnectionSuspended   NULL OPTIONAL}
+   CODE     local      : 31
+   }
+
+sm-DeliveryFailure ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      sm-EnumeratedDeliveryFailureCause   ENUMERATED {
+         memoryCapacityExceeded        ( 0 ), 
+         equipmentProtocolError        ( 1 ), 
+         equipmentNotSM-Equipped       ( 2 ), 
+         unknownServiceCentre          ( 3 ), 
+         sc-Congestion                 ( 4 ), 
+         invalidSME-Address            ( 5 ), 
+         subscriberNotSC-Subscriber    ( 6 ) }, 
+      diagnosticInfo                      OCTET STRING ( SIZE( 1 .. 200 ) ) OPTIONAL, 
+      extensionContainer                  SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 32
+   }
+
+messageWaitingListFull ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 33
+   }
+
+absentSubscriberSM ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      absentSubscriberDiagnosticSM             INTEGER ( 0 .. 255 ) OPTIONAL, 
+      extensionContainer                       SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      additionalAbsentSubscriberDiagnosticSM   [0] IMPLICIT INTEGER ( 0 .. 255 ) OPTIONAL}
+   CODE     local      : 6
+   }
+
+noGroupCallNumberAvailable ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 50
+   }
+
+ongoingGroupCall ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 22
+   }
+
+unauthorizedRequestingNetwork ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 52
+   }
+
+unauthorizedLCSClient ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      unauthorizedLCSClient-Diagnostic   [0] IMPLICIT ENUMERATED {
+         noAdditionalInformation                           ( 0 ), 
+         clientNotInMSPrivacyExceptionList                 ( 1 ), 
+         callToClientNotSetup                              ( 2 ), 
+         privacyOverrideNotApplicable                      ( 3 ), 
+         disallowedByLocalRegulatoryRequirements           ( 4 ), 
+         ... , 
+         unauthorizedPrivacyClass                          ( 5 ), 
+         unauthorizedCallSessionUnrelatedExternalClient    ( 6 ), 
+         unauthorizedCallSessionRelatedExternalClient      ( 7 ) } OPTIONAL, 
+      extensionContainer                 [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 53
+   }
+
+positionMethodFailure ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      positionMethodFailure-Diagnostic   [0] IMPLICIT ENUMERATED {
+         congestion                                  ( 0 ), 
+         insufficientResources                       ( 1 ), 
+         insufficientMeasurementData                 ( 2 ), 
+         inconsistentMeasurementData                 ( 3 ), 
+         locationProcedureNotCompleted               ( 4 ), 
+         locationProcedureNotSupportedByTargetMS     ( 5 ), 
+         qoSNotAttainable                            ( 6 ), 
+         positionMethodNotAvailableInNetwork         ( 7 ), 
+         positionMethodNotAvailableInLocationArea    ( 8 ), 
+         ...  } OPTIONAL, 
+      extensionContainer                 [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 54
+   }
+
+unknownOrUnreachableLCSClient ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 58
+   }
+
+mm-EventNotSupported ERROR  ::=  {
+   PARAMETER     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   CODE     local      : 59
+   }
+
+END

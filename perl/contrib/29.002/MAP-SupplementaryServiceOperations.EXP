@@ -1,0 +1,595 @@
+--Expanded ASN1 Module 'MAP-SupplementaryServiceOperations'
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 12:59:27            
+
+MAP-SupplementaryServiceOperations{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-SupplementaryServiceOperations (8) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   registerSS, 
+   eraseSS, 
+   activateSS, 
+   deactivateSS, 
+   interrogateSS, 
+   processUnstructuredSS-Request, 
+   unstructuredSS-Request, 
+   unstructuredSS-Notify, 
+   registerPassword, 
+   getPassword, 
+   ss-InvocationNotification, 
+   registerCC-Entry, 
+   eraseCC-Entry;
+
+
+registerSS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code                 OCTET STRING ( SIZE( 1 ) ), 
+      basicService            CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      forwardedToNumber       [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+      forwardedToSubaddress   [6] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+      noReplyConditionTime    [5] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+      ... , 
+      defaultPriority         [7] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+      nbrUser                 [8] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL, 
+      longFTN-Supported       [9] IMPLICIT NULL OPTIONAL}
+   RESULT     CHOICE {
+      forwardingInfo      [0] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         forwardingFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService            CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               noReplyConditionTime    [7] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}, 
+         ... }, 
+      callBarringInfo     [1] IMPLICIT SEQUENCE {
+         ss-Code                  OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         callBarringFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService   CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status      [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               ... }, 
+         ... }, 
+      ss-Data             [3] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-SubscriptionOption   CHOICE {
+            cliRestrictionOption     [2] IMPLICIT ENUMERATED {
+               permanent                     ( 0 ), 
+               temporaryDefaultRestricted    ( 1 ), 
+               temporaryDefaultAllowed       ( 2 ) }, 
+            overrideCategory         [1] IMPLICIT ENUMERATED {
+               overrideEnabled     ( 0 ), 
+               overrideDisabled    ( 1 ) }} OPTIONAL, 
+         basicServiceGroupList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... , 
+         defaultPriority         INTEGER ( 0 .. 15 ) OPTIONAL, 
+         nbrUser                 [5] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL}}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus | 
+      ss-Incompatibility }
+   CODE     local      : 10
+   }
+
+eraseSS    OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code             OCTET STRING ( SIZE( 1 ) ), 
+      basicService        CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      ... , 
+      longFTN-Supported   [4] IMPLICIT NULL OPTIONAL}
+   RESULT     CHOICE {
+      forwardingInfo      [0] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         forwardingFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService            CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               noReplyConditionTime    [7] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}, 
+         ... }, 
+      callBarringInfo     [1] IMPLICIT SEQUENCE {
+         ss-Code                  OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         callBarringFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService   CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status      [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               ... }, 
+         ... }, 
+      ss-Data             [3] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-SubscriptionOption   CHOICE {
+            cliRestrictionOption     [2] IMPLICIT ENUMERATED {
+               permanent                     ( 0 ), 
+               temporaryDefaultRestricted    ( 1 ), 
+               temporaryDefaultAllowed       ( 2 ) }, 
+            overrideCategory         [1] IMPLICIT ENUMERATED {
+               overrideEnabled     ( 0 ), 
+               overrideDisabled    ( 1 ) }} OPTIONAL, 
+         basicServiceGroupList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... , 
+         defaultPriority         INTEGER ( 0 .. 15 ) OPTIONAL, 
+         nbrUser                 [5] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL}}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus }
+   CODE     local      : 11
+   }
+
+activateSS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code             OCTET STRING ( SIZE( 1 ) ), 
+      basicService        CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      ... , 
+      longFTN-Supported   [4] IMPLICIT NULL OPTIONAL}
+   RESULT     CHOICE {
+      forwardingInfo      [0] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         forwardingFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService            CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               noReplyConditionTime    [7] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}, 
+         ... }, 
+      callBarringInfo     [1] IMPLICIT SEQUENCE {
+         ss-Code                  OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         callBarringFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService   CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status      [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               ... }, 
+         ... }, 
+      ss-Data             [3] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-SubscriptionOption   CHOICE {
+            cliRestrictionOption     [2] IMPLICIT ENUMERATED {
+               permanent                     ( 0 ), 
+               temporaryDefaultRestricted    ( 1 ), 
+               temporaryDefaultAllowed       ( 2 ) }, 
+            overrideCategory         [1] IMPLICIT ENUMERATED {
+               overrideEnabled     ( 0 ), 
+               overrideDisabled    ( 1 ) }} OPTIONAL, 
+         basicServiceGroupList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... , 
+         defaultPriority         INTEGER ( 0 .. 15 ) OPTIONAL, 
+         nbrUser                 [5] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL}}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus | 
+      ss-SubscriptionViolation | 
+      ss-Incompatibility | 
+      negativePW-Check | 
+      numberOfPW-AttemptsViolation }
+   CODE     local      : 12
+   }
+
+deactivateSS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code             OCTET STRING ( SIZE( 1 ) ), 
+      basicService        CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      ... , 
+      longFTN-Supported   [4] IMPLICIT NULL OPTIONAL}
+   RESULT     CHOICE {
+      forwardingInfo      [0] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         forwardingFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService            CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               forwardedToSubaddress   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               noReplyConditionTime    [7] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+               ... , 
+               longForwardedToNumber   [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}, 
+         ... }, 
+      callBarringInfo     [1] IMPLICIT SEQUENCE {
+         ss-Code                  OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         callBarringFeatureList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            SEQUENCE {
+               basicService   CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ss-Status      [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+               ... }, 
+         ... }, 
+      ss-Data             [3] IMPLICIT SEQUENCE {
+         ss-Code                 OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         ss-SubscriptionOption   CHOICE {
+            cliRestrictionOption     [2] IMPLICIT ENUMERATED {
+               permanent                     ( 0 ), 
+               temporaryDefaultRestricted    ( 1 ), 
+               temporaryDefaultAllowed       ( 2 ) }, 
+            overrideCategory         [1] IMPLICIT ENUMERATED {
+               overrideEnabled     ( 0 ), 
+               overrideDisabled    ( 1 ) }} OPTIONAL, 
+         basicServiceGroupList   SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+            CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... , 
+         defaultPriority         INTEGER ( 0 .. 15 ) OPTIONAL, 
+         nbrUser                 [5] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL}}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus | 
+      ss-SubscriptionViolation | 
+      negativePW-Check | 
+      numberOfPW-AttemptsViolation }
+   CODE     local      : 13
+   }
+
+interrogateSS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code             OCTET STRING ( SIZE( 1 ) ), 
+      basicService        CHOICE {
+         bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+      ... , 
+      longFTN-Supported   [4] IMPLICIT NULL OPTIONAL}
+   RESULT     CHOICE {
+      ss-Status                 [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+      basicServiceGroupList     [2] IMPLICIT SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+         CHOICE {
+            bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )}, 
+      forwardingFeatureList     [3] IMPLICIT SEQUENCE  ( SIZE( 1 .. 13 ) ) OF
+         SEQUENCE {
+            basicService            CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+            ss-Status               [4] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+            forwardedToNumber       [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            forwardedToSubaddress   [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+            forwardingOptions       [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+            noReplyConditionTime    [7] IMPLICIT INTEGER ( 5 .. 30 ) OPTIONAL, 
+            ... , 
+            longForwardedToNumber   [9] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 15 ) ) OPTIONAL}, 
+      genericServiceInfo        [4] IMPLICIT SEQUENCE {
+         ss-Status                 OCTET STRING ( SIZE( 1 ) ), 
+         cliRestrictionOption      ENUMERATED {
+            permanent                     ( 0 ), 
+            temporaryDefaultRestricted    ( 1 ), 
+            temporaryDefaultAllowed       ( 2 ) } OPTIONAL, 
+         ... , 
+         maximumEntitledPriority   [0] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+         defaultPriority           [1] IMPLICIT INTEGER ( 0 .. 15 ) OPTIONAL, 
+         ccbs-FeatureList          [2] IMPLICIT SEQUENCE  ( SIZE( 1 .. 5 ) ) OF
+            SEQUENCE {
+               ccbs-Index               [0] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+               b-subscriberNumber       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+               b-subscriberSubaddress   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+               basicServiceGroup        [3] CHOICE {
+                  bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+                  teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+               ... } OPTIONAL, 
+         nbrSB                     [3] IMPLICIT INTEGER ( 2 .. 7 ) OPTIONAL, 
+         nbrUser                   [4] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL, 
+         nbrSN                     [5] IMPLICIT INTEGER ( 1 .. 7 ) OPTIONAL}}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      bearerServiceNotProvisioned | 
+      teleserviceNotProvisioned | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-NotAvailable }
+   CODE     local      : 14
+   }
+
+processUnstructuredSS-Request OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ussd-DataCodingScheme   OCTET STRING ( SIZE( 1 ) ), 
+      ussd-String             OCTET STRING ( SIZE( 1 .. 160 ) ), 
+      ... , 
+      alertingPattern         OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      msisdn                  [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      ussd-DataCodingScheme   OCTET STRING ( SIZE( 1 ) ), 
+      ussd-String             OCTET STRING ( SIZE( 1 .. 160 ) ), 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      unknownAlphabet | 
+      callBarred }
+   CODE     local      : 59
+   }
+
+unstructuredSS-Request OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ussd-DataCodingScheme   OCTET STRING ( SIZE( 1 ) ), 
+      ussd-String             OCTET STRING ( SIZE( 1 .. 160 ) ), 
+      ... , 
+      alertingPattern         OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      msisdn                  [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL}
+   RESULT     SEQUENCE {
+      ussd-DataCodingScheme   OCTET STRING ( SIZE( 1 ) ), 
+      ussd-String             OCTET STRING ( SIZE( 1 .. 160 ) ), 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      absentSubscriber | 
+      illegalSubscriber | 
+      illegalEquipment | 
+      unknownAlphabet | 
+      ussd-Busy }
+   CODE     local      : 60
+   }
+
+unstructuredSS-Notify OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ussd-DataCodingScheme   OCTET STRING ( SIZE( 1 ) ), 
+      ussd-String             OCTET STRING ( SIZE( 1 .. 160 ) ), 
+      ... , 
+      alertingPattern         OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      msisdn                  [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL}
+   RETURN  RESULT     TRUE
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      absentSubscriber | 
+      illegalSubscriber | 
+      illegalEquipment | 
+      unknownAlphabet | 
+      ussd-Busy }
+   CODE     local      : 61
+   }
+
+registerPassword OPERATION  ::=  {
+   ARGUMENT     OCTET STRING ( SIZE( 1 ) )
+   RESULT     NumericString ( FROM ("0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" )) (SIZE( 4 ) )
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      callBarred | 
+      ss-SubscriptionViolation | 
+      pw-RegistrationFailure | 
+      negativePW-Check | 
+      numberOfPW-AttemptsViolation }
+   CODE     local      : 17
+   }
+
+getPassword OPERATION  ::=  {
+   ARGUMENT     ENUMERATED {
+      enterPW             ( 0 ), 
+      enterNewPW          ( 1 ), 
+      enterNewPW-Again    ( 2 ) }
+   RESULT     NumericString ( FROM ("0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" )) (SIZE( 4 ) )
+   CODE     local      : 18
+   }
+
+ss-InvocationNotification OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      imsi                    [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+      msisdn                  [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      ss-Event                [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+      ss-EventSpecification   [3] IMPLICIT SEQUENCE  ( SIZE( 1 .. 2 ) ) OF
+         OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+      extensionContainer      [4] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      b-subscriberNumber      [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      ccbs-RequestState       [6] IMPLICIT ENUMERATED {
+         request      ( 0 ), 
+         recall       ( 1 ), 
+         active       ( 2 ), 
+         completed    ( 3 ), 
+         suspended    ( 4 ), 
+         frozen       ( 5 ), 
+         deleted      ( 6 ) } OPTIONAL}
+   RESULT     SEQUENCE {
+      extensionContainer   SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      dataMissing | 
+      unexpectedDataValue | 
+      unknownSubscriber }
+   CODE     local      : 72
+   }
+
+registerCC-Entry OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code     [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+      ccbs-Data   [1] IMPLICIT SEQUENCE {
+         ccbs-Feature         [0] IMPLICIT SEQUENCE {
+            ccbs-Index               [0] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+            b-subscriberNumber       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            b-subscriberSubaddress   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+            basicServiceGroup        [3] CHOICE {
+               bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+               teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+            ... }, 
+         translatedB-Number   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         serviceIndicator     [2] IMPLICIT BIT STRING {
+            clir-invoked  (0 ), 
+            camel-invoked  (1 )} ( SIZE( 2 .. 32 ) ) OPTIONAL, 
+         callInfo             [3] IMPLICIT SEQUENCE {
+            protocolId           ENUMERATED {
+               gsm-0408        ( 1 ), 
+               gsm-0806        ( 2 ), 
+               gsm-BSSMAP      ( 3 ), 
+               ets-300102-1    ( 4 ) }, 
+            signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+            extensionContainer   SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... }, 
+         networkSignalInfo    [4] IMPLICIT SEQUENCE {
+            protocolId           ENUMERATED {
+               gsm-0408        ( 1 ), 
+               gsm-0806        ( 2 ), 
+               gsm-BSSMAP      ( 3 ), 
+               ets-300102-1    ( 4 ) }, 
+            signalInfo           OCTET STRING ( SIZE( 1 .. 200 ) ), 
+            extensionContainer   SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... }, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      ccbs-Feature   [0] IMPLICIT SEQUENCE {
+         ccbs-Index               [0] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+         b-subscriberNumber       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+         b-subscriberSubaddress   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 21 ) ) OPTIONAL, 
+         basicServiceGroup        [3] CHOICE {
+            bearerService     [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            teleservice       [3] IMPLICIT OCTET STRING ( SIZE( 1 ) )} OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus | 
+      ss-Incompatibility | 
+      shortTermDenial | 
+      longTermDenial | 
+      facilityNotSupported }
+   CODE     local      : 76
+   }
+
+eraseCC-Entry OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      ss-Code      [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+      ccbs-Index   [1] IMPLICIT INTEGER ( 1 .. 5 ) OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      ss-Code     [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+      ss-Status   [1] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      ... }
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      callBarred | 
+      illegalSS-Operation | 
+      ss-ErrorStatus }
+   CODE     local      : 77
+   }
+
+END

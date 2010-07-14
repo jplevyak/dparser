@@ -1,0 +1,15 @@
+## 
+## $Id: typemap,v 1.1.1.1 2010-05-27 15:29:30 cmont Exp $
+##
+TYPEMAP
+
+Grammar*		T_PTROBJ
+D_ReductionCode 	T_PTROBJ
+Parser* 		T_PTROBJ
+D_ParseNode_Globals* 	T_PTROBJ
+D_ParseNode_User*       T_PTROBJ
+D_ParseNode*		T_PTROBJ
+D_ParserTables*		T_PTROBJ
+
+user_plobjects*		T_PTROBJ
+d_loc_t*		T_PTROBJ

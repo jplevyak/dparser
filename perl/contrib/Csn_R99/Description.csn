@@ -1,0 +1,2716 @@
+---------------------------------------------------------------------------------
+--
+--   CSN-DEFINITIONS R99 ( qcswilk 030212 )
+--   based on 0460-8g0.doc
+--
+--------------------------------------------------------------------------------
+-- The description is based on extended CSN.1 
+--------------------------------------------------------------------------------
+
+< padding bits > ::= { 0 < spare padding > | null };
+
+< Downlink RLC/MAC control message MT > ::= -MESSAGE
+  < MESSAGE_TYPE : bit (6) == 100001 > < Packet Access Reject message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000001 > < Packet Cell Change Order message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000010 > < Packet Downlink Assignment message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000011 > < Packet Measurement Order message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 100010 > < Packet Paging Request message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 100011 > < Packet PDCH Release message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000100 > < Packet Polling Request message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000101 > < Packet Power Control/Timing Advance message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 100100 > < Packet PRACH Parameters message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000110 > < Packet Queueing Notification message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 000111 > < Packet Timeslot Reconfigure message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 001000 > < Packet TBF Release message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 001001 > < Packet Uplink Ack/Nack message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 001010 > < Packet Uplink Assignment message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 100101 > < Packet Downlink Dummy Control Block message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110001 > < PSI1 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110010 > < PSI2 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110011 > < PSI3 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110100 > < PSI3 bis message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110101 > < PSI4 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110110 > < PSI5 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110000 > < PSI6 message content > M V b:178-? |
+  -- < MESSAGE_TYPE : bit (6) == 111000 > < PSI7 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 111001 >  < PSI8 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 110111 >  < PSI13 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 111010 >  < PSI14 message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 111100 >  < PSI3 ter message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 111101 >  < PSI3 quater message content > M V b:178-? |
+  < MESSAGE_TYPE : bit (6) == 111110 >  < PSI15 message content > M V b:178-?
+   ! < Unknown message type : bit (6)>
+     < Default downlink message content >  ;
+
+< Default downlink message MT > ::=  -- -MESSAGE
+  < MESSAGE_TYPE_UNKNOWN : bit (6) >
+  < Default downlink message contentent > ;
+
+< Default downlink message contentent > ::=
+  < PAGE_MODE >
+    bit ** --
+;
+
+< Uplink RLC/MAC control message MO > ::= -MESSAGE
+  < MESSAGE_TYPE : bit (6) == 000000 >  < Packet Cell Change Failure message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000001 >  < Packet Control Acknowledgement message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000010 >  < Packet Downlink Ack/Nack message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000011 >  < Packet Uplink Dummy Control Block message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000100 >  < Packet Measurement Report message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 001010 >  < Packet Enhanced Measurement Report message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000101 >  < Packet Resource Request message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000110 >  < Packet Mobile TBF Status message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 000111 >  < Packet PSI Status message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 001000 >  < EGPRS Packet Downlink Ack/Nack message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 001001 >  < Packet Pause message content > M V b:178
+	|
+  < MESSAGE_TYPE : bit (6) == 001011 >  < Additional MS Radio Access Capabilities message content> M V b:178
+	;
+
+< Packet Access Reject message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 100001 >
+< Packet Access Reject message content > M V b:178-?
+;
+
+< Packet Access Reject message content > ::=
+  < PAGE_MODE >
+  < Reject struct >
+  { 0 | 1 < Reject struct > } ** 0
+   < padding bits >     -- truncation at end of message allowed, bits '0' assumed
+   ! < Distribution part error : bit (*)  > ;
+
+< Reject struct > ::=
+  {  0  < TLLI : bit (32) >
+   | 1  { 0 < Packet Request Reference IE >
+        | 1 < Global TFI IE > } }
+  { 0 | 1 < WAIT_INDICATION : bit (8) >
+        < WAIT _INDICATION_SIZE : bit (1) > }
+   ! < Ignore : bit (*)  > ;
+
+< Packet Control Acknowledgement message MO > ::=  -MESSAGE   -- RLC/MAC control block format
+< MESSAGE_TYPE : bit(6) == 000001 >
+< Packet Control Acknowledgement message content >  M V b:178
+; 
+
+< Packet Control Acknowledgement message content > ::= 
+  < TLLI : bit (32) >
+  < CTRL_ACK : bit (2) >
+  < padding bits > ;
+
+< Packet Control Acknowledgement 11 bit message > ::=     -- 11-bit access burst format
+  < MESSAGE_TYPE : bit (9) == 1111 1100 1 >
+  < CTRL_ACK : bit (2) > ;
+
+< Packet Control Acknowledgement 8 bit message > ::=      -- 8-bit access burst format
+  < MESSAGE_TYPE : bit (6) == 0111 11 >
+  < CTRL_ACK : bit (2) > ;
+
+< Packet Cell Change Failure message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000000 >
+< Packet Cell Change Failure message content > M V b:178
+; 
+
+< Packet Cell Change Failure message content > ::=  
+  < TLLI : bit (32) >
+  < ARFCN : bit (10) >
+  < BSIC : bit (6) >
+  < CAUSE : 
+          < Frequency not implemented:    0000> |
+          < No response on target cell:   0001> |
+          < Immediate Assign Reject or Packet Access Reject on target cell: 0010> |
+          < On going CS connection:       0011> |
+          < Anonymous Access:             0100> |
+          < MS in GMM Standby state:      0101> |
+          < Forced to the Standby state:  0110> 
+  >
+  {  
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+      { 0 | 1 < FDD-ARFCN : bit (14) >            -- 3G UTRAN FDD
+          < Diversity : bit >
+          { 0 | 1 < Bandwidth_FDD : bit (3) > }
+          < SCRAMBLING_CODE : bit (9) > }
+      { 0 | 1 < TDD-ARFCN : bit (14) >            -- 3G UTRAN TDD
+          < Diversity : bit >
+          { 0 | 1 < Bandwidth_TDD : bit (3) > }
+          < Cell Parameter : bit (7) >
+          < Sync Case : bit > }
+-- ORG:      < padding bits > } ;
+           } < padding bits > ;
+
+< Packet Cell Change Order message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000001 >
+< Packet Cell Change Order message content >  M V b:178-? 
+; 
+
+
+< Packet Cell Change Order message content > ::=  
+  < PAGE_MODE >
+  { { 0 < Global TFI IE  >
+     | 10 < TLLI : bit (32) > }
+    { 0   
+      { < IMMEDIATE_REL : bit >
+        < GSM target cell struct >
+         ! < Non-distribution part error : bit (*)  > }
+       | 1
+      { 00  -- Message escape
+        { < IMMEDIATE_REL : bit >
+          < 3G-target cell struct >
+         ! < Non-distribution part error : bit (*)  > }
+       ! < Message escape : { 01 | 10 | 11} bit (*)  > } }
+     ! < Address information part error : bit (*)  > }
+   < spare bits > -- qcswilk 030415  
+   ! < Distribution part error : bit (*)  > ;
+
+< GSM target cell struct > ::=
+  < ARFCN : bit (10) >
+  < BSIC : bit (6) >
+  < NC Measurement Parameters struct > 
+  { 
+     null 
+   | < Receiver compatible with earlier release : 0 > 
+    { 0 | 1 < LSA Parameters IE > }
+    {  
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+      < ENH Measurement parameters struct > 
+      < padding bits > } } ;
+
+< 3G-target cell struct > ::=
+  { 0 | 1 < FDD-ARFCN : bit (14) >            -- 3G UTRAN FDD
+      < Diversity : bit >
+      { 0 | 1 < Bandwidth_FDD : bit (3) > }
+      < SCRAMBLING_CODE : bit (9) > }
+  { 0 | 1 < TDD-ARFCN : bit (14) >            -- 3G UTRAN TDD
+      < Diversity : bit >
+      { 0 | 1 < Bandwidth_TDD : bit (3) > }
+      < Cell Parameter : bit (7) >
+      < Sync Case : bit > } 
+  < padding bits > ;
+
+< NC Measurement Parameters struct > ::=
+  < NETWORK_CONTROL_ORDER >
+  { 0 | 1 < NC_NON_DRX_PERIOD : 
+                < No non-DRX mode after a measurement report has been sent  : 000 > |
+                < 0,24 sec : 001 > |
+                < 0,48 sec - default value : 010 > |
+                < 0,72 sec : 011 > |
+                < 0,96 sec : 100 > |
+                < 1,20 sec : 101 > |
+                < 1,44 sec : 110 > |
+                < 1,92 sec : 111 > 
+           >
+    < NC_REPORTING_PERIOD_I : 
+                < 0,48 sec : 000 > |
+                < 0,96 sec : 001 > |
+                < 1,92 sec : 010 > |
+                < 3,84 sec - default value for NC_REPORTING_PERIOD_T : 011 > |
+                < 7,68 sec : 100 > |
+                < 15,36 sec : 101 > |
+                < 30,72 sec : 110 > |
+                < 61,44 sec - default value for NC_REPORTING_PERIOD_I : 111 > 
+     >
+    < NC_REPORTING_PERIOD_T : 
+                < 0,48 sec : 000 > |
+                < 0,96 sec : 001 > |
+                < 1,92 sec : 010 > |
+                < 3,84 sec - default value for NC_REPORTING_PERIOD_T : 011 > |
+                < 7,68 sec : 100 > |
+                < 15,36 sec : 101 > |
+                < 30,72 sec : 110 > |
+                < 61,44 sec - default value for NC_REPORTING_PERIOD_I : 111 > 
+     > }
+  { 0 | 1 <  NC Frequency list struct > } ;
+
+< NC Frequency list struct > ::=
+  { 0 | 1 { < NR_OF_REMOVED_FREQ : bit (5) >
+      { < REMOVED_FREQ_INDEX : bit (6) > } * (1 + val(NR_OF_REMOVED_FREQ)) } }
+  { 0 | 1 < Add Frequency list struct >} ** 0;
+
+< Add Frequency list struct > ::=
+  < START_FREQUENCY : bit (10) >
+  < BSIC : bit (6) >
+  { 0 | 1 < Cell Selection struct PMO > }
+  < NR_OF_FREQUENCIES : bit (5) >
+  < FREQ_DIFF_LENGTH : bit (3) >
+  { < FREQUENCY_DIFF : bit (1+val(FREQ_DIFF_LENGTH)) >
+    < BSIC : bit (6) >
+    { 0 | 1 < Cell Selection struct PMO > } } * (val(NR_OF_FREQUENCIES));
+
+< Cell Selection struct PMO > ::=
+  < CELL_BAR_ACCESS_2 : bit (1) >
+  < EXC_ACC : bit >
+  < SAME_RA_AS_SERVING_CELL : bit (1) >
+  { 0 | 1 < GPRS_RXLEV_ACCESS_MIN : bit (6) >
+    < GPRS_MS_TXPWR_MAX_CCH : bit (5) > }
+  { 0 | 1 < GPRS_TEMPORARY_OFFSET : bit (3) >
+    < GPRS_PENALTY_TIME : bit (5) > }
+  { 0 | 1 < GPRS_RESELECT_OFFSET : bit (5) > }
+  { 0 | 1 < HCS struct > }
+  { 0 | 1 < SI13_PBCCH_LOCATION struct > } ;
+
+< SI13_PBCCH_LOCATION struct > ::=
+  {  0 < SI13_LOCATION  : bit (1) >
+   | 1 < PBCCH_LOCATION : bit (2) >
+    < PSI1_REPEAT_PERIOD : bit (4) > } ;
+
+< HCS struct > ::=
+  < PRIORITY_CLASS : bit (3) >
+  < HCS_THR : bit (5) > ;
+
+< ENH Measurement parameters struct > ::= 
+  { 0 < BA_IND : bit > < 3G_BA_IND : bit > | 1 < PSI3_CHANGE_MARK : bit(2) > }
+  < PMO_IND : bit >
+  < REPORT_TYPE : bit >
+  < REPORTING_RATE : bit >
+  < INVALID_BSIC_REPORTING : bit >
+  { 0 | 1 < 3G Neighbour Cell Description struct > }
+  { 0 | 1 < GPRS REP PRIORITY Description struct > }
+  { 0 | 1 < GPRS MEASUREMENT PARAMETERS Description struct > }
+  { 0 | 1 < GPRS 3G MEASUREMENT PARAMETERS Description struct > } ;
+
+< 3G Neighbour Cell Description struct > ::=
+  { 0 | 1 < Index_Start_3G : bit (7)> }
+  { 0 | 1 < Absolute_Index_Start_EMR : bit (7)> }
+  { 0 | 1 < UTRAN FDD Description struct > }
+  { 0 | 1 < UTRAN TDD Description struct >}
+--  { 0 | 1 < CDMA2000 Description struct > }
+  { 0 | 1 <  REMOVED_3GCELL_Description struct > } ;
+
+< REMOVED_3GCELL_Description struct > ::=
+  < N1 : bit (2) >
+  { < N2 : bit (5) >
+    { < REMOVED_3GCELL_INDEX : bit (7) >
+      < 3G_CELL_DIFF_LENGTH : bit (3) >
+      < 3GCELL_DIFF : bit (val(3G_CELL_DIFF_LENGTH)) >
+    } * (1+val(N2))
+  } * (1+val(N1)) ;
+
+< UTRAN FDD Description struct> ::=
+  { 0 | 1 < Bandwidth_FDD : bit (3) > }
+  { 0 | 1 < Repeated UTRAN FDD Neighbour Cells struct > } ** 0 ;
+
+< Repeated UTRAN FDD Neighbour Cells struct > ::=
+  0 < FDD-ARFCN : bit (14) >    -- The value '1' was used in an earlier
+                                -- version of the protocol and shall not be used.
+  < FDD_Indic0 : bit >
+  < NR_OF_FDD_CELLS : bit (5) >
+  < FDD_CELL_INFORMATION Field : bit(Table_FDD_CELL_INFORMATION(NR_OF_FDD_CELLS)) > ; -- p(x) defined in table 11.2.9b.2.a/3GPP TS 04.60
+
+< UTRAN TDD Description struct > ::=
+  { 0 | 1 < Bandwidth_TDD : bit (3) > }
+  { 0 | 1 < Repeated UTRAN TDD Neighbour Cells struct PCCO > } ** 0 ;
+
+< Repeated UTRAN TDD Neighbour Cells struct PCCO > ::=
+  0 < TDD-ARFCN : bit (14) >    -- The value ‘1’ was used in an earlier
+                                -- version of the protocol and shall not be used.
+  < TDD_Indic0 : bit >
+  < NR_OF_TDD_CELLS : bit (5) >
+  < TDD_CELL_INFORMATION Field : bit(Table_TDD_CELL_INFORMATION(NR_OF_TDD_CELLS)) > ; -- q(x) defined in table 11.2.9b.2.b/3GPP TS 04.60.
+
+
+< GPRS REP PRIORITY Description struct> ::=
+  < Number_Cells : bit(7) >
+  { < REP_PRIORITY : bit >} * (val(Number_Cells)) ;
+
+< GPRS MEASUREMENT PARAMETERS Description struct > ::=
+  { 0 | 1 < MULTIBAND_REPORTING : bit (2) > }
+  { 0 | 1 < SERVING_BAND_REPORTING : bit (2) > }
+  < SCALE_ORD : bit(2) >
+
+  { 0 | 1 < 900_REPORTING_OFFSET : bit (3) > 
+      < 900_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < 1800_REPORTING_OFFSET : bit (3) > 
+      < 1800_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < 400_REPORTING_OFFSET : bit (3) > 
+      < 400_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < 1900_REPORTING_OFFSET : bit (3) > 
+      < 1900_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < 850_REPORTING_OFFSET : bit (3) > 
+      < 850_REPORTING_THRESHOLD : bit (3) > } ;
+
+
+< GPRS 3G MEASUREMENT PARAMETERS Description struct > ::=
+  < Qsearch_P : bit (4) > 
+  < 3G_SEARCH_PRIO : bit >
+  { 0 | 1 < FDD_REP_QUANT : bit >                         -- FDD Parameters
+      < FDD_MULTIRAT_REPORTING : bit (2) > }
+   
+  { 0 | 1 < FDD_REPORTING_OFFSET : bit (3) > 
+      < FDD_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < TDD_MULTIRAT_REPORTING : bit (2) > }                -- TDD Parameters
+  { 0 | 1 < TDD_REPORTING_OFFSET : bit (3) > 
+      < TDD_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < CDMA2000_MULTIRAT_REPORTING : bit (2) > }           -- CDMA2000 Parameters
+  { 0 | 1 < CDMA2000_REPORTING_OFFSET : bit (3) > 
+      < CDMA2000_REPORTING_THRESHOLD : bit (3) > } ;
+
+< Packet channel request 11 bit message > ::=  -- -MESSAGE
+--< MESSAGE_TYPE : bit(6) == xxxxxx >
+< Packet channel request 11 bit message content > 
+-- < EGPRS Packet channel request message content >
+;  
+
+
+< Packet channel request 11 bit message content > ::=  
+  < One Phase Access Request :                  0       < MultislotClass : bit (5) >
+                                                        < Priority :       
+                                                            < Radio Priority 1 - Highest priority :  00 > |
+                                                            < Radio Priority 2:                      01 > |
+                                                            < Radio Priority 3:                      10 > |
+                                                            < Radio Priority 4 - Lower priority :    11 >
+                                                         >
+                                                        < RandomBits : bit (3) > >
+  | < Short Access Request :                    100     < NumberOfBlocks : bit (3) >
+                                                        < Priority :       
+                                                            < Radio Priority 1 - Highest priority :  00 > |
+                                                            < Radio Priority 2:                      01 > |
+                                                            < Radio Priority 3:                      10 > |
+                                                            < Radio Priority 4 - Lower priority :    11 >
+                                                         >
+                                                        < RandomBits : bit (3) > >
+  | < Two Phase Access Request :                110000  
+                                                        < Priority :       
+                                                            < Radio Priority 1 - Highest priority :  00 > |
+                                                            < Radio Priority 2:                      01 > |
+                                                            < Radio Priority 3:                      10 > |
+                                                            < Radio Priority 4 - Lower priority :    11 >
+                                                         >
+                                                        < RandomBits : bit (3) > >
+  | < Page Response :                           110001  < RandomBits : bit (5) > >
+  | < Cell Update :                             110010  < RandomBits : bit (5) > >
+  | < MM Procedure :                            110011  < RandomBits : bit (5) > >
+  | < Single Block Without TBF Establishment :  110100  < RandomBits : bit (5) > > ;
+
+  
+< Packet channel request 8 bit message > ::=  -- -MESSAGE
+-- TBC < MESSAGE_TYPE : bit(6) == xxxxxx >
+< Packet channel request 8 bit message content> 
+;  
+< Packet channel request 8 bit message content> ::=  
+  < One Phase Access Request :                  1       < MultislotClass : bit (5) >
+                                                        < RandomBits :     bit (2) >>
+  | < Short Access Request :                    00      < NumberOfBlocks : bit (3) >
+                                                        < RandomBits : bit (3) >>
+  | < Two Phase Access Request :                01000 < RandomBits : bit (3) >>
+  | < Page Response :                           01001 < RandomBits : bit (3) >>
+  | < Cell Update :                             01010 < RandomBits : bit (3) >>
+  | < MM Procedure :                            01011 < RandomBits : bit (3) >>
+  | < Single Block Without TBF Establishment :  01100 < RandomBits : bit (3) >> ;
+
+
+< Packet Downlink Ack/Nack message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000010 >
+< Packet Downlink Ack/Nack message content >  M V b:178
+; 
+
+< Packet Downlink Ack/Nack message content > ::=  
+  < DOWNLINK_TFI : bit (5) >
+  < Ack/Nack Description IE >
+  { 0 | 1 < Channel Request Description IE > }
+  < Channel Quality Report struct >
+  { 
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+    { 0 | 1 < PFI : bit(7) > }
+-- ORG:  < padding bits > };
+       } < padding bits >;
+
+< Channel Quality Report struct > ::=
+  < C_VALUE :  bit (6) >
+  < RXQUAL :   bit (3) >
+  < SIGN_VAR : bit (6) >
+  { 0 | 1 < I_LEVEL_TN0 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN1 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN2 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN3 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN4 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN5 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN6 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN7 : bit (4) > } ;
+
+-- 11.2.6a	EGPRS Packet Downlink Ack/Nack --
+< EGPRS Packet Downlink Ack/Nack message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001000 >
+< EGPRS Packet Downlink Ack/Nack message content > M V b:178
+; 
+
+
+< EGPRS Packet Downlink Ack/Nack message content > ::=  
+    < DOWNLINK_TFI : bit (5) >
+    < MS OUT OF MEMORY : bit(1)>
+    { 0 | 1 < EGPRS Channel Quality Report IE >}
+    { 0 | 1 < Channel Request Description IE >}
+    { 0 | 1 < PFI : bit(7) > }
+    { 0 | 1 < Extension Bits : Extension Bits IE > }        -- clause 12.26
+    < EGPRS Ack/Nack Description IE >
+  <padding bits > ;
+
+< Packet Downlink Assignment message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000010 >
+< Packet Downlink Assignment message content >  M V b:178-?
+; 
+
+
+< Packet Downlink Assignment message content > ::=  
+  < PAGE_MODE >
+  { 0 | 1 <PERSISTENCE_LEVEL : bit (4) > * 4 }
+  { { 0 < Global TFI IE >
+     | 10 < TLLI : bit (32) > }
+    { 0   -- Message escape
+      { < MAC_MODE : bit (2) >
+        < RLC_MODE : bit (1) >
+        < CONTROL_ACK : bit (1) >
+        < TIMESLOT_ALLOCATION : bit (8) >
+        < Packet Timing Advance IE >
+        { 0 | 1 < P0 : bit (4) >
+          < BTS_PWR_CTRL_MODE : bit (1) > 
+          < PR_MODE :bit (1) > }
+        { { 0 | 1 < Frequency Parameters IE > }
+          { 0 | 1 < DOWNLINK_TFI_ASSIGNMENT : bit (5) > }
+          { 0 | 1 < Power Control Parameters IE > }
+          { 0 | 1 < Starting Frame Number Description IE > }
+          { 0 | 1 < Measurement Mapping struct > }
+          { 
+           null 
+         | < Receiver compatible with earlier release : 0 > 
+         | < Additions in R99 : 1 > 
+          { 0 | 1 < EGPRS Window Size IE >
+              < LINK_QUALITY_MEASUREMENT_MODE : bit (2) >
+              { 0 | 1 < BEP_PERIOD2 : bit(4) > }}
+          { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+
+          { 0 | 1 < COMPACT reduced MA IE > }
+        < padding bits > }} //          -- truncation at end of message allowed, bits '0' assumed
+         ! < Non-distribution part error : bit (*)  > }
+       ! < Message escape : 1 bit (*)  > }
+     ! < Address information part error : bit (*)  > }
+   < spare bits > -- qcswilk 030415   
+   ! < Distribution part error : bit (*)  > ;
+
+< Measurement Mapping struct > ::=
+  < Starting Frame Number Description IE >
+  < MEASUREMENT_INTERVAL : bit (5) >
+  < MEASUREMENT_BITMAP : bit (8) > ;
+
+< Packet Downlink Dummy Control Block message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 100101 >
+< Packet Downlink Dummy Control Block message content >  M V b:178-?
+; 
+
+
+< Packet Downlink Dummy Control Block message content > ::=  
+  < PAGE_MODE >
+  { 0 | 1 <PERSISTENCE_LEVEL : bit (4) > * 4 }
+  < padding bits >
+   ! < Distribution part error : bit (*)  > ;
+
+< Packet Uplink Dummy Control Block message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000011 >
+< Packet Uplink Dummy Control Block message content > M V b:178
+
+; 
+
+
+< Packet Uplink Dummy Control Block message content > ::=  
+  < TLLI : bit (32) >
+  < padding bits > ;
+
+< Packet Measurement Report message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000100 >
+< Packet Measurement Report message content > M V b:178
+   
+  ; 
+
+< Packet Measurement Report message content > ::=  
+  < TLLI : bit (32) >
+  { 0 | 1 < PSI5_CHANGE_MARK : bit (2) > }
+  { { 0 < NC Measurement Report :  < NC Measurement Report struct 1 > > }
+      |
+    { 1 < EXT Measurement Report struct >
+      { 
+         null 
+       | < Receiver compatible with earlier release : 0 > 
+       | < Additions in R99 : 1 > 
+          { 0 | 1   
+                {  0 < BA_USED : bit > < 3G_BA_USED : bit > 
+                 | 1 < PSI3_CHANGE_MARK : bit(2) > 
+                }     
+                < PMO_USED : bit > 
+          }
+          { 0 | 1 < 3G Measurement Report struct > }  
+      }
+    } 
+   }
+  < padding bits > 
+;
+
+< NC Measurement Report struct 1 > ::=
+  < NC_MODE : bit (1) >
+  < RXLEV_SERVING_CELL : bit (6) >
+  { 0 | 1 < INTERFERENCE_SERVING_CELL : bit (6) > }
+  < NUMBER_OF_NC_MEASUREMENTS : bit (3) >
+  { < FREQUENCY_N : bit (6) >
+    { 0 | 1 < BSIC_N : bit (6) > }
+    < RXLEV_N : bit (6) >   } * (val(NUMBER_OF_NC_MEASUREMENTS)) ;
+
+< EXT Measurement Report struct > ::=
+  < EXT_REPORTING_TYPE: 00 | 01 | 10 >
+  { 0 | 1 
+    { 0 | 1 < I_LEVEL_TN0 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN1 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN2 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN3 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN4 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN5 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN6 : bit (6) > }
+    { 0 | 1 < I_LEVEL_TN7 : bit (6) > } }
+  < NUMBER_OF_MEASUREMENTS : bit (5) >
+  { < FREQUENCY_N : bit (6) >
+    { 0 | 1 < BSIC_N : bit (6) > }
+    < RXLEV_N : bit (6) > } * (val(NUMBER_OF_MEASUREMENTS)) ;
+
+< 3G Measurement Report struct > ::=
+  < N_3G: bit (3) >
+  { < 3G_CELL_LIST_INDEX : bit (7) >
+    < REPORTING_QUANTITY : bit (6) > } * (val(N_3G) + 1) ;
+
+
+< Packet Measurement Order message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000011 >
+< Packet Measurement Order message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Measurement Order message content > ::=  
+  < PAGE_MODE >
+  { { 0 < Global TFI IE > 
+     | 10 < TLLI : bit (32) > }
+    { < PMO_INDEX : bit (3) >
+      < PMO_COUNT : bit (3) >
+      { 0 | 1 < NC Measurement Parameters struct >  }
+      { 0 | 1 < EXT Measurement Parameters struct >  }
+      {   
+         null 
+       | < Receiver compatible with earlier release : 0 > 
+       | < Additions in R98 : 1 > 
+          { 0 | 1 < LSA Parameters IE > }
+          { 
+             null 
+           | < Receiver compatible with earlier release : 0 > 
+           | < Additions in R99 : 1 > 
+             { 0 | 1 < ENH Measurement Parameters struct > }
+             < padding bits > } }
+       ! < Non-distribution part error : bit (*)  > }
+     ! < Address information part error : bit (*)  > }
+   < spare bits > -- qcswilk 030415   
+   ! < Distribution part error : bit (*)  > ;
+
+< EXT Measurement Parameters struct > ::=
+  {   < EXT_MEASUREMENT_ORDER : bit (2) == 00 > 
+  | < EXT_MEASUREMENT_ORDER : bit (2) == 01 >   < EM1 struct > 
+  | < EXT_MEASUREMENT_ORDER : bit (2) == 10 > 
+  | < EXT_MEASUREMENT_ORDER : bit (2) == 11 > } ;
+
+< EM1 struct > ::=
+  { 0 | 1 { < EXT_REPORTING_TYPE: bit (2) == 00 > 
+  |   < EXT_REPORTING_TYPE: bit (2) == 01 >   < NCC_PERMITTED : bit (8) > 
+  |   < EXT_REPORTING_TYPE: bit (2) == 10 >   { 0 | 1 < INT_FREQUENCY : bit (5) > } 
+      | < EXT_REPORTING_TYPE: bit (2) == 11 > } }
+
+  { 0 | 1 < EXT_REPORTING_PERIOD : 
+                              < 60 sec  : 000 > |
+                              < 120 sec : 001 > |
+                              < 240 sec : 010 > |
+                              < 480 sec : 011 > |
+                              < 960 sec : 100 > |
+                              < 1920 sec - default value : 101 > |
+                              < 3840 sec : 110 > |
+                              < 7680 sec : 111 > 
+         >} 
+  { < EXT Frequency List Description struct >  } ;
+
+< EXT Frequency List Description struct > ::=
+  < EXT Frequency List struct > { 0 | 1 < EXT Frequency List struct > } ** 0 ;
+
+< EXT Frequency List struct > ::=
+  < START_FREQUENCY : bit (10) >
+  < NR_OF_FREQUENCIES : bit (5) >
+  < FREQ_DIFF_LENGTH : bit (3) >
+  { < FREQUENCY_DIFF : bit (1+val(FREQ_DIFF_LENGTH)) > } * (val(NR_OF_FREQUENCIES)) ;
+
+
+< Packet Mobile TBF Status message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000110 >
+< Packet Mobile TBF Status message content > M V b:178
+   
+  ; 
+
+
+< Packet Mobile TBF Status message content > ::=  
+  < Global TFI IE > 
+  < TBF_CAUSE : bit (3) >
+  { 0 | 1 < STATUS_MESSAGE_TYPE : bit (6) > }
+  < padding bits > ;
+
+< Packet Enhanced Measurement Report message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001010 >
+< Packet Enhanced Measurement Report message content > M V b:178
+   
+  ; 
+
+
+< Packet Enhanced Measurement Report message content > ::=  
+  < TLLI : bit (32) >
+  < NC Measurement Report struct 2 > 
+  < padding bits > ;
+
+< NC Measurement Report struct 2 > ::=
+< NC_MODE : bit (1) >
+{ 0 < BA_USED : bit > < 3G_BA_USED : bit > | 1 < PSI3_CHANGE_MARK : bit(2) > }
+< PMO_USED : bit > 
+< BSIC_Seen : bit >
+< SCALE : bit >
+{ 0 | 1 < Serving cell data struct > }
+{ 0 | 1 < Repeated Invalid_BSIC_Information struct > } ** 0
+{ 0 | 1 { 0 | 1 < REPORTING_QUANTITY : bit (6) > }** 0 } ;     -- bitmap type reporting
+
+< Serving cell data struct > ::=
+< RXLEV_SERVING_CELL : bit (6) >
+{ 0 | 1 < INTERFERENCE_SERVING_CELL : bit (6) > };
+
+< Repeated Invalid_BSIC_Information struct > ::=
+< BCCH-FREQ-NCELL : bit (5) >
+< BSIC : bit (6) >
+< RXLEV-NCELL : bit (6) > ;
+
+
+
+< Packet Paging Request message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 100010 >
+< Packet Paging Request message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Paging Request message content > ::=  
+  < PAGE_MODE >
+  { 0 | 1 < PERSISTENCE_LEVEL : bit (4) >* 4}
+  { 0 | 1 < NLN : bit (2) > }
+  { { 0 | 1 < Repeated Page info struct > } ** 0
+    < padding bits > } //   -- truncation at end of message allowed, bits '0' assumed
+  < spare bits > -- qcswilk 030415   
+   ! < Distribution part error : bit (*)  > ;
+
+< Repeated Page info struct > ::=
+  { 0                   -- Page request for TBF establishment
+    { 0 < PTMSI : bit (32) >
+    | 1 < Length of Mobile Identity contents : bit (4) >
+      < Mobile Identity : octet (val (Length of Mobile Identity contents)) > }
+  | 1                     -- Page request for RR conn. establishment
+    { 0 < TMSI : bit (32) >
+    | 1 < Length of Mobile Identity contents : bit (4) >
+      < Mobile Identity : octet (val (Length of Mobile Identity contents)) > }
+    < CHANNEL_NEEDED : 
+                      < Any channel :                00 > |
+                      < SDCCH :                      01 > |
+                      < TCH/F - Full rate :          10 > |
+                      < TCH/H or TCH/F - Dual rate : 11 > 
+     >
+    { 0 | 1 < eMLPP_PRIORITY : bit (3) > } }
+  ! < Ignore : bit (*)  > ;
+
+< Packet PDCH Release message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 100011 >
+< Packet PDCH Release message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet PDCH Release message content > ::=  
+  < PAGE_MODE >
+  { 1 < TIMESLOTS_AVAILABLE : bit (8) > }
+  < padding bits >
+   ! < Distribution part error : bit (*)  > ;
+
+< Packet Polling Request message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000100 >
+< Packet Polling Request message content >  M V b:178-?
+   
+  ; 
+
+< Packet Polling Request message content > ::=  
+    < PAGE_MODE >
+    {  0   < Global TFI IE >
+     | 10  < TLLI : bit (32) >
+     | 110 < TQI : bit (16) > 
+    }
+    < TYPE_OF_ACK : bit (1) >
+    < padding bits >
+;
+
+--< PAGE_MODE : bit (2) >
+--{ { 0 < Global TFI IE > 
+--   | 10 < TLLI : bit (32) >
+--   | 110  < TQI : bit (16) > }
+--  { < TYPE_OF_ACK : bit (1) >
+--    < padding bits >
+--     ! < Non-distribution part error : bit (*)  > }
+--   ! < Address information part error : bit (*)  > }
+-- ! < Distribution part error : bit (*)  > ;
+
+
+< Packet Power Control/Timing Advance message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000101 >
+< Packet Power Control/Timing Advance message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Power Control/Timing Advance message content > ::=  
+  < PAGE_MODE >
+  { { 0 < Global TFI IE >
+     | 110  < TQI : bit (16) >
+     | 111  < Packet Request Reference IE > }
+    { 0   -- Message escape
+      { { 0 | 1 < Global Power Control Parameters IE > }
+        { { 0 < Global Packet Timing Advance IE >
+             < Power Control Parameters IE > }
+         | 1  
+           {   0 < Global Packet Timing Advance IE >
+             | 1 < Power Control parameters IE >
+           } 
+        }
+      { 
+         null 
+       | < Receiver compatible with earlier release : 0 > 
+       | < Additions in R99 : 1 > 
+          { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+          < padding bits > }
+         ! < Non-distribution part error : bit (*)  > }
+       ! < Message escape : 1 bit (*)  > }
+     ! < Address information part error : bit (*)  > }
+   < spare bits > -- qcswilk 030415   
+   ! < Distribution part error : bit (*)  > ;
+
+< Packet PRACH Parameters message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 100100 >
+< Packet PRACH Parameters message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet PRACH Parameters message content > ::=  
+  < PAGE_MODE >
+  < PRACH Control Parameters IE > 
+  < padding bits >
+   ! < Distribution part error : bit (*)  > ;
+
+< Packet Queueing Notification message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000110 >
+< Packet Queueing Notification message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Queueing Notification message content > ::=  
+  < PAGE_MODE >
+  { 111 < Packet Request Reference IE > 
+    { < TQI : bit (16) >
+      < padding bits >
+       ! < Non-distribution part error : bit (*)  > }
+     ! < Address information part error : bit (*)  > }
+   ! < Distribution part error : bit (*)  > ;
+
+
+< Packet Resource Request message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000101 >
+< Packet Resource Request message content > M V b:178
+   
+  ; 
+
+
+< Packet Resource Request message content > ::=  
+  { 0 | 1 < ACCESS_TYPE : 
+                      < Two Phase Access Request :      00 > |
+                      < Page Response :                 01 > |
+                      < Cell Update :                   10 > |
+                      < Mobility Management procedure : 11 > 
+   > }
+  { 0 < Global TFI IE > 
+  | 1 < TLLI : bit (32) > }
+  { 0 | 1 < MS Radio Access Capability 2 IE > }
+  < Channel Request Description IE > 
+  { 0 | 1 < CHANGE_MARK : bit (2) > }
+  < C_VALUE : bit (6) >
+  { 0 | 1 < SIGN_VAR : bit (6) >}
+  { 0 | 1 < I_LEVEL_TN0 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN1 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN2 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN3 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN4 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN5 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN6 : bit (4) > }
+  { 0 | 1 < I_LEVEL_TN7 : bit (4) > }
+  { 
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+    { 0 | 1 < EGPRS BEP Link Quality Measurements : 
+          < EGPRS BEP Link Quality Measurements IE >> }
+    { 0 | 1 < EGPRS Timeslot Link Quality Measurements : 
+          < EGPRS Timeslot Link Quality Measurements IE >>}
+    { 0 | 1 < PFI: bit(7) > }
+    < ADDITIONAL MS RAC INFORMATION AVAILABLE : bit (1) >
+    < RETRANSMISSION OF PRR : bit (1) >
+  -- ORG : < padding bits > };
+         } < padding bits >;
+
+< Packet PSI Status message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000111 >
+< Packet PSI Status message content > M V b:178
+   
+  ; 
+
+
+< Packet PSI Status message content > ::=  
+  < Global TFI IE > 
+  < PBCCH_CHANGE_MARK : bit (3) >
+  < PSI Message List struct > 
+  < Unknown PSI Message List struct > 
+  < padding bits > ;
+
+< PSI Message List struct > ::=
+  { 0 | 1 < MESSAGE_TYPE : bit (6) >
+          < PSIX_CHANGE_MARK : bit (2) >
+          { 0 | 1 < PSIX_COUNT : bit (4) >
+          < Instance bitmap : bit (val(PSIX_COUNT) + 1) > } 
+  } ** 0
+  < ADDITIONAL_MSG_TYPE : bit >; 
+
+< Unknown PSI Message List struct > ::=
+  { 0 | 1 < MESSAGE_TYPE : bit (6) > } ** 0
+  < ADDITIONAL_MSG_TYPE : bit > ;
+
+< PSI1 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110001 >
+< PSI1 message content >  M V b:178-?
+; 
+
+
+
+< PSI1 message content > ::=  
+  < PAGE_MODE >
+  < PBCCH_CHANGE_MARK : bit (3) >
+  < PSI_CHANGE_FIELD : 
+            < Update of unspecified PSI message/s:  0000 > |
+            < Unknown:                              0001 > |
+            < PSI2 updated:                         0010 > |
+            < PSI3/PSI3bis updated:                 0011 > |
+            < PSI4 updated:                         0100 > |
+            < PSI5 updated:                         0101 > |
+            < PSI6 updated:                         0110 > |
+            < PSI7 updated:                         0111 > |
+            < PSI8 updated:                         1000 > |
+            < Update of unknown SI message type: bitrange(1001 to 1111)> 
+  >
+  < PSI1_REPEAT_PERIOD : bit (4) >
+  < PSI_COUNT_LR : bit (6) >
+  { 0 | 1 < PSI_COUNT_HR : bit (4) > }
+  < MEASUREMENT_ORDER: bit (1) >
+  < GPRS Cell Options IE > 
+  < PRACH Control Parameters IE > 
+  < PCCCH Organization Parameters IE > 
+  < Global Power Control Parameters IE > 
+  < PSI_STATUS_IND : bit >
+  {  
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+       < MSCR : bit >
+       < SGSNR : bit >
+       < BAND_INDICATOR : bit >
+       -- qcswilk < padding bits > 
+  }
+  < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+< PSI2 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110010 >
+< PSI2 message content >  M V b:178-?
+; 
+
+< PSI2 message content > ::=  
+  < PAGE_MODE >
+  < PSI2_CHANGE_MARK : bit (2) >
+  < PSI2_INDEX : bit (3) >
+  < PSI2_COUNT : bit (3) >
+  { { 0 | 1 < Cell Identification IE > }
+    { 0 | 1 < Non GPRS Cell Options IE > }
+    < Reference Frequency Lists struct > 
+    < Cell Allocation Lists struct > 
+    < GPRS Mobile Allocations Lists struct > 
+    < PCCCH Description Lists struct > 
+		    { 
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+        { 0 | 1 < COMPACT Control Info struct > }
+        { 0 | 1 < Additional PSI Messages struct > }
+        < spare bits > 
+	  } 
+	} // -- truncation at end of message allowed, bits '0' assumed
+   < spare bits > -- qcswilk 030415 	
+   ! < Distribution part error : bit (*)  > ;
+
+< Reference Frequency Lists struct > ::= { 0 | 1 < Reference Frequency struct > } ** 0;
+
+-- < Reference Frequency struct R >::=
+--  0 | { 1 < Reference Frequency struct > < Reference Frequency struct R > };
+
+< Reference Frequency struct >::=
+  < RFL_NUMBER : bit (4) >
+  < Length of RFL contents : bit (4) >
+  < RFL contents : octet (val(Length of RFL contents) + 3) > ;
+   
+< Cell Allocation Lists struct > ::= { 0 | 1 < Cell Allocation struct > } ** 0 ;
+
+< Cell Allocation struct > ::=
+  < RFL_NUMBER : bit (4) > ;
+
+< GPRS Mobile Allocations Lists struct > ::= 
+{ 0 | 1 < GPRS Mobile Allocations struct > } ** 0 
+; 
+
+< GPRS Mobile Allocations struct > ::=
+  < MA_NUMBER : bit (4) >
+  < GPRS Mobile Allocation IE > ;
+
+< PCCCH Description Lists struct > ::= 
+{ 0 | 1 < PCCCH Description struct > } ** 0 
+; 
+
+
+< PCCCH Description struct > ::=
+  < TSC : bit (3) >
+  { 0 < Non-Hopping PCCCH Carriers Lists struct > 
+	  | 1 < MA_NUMBER : bit (4) >
+    < Hopping PCCCH Carriers Lists struct >  } ;
+
+< Non-hopping PCCCH Carriers Lists struct > ::= 
+{ 0 | 1 < Non-Hopping PCCCH Carriers struct > } ** 0 ;
+
+<Non-Hopping PCCCH Carriers struct  >::=
+  < ARFCN : bit (10) >
+  < TIMESLOT_ALLOCATION : bit (8) > ;
+
+< Hopping PCCCH Carriers Lists struct > ::= { 0 | 1 < Hopping PCCCH Carriers struct > } ** 0 ;
+
+< Hopping PCCCH Carriers struct > ::=
+  < MAIO : bit (6) >
+  < TIMESLOT_ALLOCATION : bit (8) > ;
+
+< COMPACT Control Info struct > ::=
+  < Large Cell Operation : bit (1) >
+  {0 | 1 < Number of Idle Blocks struct> }
+  {0 | 1 <N_CCCH_NH : bit (4) >} ;
+
+<Number of Idle Blocks struct> ::=
+{0 | 1 { < NIB_CCCH_0 : bit (4) > } }
+{0 | 1 { < NIB_CCCH_1 : bit (4) > } }
+{0 | 1 { < NIB_CCCH_2 : bit (4) > } }
+{0 | 1 { < NIB_CCCH_3 : bit (4) > } } ;
+
+< Additional PSI Messages struct > ::=
+  < NON_GSM_INFORMATION : bit(2) > 
+  < PSI8_BROADCAST : bit (1) >
+  < PSI3ter_BROADCAST : bit (1) > 
+  < PSI3quater_BROADCAST : bit (1) > ;
+
+< PSI3 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110011 >
+< PSI3 message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI3 message content > ::=  
+  < PAGE_MODE >
+  < PSI3_CHANGE_MARK : bit (2) >
+  < PSI3_BIS_COUNT : bit (4) >
+  < Serving Cell params struct > 
+  < Gen Cell Sel struct > 
+  < Neighbour Cell parameters : { 0 | 1 < Neighbour Cell params struct >  } ** 0 >
+  {  
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R98 : 1 > 
+        < LSA ID information struct > 
+        { 0 | 1 < LSA Parameters :< LSA Parameters IE >> }
+        {  
+             null 
+           | < Receiver compatible with earlier release : 0 > 
+           | < Additions in R99 : 1 > 
+             {00}   -- The values '01', '10' and '11' were allocated in an earlier version of the protocol
+                    -- and shall not be used.
+             { 0 | 1 < COMPACT Information struct > }
+             0  -- The value '1' was used in an earlier version of the protocol and shall not be used.
+        }
+  }
+  < padding bits > 
+  ! < Distribution part error : bit (*)  > ;
+
+< Serving Cell params struct > ::=
+  < CELL_BAR_ACCESS_2 : bit >
+  < EXC_ACC : bit>
+  < GPRS_RXLEV_ACCESS_MIN : bit (6) >
+  < GPRS_MS_TXPWR_MAX_CCH : bit (5) >
+  { 0 | 1 < HCS struct >  } 
+  < MULTIBAND_REPORTING : bit (2) >;
+
+< Gen Cell Sel struct > ::=
+  < GPRS_CELL_RESELECT_HYSTERESIS : 
+                                    < 0 dB:   000 > |
+                                    < 2 dB:   001 > |
+                                    < 4 dB:   010 > |
+                                    < 6 dB:   011 > |
+                                    < 8 dB:   100 > |
+                                    < 10 dB:  101 > |
+                                    < 12 dB:  110 > |
+                                    < 14 dB:  111 > 
+  >
+  < C31_HYST : bit (1) >
+  < C32_QUAL: bit (1) >
+  < RANDOM_ACCESS_RETRY : bit (1) >
+  { 0 | 1 < T_RESEL : 
+                      < 5 seconds:    000 > |
+                      < 10 seconds:   001 > |
+                      < 15 seconds:   010 > |
+                      < 20 seconds:   011 > |
+                      < 30 seconds:   100 > |
+                      < 60 seconds:   101 > |
+                      < 120 seconds:  110 > |
+                      < 300 seconds:  111 > 
+   > }
+  { 0 | 1 < RA_RESELECT_HYSTERESIS : 
+                                    < 0 dB:   000 > |
+                                    < 2 dB:   001 > |
+                                    < 4 dB:   010 > |
+                                    < 6 dB:   011 > |
+                                    < 8 dB:   100 > |
+                                    < 10 dB:  101 > |
+                                    < 12 dB:  110 > |
+                                    < 14 dB:  111 > 
+  > } ;
+
+< Neighbour Cell params struct > ::=
+  < START_FREQUENCY : bit (10) >
+  < Cell Selection struct PSI3 >
+	< NR_OF_REMAINING_CELLS : bit (4) >
+  < FREQ_DIFF_LENGTH : bit (3) >
+  { < FREQUENCY_DIFF : bit (1 + val(FREQ_DIFF_LENGTH)) >
+    < Cell Selection struct PSI3 > } * (val(NR_OF_REMAINING_CELLS)) ;
+
+< Cell Selection struct PSI3 > ::=
+  < BSIC : bit (6) >
+  < CELL_BAR_ACCESS_2 : bit >
+  < EXC_ACC : bit >
+  < SAME_RA_AS_SERVING_CELL : bit (1) >
+  { 0 | 1 < GPRS_RXLEV_ACCESS_MIN : bit (6) >
+    < GPRS_MS_TXPWR_MAX_CCH : bit (5) > }
+  { 0 | 1 < GPRS_TEMPORARY_OFFSET : 
+                                    < 0  dB:    000 > |
+                                    < 10 dB:    001 > |
+                                    < 20 dB:    010 > |
+                                    < 30 dB:    011 > |
+                                    < 40 dB:    100 > |
+                                    < 50 dB:    101 > |
+                                    < 60 dB:    110 > |
+                                    < infinity: 111 > 
+          >
+          < GPRS_PENALTY_TIME : bit (5) > 
+  }
+  { 0 | 1 < GPRS_RESELECT_OFFSET : bit (5) > }
+  { 0 | 1 < HCS struct > }
+  { 0 | 1 < SI13 PBCCH Location struct > } ;
+
+< SI13 PBCCH Location struct > ::=
+  { 0 < SI13_LOCATION : bit (1) >
+   | 1  < PBCCH_LOCATION : bit (2) >
+    < PSI1_REPEAT_PERIOD : bit (4) > } ;
+
+< LSA ID information struct > ::=
+  { 0 | 1 { 0 < LSA_ID : bit (24) >
+          | 1 < ShortLSA_ID : bit (10) > } 
+  } ** 0 ;
+
+< COMPACT Information struct > ::=
+  < Cell identification IE >
+  { 0 | 1 < COMPACT Neighbour Cell params struct > } ** 0 ;
+
+< COMPACT Neighbour Cell params struct > ::=
+  < START_FREQUENCY : bit (10) >
+  < COMPACT Cell Selection struct >
+  < NR_OF_REMAINING_CELLS : bit (4) >
+  < FREQ_DIFF_LENGTH : bit (3) >
+  { < FREQUENCY_DIFF : bit (1 + val(FREQ_DIFF_LENGTH)) >
+    < COMPACT Cell Selection struct > } 
+                                    * (val(NR_OF_REMAINING_CELLS));
+
+< COMPACT Cell Selection struct > ::=
+  < BSIC : bit (6) >
+  < CELL_BAR_ACCESS_2 : bit >
+  < EXC_ACC : bit >
+  < SAME_RA_AS_SERVING_CELL : bit (1) >
+  { 0 | 1 < GPRS_RXLEV_ACCESS_MIN : bit (6) >
+      < GPRS_MS_TXPWR_MAX_CCH : bit (5) > }
+  { 0 | 1 < GPRS_TEMPORARY_OFFSET : bit (3) >
+      < GPRS_PENALTY_TIME : bit (5)> }
+  { 0 | 1 < GPRS_RESELECT_OFFSET : bit (5) > }
+  { 0 | 1 < HCS struct > }
+  { 0 | 1 < TIME_GROUP : bit (2) > }
+  { 0 | 1 < GUAR_CONSTANT_PWR_BLKS : bit (2) >} ;
+
+< PSI3 bis message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110100 >
+< PSI3 bis message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI3 bis message content > ::=  
+  < PAGE_MODE >
+  < PSI3_CHANGE_MARK : bit (2) >
+  < PSI3_BIS_INDEX : bit (4) >
+  < PSI3_BIS_COUNT : bit (4) >
+  { < Neighbour cell parameters : { 0 | 1 < Neighbour cell params struct > } ** 0 >
+    < Neighbour Cell parameters 2 : { 0 | 1 < Neighbour Cell params 2 struct > } ** 0 >
+
+  { 
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R98 : 1 > 
+    { 0 | 1 < LSA Parameters IE > }
+
+  { 
+       null 
+     | < Receiver compatible with earlier release : 0 > < SPARE BITS > 
+     | < Additions in R99 : 1 > 
+      < COMPACT Neighbour Cell Parameters : { 0 | 1 < COMPACT Neighbour Cell params 2 struct > } ** 0 >
+      0 -- The value '1' was used in an earlier version of the protocol and shall not be used.
+    
+  < padding bits > } } } //   -- truncation at end of message allowed, bits '0' assumed
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+< Neighbour Cell params 2 struct > ::=
+  { 00        -- Message escape
+    { 0 | 1 
+      < NCP2 Repeat struct >
+          < CELL_PARAMS_POINTER : bit (2) > } ** 0       --Up to four pointers to the 'Neigbour parameter set
+    < Neighbour parameter set struct > * (1 + max(CELL_PARAMS_POINTER))
+
+   !  < Message escape: { 01 | 10 | 11 } bit** > } ;   -- Reserved for future use
+
+
+< NCP2 Repeat struct > ::=
+
+  { 1   < START_FREQUENCY : bit (10) >      -- Multiple START FREQ/FREQ DIFF sets may be defined
+    < NCP2 Property struct >
+    {
+     < NR_OF_REMAINING_CELLS : bitrange( 0001 to 1111 )  >
+        < FREQ_DIFF_LENGTH : bit (3) >
+        { < FREQUENCY_DIFF : bit (1 + val(FREQ_DIFF_LENGTH)) >
+        < NCP2 Property struct > } * (val(NR_OF_REMAINING_CELLS))
+        < NCP2 Repeat struct >  -- "**Recursively repeated"
+     |  
+      0000 
+    }                           -- Break recursion (NR_OF_REMAINING_CELLS == 0)
+   | 0 } ;                      -- End recursion (no more START_FREQUENCY)
+
+< NCP2 Property struct > ::=
+    < SAME_RA_AS_SERVING_CELL : bit (1) >
+    < CELL_BAR_ACCESS_2 : bit >
+  < BCC : bit (3) > ;
+
+< Neighbour parameter set struct > ::=
+  { 0 | 1 < NCC : bit (3) > }
+  < EXC_ACC : bit >
+  { 0 | 1 < GPRS_RXLEV_ACCESS_MIN : bit (6) > }
+  { 0 | 1 < GPRS_MS_TXPWR_MAX_CCH : bit (5) > }
+  { 0 | 1 < PRIORITY_CLASS : bit (3) > }
+  { 0 | 1 < HCS_THR : bit (5) >}
+  { 0 | 1 < SI13_PBCCH_LOCATION struct >  }
+  < GPRS_TEMPORARY_OFFSET : bit (3) >
+  < GPRS_PENALTY_TIME : bit (5) >
+  < GPRS_RESELECT_OFFSET : bit (5) > ;
+
+< COMPACT Neighbour Cell params 2 struct > ::=
+  { 00        -- Message escape
+    { 0 | 1 < COMPACT NCP2 Repeat struct >
+            < CELL_PARAMS_POINTER : bit (2) > } ** 0    -- Up to four pointers to the 'C Neighbour parameter set' 
+    <COMPACT Neighbour parameter set : 
+              <COMPACT Neighbour parameter set struct > > * (1+ max(CELL_PARAMS_POINTER))
+
+   !  < Message escape: { 01 | 10 | 11 } bit** > } ;   -- Reserved for future use
+
+< COMPACT NCP2 Repeat struct > ::=
+
+  { 1   < START_FREQUENCY : bit (10) >      -- Multiple START FREQ/FREQ DIFF sets may be defined
+    < COMPACT NCP2 Property struct >
+    {   < NR_OF_REMAINING_CELLS : {bitrange( 0001 to 1111 )} >
+      < FREQ_DIFF_LENGTH : bit (3) >
+      { < FREQUENCY_DIFF : bit (1 + val(FREQ_DIFF_LENGTH)) >
+        < COMPACT NCP2 Property struct > } * (val(NR_OF_REMAINING_CELLS))
+
+      < COMPACT NCP2 Repeat struct >    -- "**Recursively repeated"
+     |  0000 }                          -- Break recursion (NR_OF_REMAINING_CELLS == 0)
+    | 0 } ;                               -- End recursion (no more START_FREQUENCY)
+
+< COMPACT NCP2 Property struct > ::=
+  < SAME_RA_AS_SERVING_CELL : bit (1) >
+  < CELL_BAR_ACCESS_2 : bit >
+  < BCC : bit (3) > 
+  { 0 | 1 < TIME_GROUP : bit (2) > };
+
+< COMPACT Neighbour parameter set struct > ::=
+  { 0 | 1 < NCC : bit (3) > }
+  < EXC_ACC : bit >
+  { 0 | 1 < GPRS_RXLEV_ACCESS_MIN : bit (6) > }
+  { 0 | 1 < GPRS_MS_TXPWR_MAX_CCH : bit (5) > }
+  { 0 | 1 < GPRS_PRIORITY_CLASS : bit (3) > }
+  { 0 | 1 < GPRS_HCS_THR : bit (5) >}
+  < GPRS_TEMPORARY_OFFSET : bit (3) >
+  < GPRS_PENALTY_TIME : bit (5) >
+  < GPRS_RESELECT_OFFSET : bit (5) >
+  { 0 | 1 < GUAR_CONSTANT_PWR_BLKS : bit (2) >} ;
+
+-- 11.2.21a	--
+< PSI3 ter message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 111010 >
+< PSI3 ter message content >  M V b:178-?
+; 
+
+< PSI3 ter message content > ::=  
+  < PAGE_MODE  >
+  < PSI3_CHANGE_MARK : bit (2) >
+  < PSI3_TER_INDEX : bit (4) >
+  < PSI3_TER_COUNT : bit (4) >
+  { { 0 | 1 < Real Time Difference Description struct > }
+    { 0 | 1 < GPRS REP PRIORITY Description struct > }
+    < padding bits > } //   -- truncation at end of message allowed, bits '0' assumed
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+< Real Time Difference Description struct > ::=
+  { 0 | 1 { 0 | 1 < Cell_Index_Start_RTD : bit (7) > }    --default value=0
+      < RTD6 Struct >
+      { 1 | 0 < RTD6 Struct > } **1 }   -- '0' : increment by 1 the index of the GSM Neighbour Cell list
+
+  { 0 | 1 { 0 | 1 < Cell_Index_Start_RTD : bit (7) > }    --default value=0
+      < RTD12 Struct >
+      { 1 | 0 < RTD12 Struct > } **1 };   -- '0' : increment by 1 the index of the GSM Neighbour Cell list
+
+< RTD6 Struct > ::=
+  { 0 | 1 < RTD : bit (6) > } ;                 --'0' means no RTD for this cell
+
+< RTD12 Struct > ::=
+  { 0 | 1 < RTD : bit (12) > } ;                  -- '0' means no RTD for this cell
+
+< PSI3 quater message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 111101 >
+< PSI3 quater message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI3 quater message content > ::=  
+  < PAGE_MODE >
+  < PSI3_CHANGE_MARK : bit (2) >
+  < PSI3_QUATER_INDEX : bit (4) >
+  < PSI3_QUATER_COUNT : bit (4) >
+  { { 0 | 1 < GPRS REP PRIORITY Description struct > }
+    { 0 | 1 < 3G Neighbour Cell Description struct PSI3 quater > }
+    { 0 | 1 < 3G MEASUREMENT Parameters Description :
+                      < 3G MEASUREMENT PARAMETERS Description struct >> }
+ 
+ 
+    { 0 | 1 < 3G Initial Dedicated Mode Reporting Description :
+                      < 3G Initial Dedicated Mode Reporting Description struct >> }
+   < padding bits > } //   -- truncation at end of message allowed, bits '0' assumed
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+-- the names are changed to ... PSI quater due to differences in <Repeated UTRAN TDD Neighbour Cells struct>
+< 3G Neighbour Cell Description struct PSI3 quater > ::= 
+  { 0 | 1 < Index_Start_3G : bit (7) > }
+  { 0 | 1 < Absolute_Index_Start_EMR : bit (7) > }
+  { 0 | 1 < UTRAN FDD Description struct PSI3 quater > }
+  { 0 | 1 < UTRAN TDD Description struct > } ;
+
+< UTRAN FDD Description struct PSI3 quater > ::=
+  { 0 | 1 < Bandwidth_FDD : bit (3) > }
+  { 0 | 1 < Repeated UTRAN FDD Neighbour Cells struct PSI3 quater >
+  } ** 0 ;
+
+< Repeated UTRAN FDD Neighbour Cells struct PSI3 quater > ::=
+  0 < FDD-ARFCN : bit (14) >    -- The value ‘1’ was used in an earlier
+                                -- version of the protocol and shall not be used.
+  < FDD_Indic0 : bit >
+  < NR_OF_FDD_CELLS : bit (5) >
+  < FDD _CELL_INFORMATION Field : bit(Table_FDD_CELL_INFORMATION(NR_OF_FDD_CELLS)) > ; -- p(x) defined in table 11.2.9b.2.a/3GPP TS 04.60.
+
+
+< Repeated UTRAN TDD Neighbour Cells struct PSI3 quater > ::=
+  0 < TDD-ARFCN : bit (14) >    -- The value ‘1’ was used in an earlier
+                                -- version of the protocol and shall not be used.
+  < TDD_Indic0 : bit >
+  < NR_OF_TDD_CELLS : bit (5) >
+  < TDD_CELL_INFORMATION Field : bit(Table_TDD_CELL_INFORMATION(NR_OF_TDD_CELLS)) > ; -- q(x) defined in table 11.2.9b.2.b/3GPP TS 04.60.
+
+< 3G MEASUREMENT PARAMETERS Description struct > ::=
+  < Qsearch_P : bit (4) > 
+  < 3G_SEARCH_PRIO : bit >
+  { 0 | 1 < FDD_GPRS_Qoffset : bit (4) >          -- FDD information
+      < FDD_Qmin : bit (3) > }
+  { 0 | 1 < TDD_GPRS_Qoffset : bit (4) > } ;      -- TDD information
+
+< 3G Initial Dedicated Mode Reporting Description struct > ::=
+  < 3G_BA_IND : bit >
+  < Qsearch_I : bit (4) > 
+  < Qsearch_C_Initial : bit (1) >
+  { 0 | 1 < FDD_Qoffset : bit (4) >                 -- FDD information
+      < FDD_REP_QUANT : bit (1) >
+      < FDD_MULTIRAT_REPORTING : bit (2) > }
+  { 0 | 1 < TDD_Qoffset : bit (4) >                 -- TDD information
+      < TDD_MULTIRAT_REPORTING : bit (2) > } ;
+
+< PSI4 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110101 >
+< PSI4 message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI4 message content > ::= 
+  < PAGE_MODE >
+  < PSI4_CHANGE_MARK : bit (2) >
+  < PSI4_INDEX : bit (3) >
+  < PSI4_COUNT : bit (3) >
+  < INT_MEAS_CHANNEL_LIST: < Channel List struct > >
+  < padding bits >
+   ! < Distribution part error : bit (*)  > ;
+
+< Channel List struct > ::=
+  < Channel group struct >
+  { 0 | 1 < Channel group struct > } ** 0 ;
+
+< Channel Group struct > ::=
+  { 0 < ARFCN : bit (10) >
+  | 1 < MA_NUMBER : bit (4) >
+    < MAIO : bit (6) > }
+  < TIMESLOT_ALLOCATION : bit (8) > ;
+
+< PSI5 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110110 >
+< PSI5 message content >  M V b:178-?   
+  ; 
+
+< PSI5 message content > ::=  
+  < PAGE_MODE >
+  < PSI5_CHANGE_MARK : bit (2) >
+  < PSI5_INDEX : bit (3) >
+  < PSI5_COUNT : bit (3) >
+  { 0 | 1 < NC Measurement Parameters struct PSI5 > }
+  { 0 | 1 < EXT Measurement Parameters struct > }
+  { 
+       null 
+     | < Receiver compatible with earlier release : 0 >
+     | < Additions in R99 : 1 > 
+      { 0 | 1 < ENH Reporting Parameters struct > }
+        < padding bits > }
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+< NC Measurement Parameters struct PSI5 > ::=
+  < NETWORK_CONTROL_ORDER : 
+                              <NC0:     00> | 
+                              <NC1:     01> | 
+                              <NC2:     10> | 
+                              <Reserved:11>
+   >
+  { 0 | 1 < NC_ NON_DRX_PERIOD : bit (3) >
+          < NC_REPORTING_PERIOD_I : bit (3) >
+          < NC_REPORTING_PERIOD_T : bit (3) > } ;
+
+< ENH Reporting parameters struct > ::=
+  < Report_Type : bit >
+  < REPORTING_RATE : bit >
+  < INVALID_BSIC_REPORTING : bit >
+  { 0 | 1 < NCC_PERMITTED : bit (8) > } 
+  { 0 | 1 < GPRS MEASUREMENT Parameters Description struct > }
+  { 0 | 1 < GPRS 3G MEASUREMENT Parameters Description struct> } ;
+
+< GPRS 3G MEASUREMENT PARAMETERS Description struct PSI5 > ::=
+  { 0 | 1 < FDD_REP_QUANT : bit >                       -- FDD Parameters
+      < FDD_MULTIRAT_REPORTING : bit (2) > } 
+  { 0 | 1 < FDD_REPORTING_OFFSET : bit (3) > 
+      < FDD_REPORTING_THRESHOLD : bit (3) > }
+
+  { 0 | 1 < TDD_MULTIRAT_REPORTING : bit (2) > }              -- TDD Parameters
+  { 0 | 1 < TDD_REPORTING_OFFSET : bit (3) > 
+      < TDD_REPORTING_THRESHOLD : bit (3) > } ;
+  
+< PSI6 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110000 >
+< PSI6 message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI6 message content > ::=  
+  < PAGE_MODE >
+  < PSI6_CHANGE_MARK : bit (2) >
+  < PSI6_INDEX : bit (3) >
+  < PSI6_COUNT : bit (3) >
+  { < Non-GSM Message struct > **
+--                       The Non GSM Message struct is repeated until:
+    { <spare bit>*3   {00000} } --  A) val(NR_OF_CONTAINER_OCTETS) = 0, or
+    < padding bits > }          --  B) the PSI message is fully used
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+< Non-GSM Message struct > ::= 
+  < Non-GSM Protocol Discriminator : bit(3) >
+  < NR_OF_CONTAINER_OCTETS : bitrange(00001 to 11111) >
+  < NR_OF_CONTAINER_OCTETS : bit(5) >
+  { < CONTAINER : bit(8) > } * (val(NR_OF_CONTAINER_OCTETS)) ;
+  
+< PSI8 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 111001 >
+< PSI8 message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI8 message content > ::=  
+  < PAGE_MODE >
+  < PSI8_CHANGE_MARK : bit (2) >
+  < PSI8_INDEX : bit (3) >
+  < PSI8_COUNT : bit (3) >
+  { 0 | 1 < CBCH Channel Description struct > }
+  < padding bits >
+   ! < Distribution part error : bit (*)  > ;
+
+< CBCH Channel Description struct > ::=
+  < Channel type and TDMA offset : bit (5) >
+  < TN : bit (3) >
+  < Frequency Parameters IE >  ;
+
+< PSI13 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 110111 >
+< PSI13 message content >  M V b:178-?
+; 
+
+
+< PSI13 message content > ::=  
+  < PAGE_MODE >
+  < BCCH_CHANGE_MARK : bit (3) >
+  < SI_CHANGE_FIELD : 
+                < Update of unspecified SI message or SI messages:    0000 > |
+                < Update of SI1 message:                              0001 > |
+                < Update of SI2, SI2 bis or SI2 ter message:          0010 > |
+                < Update of SI3, SI4, SI7 or SI8 message:             0011 > |
+                < Update of SI9 message:                              0100 > |
+                < Update of unknown SI message type:                  0101 > |
+                < Update of unknown SI message type:                  0110 > |
+                < Update of unknown SI message type:                  0111 > |
+                < Update of unknown SI message type:               1 bit(3)> 
+  >
+  { 0 | 1 < SI13_CHANGE_MARK : bit (2) >
+      < GPRS Mobile Allocation IE >  }
+  { 0               -- PBCCH not present in cell :
+    < RAC : bit (8) >
+    < SPGC_CCCH_SUP : bit >
+    < PRIORITY_ACCESS_THR : 
+                < packet access is not allowed in the cell:                       000 > |
+                < spare, shall be interpreted as '000' packet access not allowed: 001 > |
+                < spare, shall be interpreted as '000' packet access not allowed: 010 > |
+                < packet access is allowed for priority level 1:                  011 > |
+                < packet access is allowed for priority level 1 to 2:             100 > |
+                < packet access is allowed for priority level 1 to 3:             101 > |
+                < packet access is allowed for priority level 1 to 4:             110 > |
+                < spare, shall be interpreted as '110' packet access allowed:     111 > 
+   >
+    < NETWORK_CONTROL_ORDER : 
+                              <NC0:     00> | 
+                              <NC1:     01> | 
+                              <NC2:     10> | 
+                              <Reserved:11>
+      >
+    < GPRS Cell Options IE > 
+    < GPRS Power Control Parameters struct > 
+  | 1               -- PBCCH present in cell :
+    < PSI1_REPEAT_PERIOD : bit (4) >
+    < PBCCH Description struct > }
+		  { 
+       null 
+     | < Receiver compatible with earlier release : 0 > 
+     | < Additions in R99 : 1 > 
+    < SGSNR : bit >
+    < padding bits > }
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > 
+; 
+
+< GPRS Power Control Parameters struct > ::=
+  < ALPHA >
+  < T_AVG_W : bit (5) >
+  < T_AVG_T : bit (5) >
+  < PC_MEAS_CHAN : bit >
+  < N_AVG_I : bit (4) > ;
+
+< PBCCH Description struct > ::=
+  < Pb : bit (4) >
+  < TSC : bit (3) >
+  < TN : bit (3) >
+  { 0 -- default to BCCH carrier
+  | 10  < ARFCN : bit (10) >
+  | 11  < MAIO : bit (6) > } ;
+
+< PSI14 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 111010 >
+< PSI14 message content >  M V b:178-?
+
+; 
+
+
+< PSI14 message content > ::=  
+  < PAGE_MODE >
+  { 0 < CCCH Access Information struct >
+   | 1  < PBCCH Description struct 2 > }
+  < padding bits >
+   ! < Distribution part error : bit (*) > 
+; 
+
+< CCCH Access Information struct > ::= 
+  < BCCH_CHANGE_MARK : bit (3) >
+  { 0 | 1 < SI13_CHANGE_MARK : bit (2) >
+      < SI13 Mobile Allocation : < GPRS Mobile Allocation IE >> }
+  < SPGC_CCCH_SUP : bit >
+  < PRIORITY_ACCESS_THR : bit (3) >
+  < NETWORK_CONTROL_ORDER : bit (2) >
+  < GPRS Cell Options IE >
+  < GPRS Power Control Parameters struct >
+  < SGSNR : bit > 
+  ; 
+
+< PBCCH Description struct 2 > ::=
+  < PSI1_REPEAT_PERIOD : bit (4) >
+  < Pb : bit (4) >
+  < TN : bit (3) >
+  < PBCCH Frequency Description : < Frequency Parameters IE >> ;
+
+< PSI15 message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 111110 >
+< PSI15 message content >  M V b:178-?
+   
+  ; 
+
+
+< PSI15 message content > ::=  
+  < PAGE_MODE >
+  { 0 | 1 < UTRAN Frequency List Description struct > }
+  < padding bits >
+   ! < Distribution part error : bit (*) > ;
+
+< UTRAN Frequency List Description struct > ::= 
+  { 0 | 1 < FDD_ARFCN  : bit (14) > } ** 0      -- FDD frequencies
+  { 0 | 1 < TDD_ARFCN  : bit (14) > } ** 0 ;      -- TDD frequencies
+
+
+< Packet TBF Release message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001000 >
+< Packet TBF Release message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet TBF Release message content > ::=  
+  < PAGE_MODE >
+  { 0 < GLOBAL_TFI : Global TFI IE >
+    { < UPLINK_RELEASE : bit (1) >
+      < DOWNLINK_RELEASE : bit (1) >
+    < TBF_RELEASE_CAUSE : { 0000 | 0010 } >
+
+      < padding bits >
+       ! < Non-distribution part error : bit (*)  > }
+     ! < Address information part error : bit (*)  > }
+   ! < Distribution part error : bit (*)  > ;
+
+-- Table 11.2.28.1: PACKET UPLINK ACK/NACK information elements
+< Packet Uplink Ack/Nack message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001001 >
+< Packet Uplink Ack/Nack message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Uplink Ack/Nack message content > ::=  
+  < PAGE_MODE >
+  { 00 
+	  < UPLINK_TFI : bit (5) >
+    { 0   -- Message escape
+      { < CHANNEL_CODING_COMMAND : 
+                                  < CS-1: 00 > |
+                                  < CS-2: 01 > |
+                                  < CS-3: 10 > |
+                                  < CS-4: 11 >
+        >
+        < Ack/Nack Description IE > 
+        { 0 | 1 < CONTENTION_RESOLUTION_TLLI : bit (32) > }
+        { 0 | 1 < Packet Timing Advance IE >  }
+        { 0 | 1 < Power Control Parameters IE >  }
+        { 0 | 1 < Extension Bits IE > }        -- clause 12.26
+        { 0 | 1 < Fixed Allocation Parameters : < Fixed Allocation struct PUAN > > }
+        { 
+           null 
+         | < Receiver compatible with earlier release : 0 > 
+         | < Additions in R99 : 1 > 
+            { 0 | 1 <Packet Extended Timing Advance : bit (2)>}
+            <TBF_EST : bit (1)>
+            < padding bits > }
+         !  < Non-distribution part error : bit (*)  > 
+				}
+    | 1                     -- Message escape bit used to define EGPRS message contents  
+        { 00 { < EGPRS Modulation and Coding IE >
+               < RESEGMENT : bit (1) >
+               < PRE_EMPTIVE_TRANSMISSION : bit (1) >
+               < PRR RETRANSMISSION REQUEST : bit (1) >
+               < ARAC RETRANSMISSION REQUEST : bit (1) >
+               { 0 | 1 < CONTENTION_RESOLUTION_TLLI : bit (32) > }
+               <TBF_EST : bit (1)>
+				 { 0 | 1 < Packet Timing Advance IE >  }
+				 { 0 | 1 < Packet Extended Timing Advance : bit (2)> }
+				 { 0 | 1 < Power Control Parameters IE >  }
+				 { 0 | 1 < Extension Bits IE > }        -- clause 12.26
+				 < EGPRS Ack/Nack Description IE > 
+				 { 0 | 1 < Fixed Allocation Parameters : < Fixed Allocation struct PUAN > > } 
+              < padding bits >
+              ! < Non-distribution part error : bit (*)  > 
+			       }
+             ! < Message escape : {01| 10 | 11} bit (*)  >
+	       } -- Extended for future changes
+     }
+		 ! < Address information part error : bit (*)  > 
+	 }
+	 < spare bits > -- qcswilk 030415
+   ! < Distribution part error : bit (*)  > 
+;
+
+< Fixed Allocation struct PUAN > ::=
+  < FINAL_ALLOCATION : bit (1) >
+  { 0   -- Repeat Allocation
+    < TS_OVERRIDE : bit (8) >
+  | 1   -- Allocation with Allocation bitmap
+    < TBF Starting Time : < Starting Frame Number Description IE > >
+    { 0 | 1 <TIMESLOT_ALLOCATION : bit (8) > }
+    { 0 { 0     -- with length of Allocation Bitmap
+        < BLOCKS_OR_BLOCK_PERIODS : bit (1) >
+        < ALLOCATION_BITMAP_LENGTH : bit (7) >
+        < ALLOCATION_BITMAP : bit (val(ALLOCATION_BITMAP_LENGTH)) >
+      | 1     -- without length of Allocation Bitmap (fills remainder of the message)
+        < ALLOCATION_BITMAP : bit ** > } 
+       ! < Message escape : 1 bit (*)  > }
+  };
+
+< Packet Uplink Assignment message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001010 >
+< Packet Uplink Assignment message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Uplink Assignment message content > ::=  
+  < PAGE_MODE >
+  { 0 | 1 <PERSISTENCE_LEVEL : bit (4) > * 4 }
+  { {  0  < Global TFI IE > 
+     | 10 < TLLI : bit (32) >
+     | 110  < TQI : bit (16) >
+     | 111  < Packet Request Reference IE > }
+    { 0   -- Message escape
+      { < CHANNEL_CODING_COMMAND : 
+                                  < CS-1: 00 > |
+                                  < CS-2: 01 > |
+                                  < CS-3: 10 > |
+                                  < CS-4: 11 >
+         >
+        < TLLI_BLOCK_CHANNEL_CODING : bit (1) >
+        < Packet Timing Advance IE > 
+        { 0 | 1 < Frequency Parameters IE > }
+        {  01  < Dynamic Allocation struct PUA > 
+         | 10 <  Single Block Allocation struct > 
+         | 00 < extension >
+         | 11 < Fixed Allocation struct PUA >  }
+           { 
+               null 
+             | < Receiver compatible with earlier release : 0 >
+             | < Additions in R99 : 1 > 
+                { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+                < padding bits > 
+           }
+         ! < Non-distribution part error : bit (*)  > } 
+    | 1  -- Message escape bit used to define EGPRS message contents  -MESSAGE
+      { 00 {  { 0 | 1 <CONTENTION_RESOLUTION_TLLI : bit(32) > }
+        { 0 | 1 < COMPACT reduced MA IE > }
+        < EGPRS Modulation and Coding IE >
+          < RESEGMENT : bit (1) >
+          < EGPRS Window Size IE >
+          { 0 | 1 < Access Technologies Request : Access Technologies Request struct >}
+          < ARAC RETRANSMISSION REQUEST : bit (1) >
+          < TLLI_BLOCK_CHANNEL_CODING : bit (1) >
+            { 0 | 1 < BEP_PERIOD2 : bit(4) > }
+        < Packet Timing Advance IE > 
+            { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+           { 0 | 1  <  Frequency Parameters IE >  }
+           { 01 < Dynamic Allocation struct PUA > 
+           | 10 < Multi Block Allocation struct > 
+         | 00 < extension >
+         | 11 < Fixed Allocation struct PUA > }
+         < padding bits > 
+         ! < Non-distribution part error : bit (*)  > } 
+     ! < Message escape : { 01| 10 | 11 } bit (*)  > } } -- Extended for future changes
+     ! < Address information part error : bit (*)  > } 
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+<extension> ::= -- Future extension can be done by modifying this structure
+  null ;
+
+<Dynamic Allocation struct PUA > ::= 
+  < EXTENDED_DYNAMIC_ALLOCATION : bit (1) >
+  { 0 | 1 < P0 : bit (4) > 
+  < PR_MODE : bit (1) > }
+  < USF_GRANULARITY : bit (1) >
+  { 0 | 1 < UPLINK_TFI_ASSIGNMENT : bit (5) > }
+  { 0 | 1 < RLC_DATA_BLOCKS_GRANTED : bit (8) > }
+  { 0 | 1 < TBF Starting Time : < Starting Frame Number Description IE > > }
+  { 0           -- Timeslot Allocation
+    { 0 | 1 < USF_TN0 : bit (3) > }
+    { 0 | 1 < USF_TN1 : bit (3) > }
+    { 0 | 1 < USF_TN2 : bit (3) > }
+    { 0 | 1 < USF_TN3 : bit (3) > }
+    { 0 | 1 < USF_TN4 : bit (3) > }
+    { 0 | 1 < USF_TN5 : bit (3) > }
+    { 0 | 1 < USF_TN6 : bit (3) > }
+    { 0 | 1 < USF_TN7 : bit (3) > }
+  | 1           -- Timeslot Allocation with Power Control Parameters
+    < ALPHA >
+    { 0 | 1 < USF_TN0 : bit (3) >
+        < GAMMA_TN0 : bit (5) > }
+    { 0 | 1 < USF_TN1 : bit (3) >
+        < GAMMA_TN1 : bit (5) > }
+    { 0 | 1 < USF_TN2 : bit (3) >
+        < GAMMA_TN2 : bit (5) > }
+    { 0 | 1 < USF_TN3 : bit (3) >
+        < GAMMA_TN3 : bit (5) > }
+    { 0 | 1 < USF_TN4 : bit (3) >
+        < GAMMA_TN4 : bit (5) > }
+    { 0 | 1 < USF_TN5 : bit (3) >
+        < GAMMA_TN5 : bit (5) > }
+    { 0 | 1 < USF_TN6 : bit (3) >
+        < GAMMA_TN6 : bit (5) > }
+    { 0 | 1 < USF_TN7 : bit (3) >
+        < GAMMA_TN7 : bit (5) > } } ;
+
+<Single Block Allocation struct > ::=
+  < TIMESLOT_NUMBER : bit (3) > 
+  { 0 | 1 < ALPHA >
+  < GAMMA_TN : bit (5) >}
+  { 0 | 1 < P0 : bit (4) >
+      < BTS_PWR_CTRL_MODE : bit (1) > 
+      < PR_MODE  : bit (1) > }
+  < TBF Starting Time : < Starting Frame Number Description IE > > ;
+
+<Fixed Allocation struct PUA > ::= 
+  { 0 | 1 < UPLINK_TFI_ASSIGNMENT : bit (5) > }
+  < FINAL_ALLOCATION : bit (1) >
+  < DOWNLINK_CONTROL_TIMESLOT: bit (3) >
+  { 0 | 1 < P0 : bit (4) >
+      < BTS_PWR_CTRL_MODE : bit (1) > 
+      < PR_MODE : bit (1) > }
+  { 0 < TIMESLOT_ALLOCATION : bit (8) >
+   | 1  < Power Control Parameters IE >  }
+  < HALF_DUPLEX_MODE : bit (1) >
+  < TBF Starting Time : < Starting Frame Number Description IE > > 
+  { 0 { 0     -- with length of Allocation Bitmap
+      < BLOCKS_OR_BLOCK_PERIODS : bit (1) >
+      < ALLOCATION_BITMAP_LENGTH : bit (7) > 
+      < ALLOCATION_BITMAP : bit (val(ALLOCATION_BITMAP_LENGTH)) >
+     | 1      -- without length of Allocation Bitmap (fills remainder of the message)
+      < ALLOCATION_BITMAP : bit ** > } 
+     ! < Message escape : 1 bit (*)  > } ;
+
+< Multi Block Allocation struct > ::=
+  < TIMESLOT_NUMBER : bit (3) >
+  { 0 | 1 < ALPHA >
+  < GAMMA_TN : bit (5) >}
+  { 0 | 1 < P0 : bit (4) >
+      < BTS_PWR_CTRL_MODE : bit (1) >
+      < PR_MODE : bit (1) > }
+  < TBF Starting Time : < Starting Frame Number Description IE > >
+  < NUMBER OF RADIO BLOCKS ALLOCATED: bit (2)>;
+
+<Access Technologies Request struct> ::= -- recursive structure allows any combination of Access technologies
+  <Access Technology Type : bit (4)>
+  { 0 | 1 <Access Technology Type : bit (4)> }**0;
+
+< Packet pause message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001001 >
+< Packet pause message content > M V b:178
+   
+  ; 
+
+
+< Packet pause message content > ::=  
+  < TLLI : bit (32) >
+  < RAI : bit (48) >
+  < padding bits > ;
+
+
+< Packet Timeslot Reconfigure message MT > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 000111 >
+< Packet Timeslot Reconfigure message content >  M V b:178-?
+   
+  ; 
+
+
+< Packet Timeslot Reconfigure message content > ::=  
+  < PAGE_MODE >
+  { 0 < Global TFI IE > 
+    { 0   -- Message escape
+      { < CHANNEL_CODING_COMMAND : 
+                                  < CS-1: 00 > |
+                                  < CS-2: 01 > |
+                                  < CS-3: 10 > |
+                                  < CS-4: 11 >
+         >
+        < Global Packet Timing Advance IE > 
+        < DOWNLINK_RLC_MODE : bit (1) >
+        < CONTROL_ACK : bit (1) >
+        { 0 | 1 < DOWNLINK_TFI_ASSIGNMENT : bit (5) > }
+        { 0 | 1 < UPLINK_TFI_ASSIGNMENT : bit (5) > }
+        < DOWNLINK_TIMESLOT_ALLOCATION : bit (8) >
+        { 0 | 1 < Frequency Parameters IE >  }
+        { 0 < Dynamic Allocation struct PTR > 
+        | 1 < Fixed Allocation struct PTR > }
+        {    
+           null 
+         | < Receiver compatible with earlier release : 0 > 
+         | < Additions in R99 : 1 > 
+           { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+           < padding bits > }
+         ! < Non-distribution part error : bit (*)  > }
+    | 1       -- Message escape bit used to define EGPRS message contents  -MESSAGE
+      { 00 {  { 0 | 1 < COMPACT reduced MA IE > }
+          < EGPRS Channel Coding Command : < EGPRS Modulation and Coding IE >>
+          < RESEGMENT : bit (1) >
+          { 0 | 1 < DOWNLINK EGPRS Window Size : < EGPRS Window Size IE >>}
+          { 0 | 1 < UPLINK EGPRS Window Size : < EGPRS Window Size IE >>}
+          < LINK_QUALITY_MEASUREMENT_MODE : bit (2) >
+        < Global Packet Timing Advance IE >
+          { 0 | 1 <Packet Extended Timing Advance : bit (2)> }
+        < DOWNLINK_RLC_MODE : bit (1) >
+        < CONTROL_ACK : bit (1) >
+        { 0 | 1 < DOWNLINK_TFI_ASSIGNMENT : bit (5) > }
+        { 0 | 1 < UPLINK_TFI_ASSIGNMENT : bit (5) > }
+        < DOWNLINK_TIMESLOT_ALLOCATION : bit (8) >
+        { 0 | 1 < Frequency Parameters IE >  }
+           { 0  < Dynamic Allocation struct PTR >
+           | 1  < Fixed Allocation struct PTR > }
+        < padding bits >
+         ! < Non-distribution part error : bit (*)  > }
+       ! < Message escape : { 01| 10 | 11} bit (*)  > }} -- Extended for future changes
+     ! < Address information part error : bit (*)  > }
+   < spare bits > -- qcswilk 030415 
+   ! < Distribution part error : bit (*)  > ;
+
+<Dynamic Allocation struct PTR > ::=
+  < EXTENDED_DYNAMIC_ALLOCATION : bit (1) >
+  { 0 | 1 < P0 : bit (4) > 
+      <PR_MODE : bit (1)>}
+  < USF_GRANULARITY : bit (1) >
+  { 0 | 1 < RLC_DATA_BLOCKS_GRANTED : bit (8) > }
+  { 0 | 1 < TBF Starting Time : < Starting Frame Number Description IE > > }
+  { 0           -- Timeslot Allocation
+    { 0 | 1 < USF_TN0 : bit (3) > }
+    { 0 | 1 < USF_TN1 : bit (3) > }
+    { 0 | 1 < USF_TN2 : bit (3) > }
+    { 0 | 1 < USF_TN3 : bit (3) > }
+    { 0 | 1 < USF_TN4 : bit (3) > }
+    { 0 | 1 < USF_TN5 : bit (3) > }
+    { 0 | 1 < USF_TN6 : bit (3) > }
+    { 0 | 1 < USF_TN7 : bit (3) > }
+   | 1            -- Timeslot Allocation with Power Control Parameters
+    < ALPHA >
+    { 0 | 1 < USF_TN0 : bit (3) >
+        < GAMMA_TN0 : bit (5) > }
+    { 0 | 1 < USF_TN1 : bit (3) >
+        < GAMMA_TN1 : bit (5) > }
+    { 0 | 1 < USF_TN2 : bit (3) >
+         < GAMMA_TN2 : bit (5) > }
+    { 0 | 1 < USF_TN3 : bit (3) >
+        < GAMMA_TN3 : bit (5) > }
+    { 0 | 1 < USF_TN4 : bit (3) >
+        < GAMMA_TN4 : bit (5) > }
+    { 0 | 1 < USF_TN5 : bit (3) >
+        < GAMMA_TN5 : bit (5) > }
+    { 0 | 1 < USF_TN6 : bit (3) >
+        < GAMMA_TN6 : bit (5) > }
+    { 0 | 1 < USF_TN7 : bit (3) >
+        < GAMMA_TN7 : bit (5) > } } ;
+
+<Fixed Allocation struct PTR > ::=
+  { 0 < UPLINK_TIMESLOT_ALLOCATION : bit (8) >
+   | 1  < Power Control Parameters IE >  }
+  < FINAL_ALLOCATION : bit (1) >
+  < DOWNLINK_CONTROL_TIMESLOT: bit (3) >
+  { 0 | 1 < P0 : bit (4) >
+      < BTS_PWR_CTRL_MODE : bit (1) > 
+      < PR_MODE : bit (1) > }
+  { 0 | 1 < Measurement Mapping struct >  }
+  < TBF Starting Time : < Starting Frame Number Description IE > >
+  { 0 { 0     -- with length of Allocation Bitmap
+      < BLOCKS_OR_BLOCK_PERIODS : bit (1) >
+      < ALLOCATION_BITMAP_LENGTH : bit (7) >
+      < ALLOCATION_BITMAP : bit (val(ALLOCATION_BITMAP_LENGTH)) >
+     | 1      -- without length of Allocation Bitmap (fills remainder of the message)
+      < ALLOCATION_BITMAP : bit ** > }
+     ! < Message escape : 1 bit (*)  > };
+
+-- 11.2.32	Additional MS Radio Access Capabilities --
+< Additional MS Radio Access Capabilities message MO > ::=  -MESSAGE
+< MESSAGE_TYPE : bit(6) == 001011 >
+< Additional MS Radio Access Capabilities message content > M V b:178
+   
+  ; 
+
+
+< Additional MS Radio Access Capabilities message content > ::=  
+  { 0 < Global TFI IE > 
+  | 1 < TLLI : bit (32) > }
+  < MS Radio Access Capability 2 IE >
+  < padding bits > ;
+
+< Ack/Nack Description IE > ::=
+  < FINAL_ACK_INDICATION : bit (1) >
+  < STARTING_SEQUENCE_NUMBER : bit (7) >
+  < RECEIVED_BLOCK_BITMAP : bit (64) > ;
+
+
+< EGPRS Ack/Nack Description IE > ::=
+      0   < EGPRS Ack/Nack Description struct > -- This IE fills rest of message
+      | 
+      1 < EGPRS Ack/Nack Description length-limited > M LV b:
+--  ORG :     < Length L : bit (8) >            -- Value part of this IE is of length L
+--  ORG :     < bit (val(Length L)) > & < EGPRS Ack/Nack Description struct > ;
+      ;
+
+< EGPRS Ack/Nack Description length-limited > ::=
+    < Length of EGPRS Ack/Nack Description length-limited : bit (8) > -- moved from EGPRS Ack/Nack Description IE
+--    < EGPRS Ack/Nack Description struct >
+    < FINAL_ACK_INDICATION : bit (1) >
+    < BEGINNING_OF_WINDOW : bit (1) >
+    < END_OF_WINDOW : bit (1) >
+    < STARTING_SEQUENCE_NUMBER : bit (11) >
+    { 0 | 1 < COMPRESSED_BITMAP_LENGTH: bit (7) >
+      < COMPRESSED_BITMAP_STARTING_COLOR_CODE: bit (1) >
+      < COMPRESSED_RECEIVED_BLOCK_BITMAP : 
+        bit (val(COMPRESSED_BITMAP_LENGTH)) > }
+    < UNCOMPRESSED_RECEIVED_BLOCK_BITMAP: bit** > 
+;
+
+< EGPRS Ack/Nack Description struct > ::=
+--    < Length of EGPRS Ack/Nack Description struct : bit (8) > 
+    < FINAL_ACK_INDICATION : bit (1) >
+    < BEGINNING_OF_WINDOW : bit (1) >
+    < END_OF_WINDOW : bit (1) >
+    < STARTING_SEQUENCE_NUMBER : bit (11) >
+    { 0 | 1 < COMPRESSED_BITMAP_LENGTH: bit (7) >
+      < COMPRESSED_BITMAP_STARTING_COLOR_CODE: bit (1) >
+      < COMPRESSED_RECEIVED_BLOCK_BITMAP : 
+        bit (val(COMPRESSED_BITMAP_LENGTH)) > }
+    < UNCOMPRESSED_RECEIVED_BLOCK_BITMAP: bit** > 
+;
+
+
+< EGPRS Channel Quality Report IE > ::=
+  < EGPRS BEP Link Quality Measurements IE>
+  < C_VALUE : bit (6) >
+  < EGPRS Timeslot Link Quality Measurements IE > ;
+
+
+
+
+<EGPRS BEP Link Quality Measurements IE> ::=
+  { 0 | 1 < GMSK_MEAN_BEP : bit (5) >
+      < GMSK_CV_BEP : bit (3) >}
+  { 0 | 1 < 8PSK_MEAN_BEP : bit (5) >
+      < 8PSK_CV_BEP : bit (3) > };
+<EGPRS Timeslot Link Quality Measurements IE> ::=
+
+{ 0 | 1< BEP_MEASUREMENTS : BEP Measurement Report Struct >}
+{ 0 | 1 < INTERFERENCE_MEASUREMENTS : Interference Measurement Report Struct >};
+
+< BEP Measurement Report Struct > ::=
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN0 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN0 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN1 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN1 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN2 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN2 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN3 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN3 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN4 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN4 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN5 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN5 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN6 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN6 : bit (4) >}}
+  { 0 | 1 { 0 <GMSK_MEAN_BEP _TN7 : bit (4) >
+      | 1 < 8PSK_MEAN_BEP _TN7 : bit (4) >} };
+
+< Interference Measurement Report Struct > ::=
+{ 0 | 1 < I_LEVEL_TN0 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN1 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN2 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN3 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN4 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN5 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN6 : bit (4) > }
+{ 0 | 1 < I_LEVEL_TN7 : bit (4) > };
+
+< Channel Request Description IE > ::=
+  < PEAK_THROUGHPUT_CLASS : bit (4) >
+  < RADIO_PRIORITY : bit (2) >
+  < RLC_MODE : bit (1) >
+  < LLC_ PDU_TYPE : bit (1) >
+  < RLC_OCTET_COUNT : bit (16) > ;
+
+< Frequency Parameters IE > ::=
+  < TSC : bit (3) >
+  { 00 < ARFCN : bit (10) >
+  | 01 < Indirect encoding struct > 
+  | 10 < Direct encoding 1 struct > 
+  | 11 < Direct encoding 2 struct >  } ;
+
+< Indirect encoding struct > ::=
+  < MAIO : bit (6) >
+  < MA_NUMBER : bit (4) >
+  { 0 | 1 < CHANGE_MARK_1 : bit (2) >
+      { 0 | 1 < CHANGE_MARK_2 : bit (2) > } } ;
+
+< Direct encoding 1 struct > ::=
+  < MAIO : bit (6) >
+  < GPRS Mobile Allocation IE >  ;
+
+< Direct encoding 2 struct > ::=
+  < MAIO : bit (6) >
+  < HSN : bit (6) >
+  < Length of MA Frequency List contents : bit (4) >
+  < MA Frequency List contents : octet (val(Length of MA Frequency List contents) + 3) > ;
+
+< Global Power Control Parameters IE > ::=
+  < ALPHA >
+  < T_AVG_W : bit (5) >
+  < T_AVG_T : bit (5) >
+  < Pb : bit (4) >
+  < PC_MEAS_CHAN : bit (1) >
+  < INT_MEAS_CHANNEL_LIST_AVAIL : bit (1) >
+  < N_AVG_I : bit (4) > ;
+
+< Global TFI IE > ::=
+  { 0 < UPLINK_TFI : bit (5) >
+  | 1 < DOWNLINK_TFI : bit (5) > } ;
+
+< GPRS Mobile Allocation IE > ::=
+  < HSN : bit (6) >
+  { 0 | 1  < RFL number list struct >  }
+  { 0 < MA_LENGTH : bit (6) >
+    < MA_BITMAP : bit (val(MA_LENGTH) + 1) >
+  | 1 { 0 | 1 < ARFCN index list struct >  } } ;
+
+< RFL number list struct > ::=
+  < RFL_NUMBER : bit (4) >
+  { 0 | 1 < RFL_NUMBER : bit (4) > } ** 0;
+--  < RFL_NUMBER : bit (4) >
+--  { 0 | 1 < RFL number list struct > } ;
+
+< ARFCN index list struct > ::=
+  < ARFCN_INDEX : bit (6) >
+  { 0 | 1 < ARFCN_INDEX : bit (6) > } ** 0 ;
+--  < ARFCN_INDEX : bit (6) >
+--  { 0 | 1 < ARFCN index list struct > } ;
+
+< Packet Request Reference IE > ::=
+  < RANDOM_ACCESS_INFORMATION value : bit (11) >
+  < FRAME_NUMBER : bit (16) > ;
+
+< Packet Timing Advance IE > ::=
+  { 0 | 1 < TIMING_ADVANCE_VALUE : bit (6) > }
+  { 0 | 1 < TIMING_ADVANCE_INDEX : bit (4) >
+      < TIMING_ADVANCE_TIMESLOT_NUMBER : bit (3) > } ;
+
+< Global Packet Timing Advance IE > ::=
+      { 0 | 1 < TIMING_ADVANCE_VALUE : bit (6) > }
+      { 0 | 1 < UPLINK_TIMING_ADVANCE_INDEX : bit (4) >
+          < UPLINK_TIMING_ADVANCE_TIMESLOT_NUMBER : bit (3) > }
+      { 0 | 1 < DOWNLINK_TIMING_ADVANCE_INDEX : bit (4) >
+          < DOWNLINK_TIMING_ADVANCE_TIMESLOT_NUMBER : bit (3) > };
+
+< Power Control Parameters IE > ::=
+  < ALPHA >
+  { 0 | 1 < GAMMA_TN0 : bit (5) > }
+  { 0 | 1 < GAMMA_TN1 : bit (5) > }
+  { 0 | 1 < GAMMA_TN2 : bit (5) > }
+  { 0 | 1 < GAMMA_TN3 : bit (5) > }
+  { 0 | 1 < GAMMA_TN4 : bit (5) > }
+  { 0 | 1 < GAMMA_TN5 : bit (5) > }
+  { 0 | 1 < GAMMA_TN6 : bit (5) > }
+  { 0 | 1 < GAMMA_TN7 : bit (5) > } ;
+
+< PRACH Control Parameters IE > ::=
+  < ACC_CONTR_CLASS : bit (16) >
+  < MAX_RETRANS : bit (2) > * 4
+  < S : bit (4) >
+  < TX_INT :
+            < 2 slots used to spread transmission:  0000 >|
+            < 3 slots used to spread transmission:  0001 >|
+            < 4 slots used to spread transmission:  0010 >|
+            < 5 slots used to spread transmission:  0011 >|
+            < 6 slots used to spread transmission:  0100 >|
+            < 7 slots used to spread transmission:  0101 >|
+            < 8 slots used to spread transmission:  0110 >|
+            < 9 slots used to spread transmission:  0111 >|
+            < 10 slots used to spread transmission: 1000 >|
+            < 12 slots used to spread transmission: 1001 >|
+            < 14 slots used to spread transmission: 1010 >|
+            < 16 slots used to spread transmission: 1011 >|
+            < 20 slots used to spread transmission: 1100 >|
+            < 25 slots used to spread transmission: 1101 >|
+            < 32 slots used to spread transmission: 1110 >|
+            < 50 slots used to spread transmission: 1111>
+  >
+  { 0 | 1 < PERSISTENCE_LEVEL : bit (4) > * 4 } ;
+
+< Starting Frame Number Description IE > ::=
+  { 0 < Absolute Frame Number Encoding >
+  | 1 < Relative Frame Number Encoding > } ;
+
+< Cell Identification IE > ::=
+  < Location Area Identification IE : octet (5) >     -- 3GPP TS 04.08
+  < RAC : bit (8) >
+  < Cell Identity IE : octet (2) > ;            -- 3GPP TS 04.08
+
+< GPRS Cell Options IE > ::=
+  < NMO : 
+        < Network Mode of Operation I :   00 > |
+        < Network Mode of Operation II :  01 > |
+        < Network Mode of Operation III : 10 > |
+        < Reserved :                      11 > 
+   >
+  < T3168 : bit (3) >
+  < T3192 : 
+          < 500 msec :  000 > |
+          < 1000 msec : 001 > |
+          < 1500 msec : 010 > |
+          < 0 msec :    011 > |
+          < 80 msec :   100 > |
+          < 120 msec :  101 > |
+          < 160 msec :  110 > |
+          < 200 msec :  111 > 
+   >
+  < DRX_TIMER_MAX : bit (3) >
+  < ACCESS_BURST_TYPE : bit >
+  < CONTROL_ACK_TYPE : bit >
+  < BS_CV_MAX : bit (4) >
+  { 0 | 1 < PAN_DEC : bit (3) >
+      < PAN_INC : bit (3) >
+      < PAN_MAX : 
+            < max value for counter N3102 is 4  : 000 > |
+            < max value for counter N3102 is 8  : 001 > |
+            < max value for counter N3102 is 12 : 010 > |
+            < max value for counter N3102 is 16 : 011 > |
+            < max value for counter N3102 is 20 : 100 > |
+            < max value for counter N3102 is 24 : 101 > |
+            < max value for counter N3102 is 28 : 110 > |
+            < max value for counter N3102 is 32 : 111 > 
+     > }
+  -- Optional extension information:
+--  { 0 | 1 < Extension Length : bit (6)>
+--          < bit (val(Extension Length) + 1)
+--        & { <Extension Information > ! { bit ** = <no string> } } > } ;
+  { 0 | 1 < Extension Length : bit (6)>
+            < Extension bits : bit(val(Extension Length) + 1) > } 
+;
+       
+
+< Extension Information > ::=
+  { 0 | 1 -- EGPRS supported by the cell if the choice bit is set to '1'
+      <EGPRS_PACKET_ CHANNEL_REQUEST : bit>
+      < BEP_PERIOD : bit (4) > }
+  <PFC_FEATURE_MODE: bit>
+  <DTM_SUPPORT: bit>
+  <BSS_PAGING_COORDINATION: bit>
+  <spare bits >  ;
+
+< PCCCH Organization Parameters IE > ::=
+  < BS_PCC_REL : bit >
+  < BS_PBCCH_BLKS : bit (2) >
+  < BS_PAG_BLKS_RES : bit (4) >
+  < BS_PRACH_BLKS : bit (4) > ;
+
+< Extension Bits IE > ::=
+  < extension length : bit (6) >
+  < spare bit (val(extension length)+1) > ;
+
+< Non GPRS Cell Options IE > ::=
+  < ATT : bit >             -- Attach/Detach allowed
+  { 0 | 1 < T3212 : bit (8) > }     -- Time-out value for periodic update
+  < NECI : bit >              -- Half rate support
+  < PWRC : bit >              -- Power Control indicator
+  < DTX : bit (2) >           -- DTX indicator
+  < RADIO-LINK-TIMEOUT : bit (4) >    -- Supervisory timer for RR connection
+  < BS-AG-BLKS-RES : bit (3) >      -- number of blocks reserved for access grant
+  < CCCH-CONF : bit (3) >         -- physical channel configuration for CCCH
+  < BS-PA-MFRMS : bit (3) >       -- number of 51 multiframes between
+                      -- transmission of paging messages
+  < MAX-RETRANS : bit (2) >       -- maximum number of retransmissions
+  < TX-INTEGER : bit (4) >        -- number of slots to spread transmission
+  < EC : bit >              -- emergency call allowed
+  < MS-TXPWR-MAX-CCCH : bit (5) >     -- maximum Tx power level
+
+  -- Optional extension information:
+--  { 0 | 1 < Extension Length : bit (6) >
+--      < bit (val(Extension Length) + 1)
+--      & { <Non GPRS Cell Options Extension Information > ! { bit ** = <no string> } } > } ;
+  { 0 | 1 < Extension Length : bit (6)>
+      < Extension bits : bit(val(Extension Length) + 1) > } 
+;
+
+< Non GPRS Cell Options Extension Information > ::=
+        < ECSC: bit >               -- Early Classmark Sending Control
+  < 3G ECSR >                 -- 3G Early Classmark Sending Restriction
+  < spare bit > ** ;
+
+< Absolute Frame Number Encoding > ::= bit (16);
+
+< Relative Frame Number Encoding > ::= bit (13);
+
+< LSA Parameters IE > ::=
+  < NR_OF_FREQ_OR_CELLS : bit (5) >
+  { < LSA ID information struct > * (val(NR_OF_FREQ_OR_CELLS)) };
+
+< COMPACT reduced MA IE > ::=
+  <Length of Reduced MA bitmap : bit (7) >
+  <Reduced MA bitmap : bit( val(Length of Reduced MA bitmap) ) >
+  { 0 | 1 <MAIO_2 : bit(6) >};
+
+< MS Radio Access Capability 2 IE > ::=
+  < MS RA capability value part struct >  ;
+
+
+-- FROM 04.08: 00.10.20 QCSWILK
+
+< MS Radio Access capability IE > ::=
+--  <MS Radio Access capability IEI :  00100100 >
+--  <Length of MS RA capability: <octet>>   -- length in octets of MS RA capability value part and spare bits 
+  < MS RA capability value part struct >;
+  --<spare bits>**; -- may be used for future enhancements
+
+< MS RA capability value part struct >::=  --recursive structure allows any number of Access technologies
+  < MS RA capability value part content >
+	{ 0 | 1 < MS RA capability value part content > } ** 0
+;
+
+< MS RA capability value part content >::= 
+	   < Access Technology Type: bitrange(0000 to 1110) >
+    --< Access Technology Type : 
+    --    < GSM P : 0000 > | 
+    --    < GSM E  covers GSM P : 0001 > | 
+    --    < GSM R  covers GSM E and GSM P : 0010 > | 
+    --    < GSM 1800 : 0011 > | 
+    --    < GSM 1900 : 0100 > | 
+    --    < GSM 450 : 0101 > | 
+    --    < GSM 480 : 0110 > | 
+    --    < GSM 850 : 0111 > 
+--        < Indicates the presence of a list of Additional access technologies : 1111 >
+--     >
+	   < Access capabilities struct > M LV b:
+ |  < Additional access technologies: 1111 >	-- structure adding Access technologies with same capabilities
+	   < Additional access technologies content > M LV b:
+;
+
+< Additional access technologies content > ::=
+     < Length of Additional access technologies content : bit (7) > 		-- length in bits of list of Additional access technologies and spare bits
+	 { 0 | 1 < Additional access technologies struct > } ** 0
+	 < spare bits >
+;
+
+< Additional access technologies struct > ::=
+	< Access Technology Type : bit (4) >
+	< GMSK Power Class : bit (3) >
+    < 8PSK Power Class : 
+        < 8PSK modulation not supported for uplink : 00 > | 
+        < Power class E1 : 01 > | 
+        < Power class E2 : 10 > | 
+        < Power class E3 : 11 >
+   >
+;
+
+< Access capabilities struct > ::=
+	< Length of Access capabilities struct : bit (7) > -- length in bits of Content and spare bits
+	< Access capabilities >
+	< spare bits > ; -- expands to the indicated length
+			  -- may be used for future enhancements
+
+< Access capabilities > ::=
+	< RF Power Capability : bit (3) >
+	{ 0 | 1 < A5 bits > } 	-- zero means that the same values apply for parameters as in the immediately
+                            -- preceding Access capabilities field within this IE
+	< ES IND : bit >
+	< PS : < Pseudo Synchronisation : bit > >
+	< VGCS : < Voice Group Call Service : bit >>
+	< VBS : < Voice Broadcast Service : bit >>
+	{ 0 | 1 < Multislot capability struct > } -- zero means that the
+-- same values for multislot parameters as given in an earlier Access capabilities field within this IE apply also here
+-- Additions in release 99
+	{ 0 | 1 
+		    < 8PSK Power Capability  : 
+	          < Reserved : 00 > | 
+	          < Power class E1 : 01 > | 
+	          < Power class E2 : 10 > | 
+	          < Power class E3 : 11 >
+	        >
+	} -- '1' also means 8PSK modulation capability in uplink.
+	< COMPACT Interference Measurement Capability : bit >
+    < Revision Level Indicator : 
+        < The ME is Release 98 or older : 0 > | 
+        < The ME is Release 99 onwards : 1 >
+     >
+	< UMTS FDD Radio Access Technology Capability : bit >    					-- 3G RAT
+	< UMTS 3,84 Mcps TDD Radio Access Technology Capability : bit >    	-- 3G RAT
+	< CDMA 2000 Radio Access Technology Capability : bit >;    				-- 3G RAT
+-- error: struct too short, assume features do not exist	
+-- error: struct too long, ignore data and jump to next Access technology
+
+
+-- Table 10.5.146/3GPP TS 24.008 (continued): Mobile Station Radio Access Capability IE
+< Multislot capability struct > ::=
+	{ 0 | 1 < HSCSD multislot class : bit (5) > }
+	{ 0 | 1 < GPRS multislot class : bit (5) > < GPRS Extended Dynamic Allocation Capability : bit > }
+	{ 0 | 1 
+           < SMS_VALUE [Switch-Measure-Switch] : 
+		        < 1/4 timeslot [ 144 microseconds] : 0000 > | 
+		        < 2/4 timeslot [ 288 microseconds] : 0001 > | 
+		        < 3/4 timeslot [ 433 microseconds] : 0010 > | 
+		        < 4/4 timeslot  : 0011 > | 
+		        < 5/4 timeslot  : 0100 > | 
+		        < 6/4 timeslot  : 0101 > | 
+		        < 7/4 timeslot  : 0110 > | 
+		        < 8/4 timeslot  : 0111 > | 
+		        < 9/4 timeslot  : 1000 > | 
+		        < 10/4 timeslot : 1001 > | 
+		        < 11/4 timeslot : 1010 > | 
+		        < 12/4 timeslot : 1011 > | 
+		        < 13/4 timeslot : 1100 > | 
+		        < 14/4 timeslot : 1101 > | 
+		        < 15/4 timeslot : 1110 > | 
+		        < 16/4 timeslot [ 2307 microseconds ]: 1111 >
+		   >
+           < SM_VALUE [Switch-Measure] : 
+		        < 1/4 timeslot [ 144 microseconds] : 0000 > | 
+		        < 2/4 timeslot [ 288 microseconds] : 0001 > | 
+		        < 3/4 timeslot [ 433 microseconds] : 0010 > | 
+		        < 4/4 timeslot  : 0011 > | 
+		        < 5/4 timeslot  : 0100 > | 
+		        < 6/4 timeslot  : 0101 > | 
+		        < 7/4 timeslot  : 0110 > | 
+		        < 8/4 timeslot  : 0111 > | 
+		        < 9/4 timeslot  : 1000 > | 
+		        < 10/4 timeslot : 1001 > | 
+		        < 11/4 timeslot : 1010 > | 
+		        < 12/4 timeslot : 1011 > | 
+		        < 13/4 timeslot : 1100 > | 
+		        < 14/4 timeslot : 1101 > | 
+		        < 15/4 timeslot : 1110 > | 
+		        < 16/4 timeslot [ 2307 microseconds ]: 1111 >
+		   >
+   } 
+-- Additions in release 99
+	{ 0 | 1 < ECSD multislot class : bit (5) > }
+	{ 0 | 1 < EGPRS multislot class : bit (5) > < EGPRS Extended Dynamic Allocation 	Capability : bit > }	
+    { 0 | 1	
+	        < DTM GPRS Multi Slot Sub-Class : 
+		        < Sub-Class 1 supported : 00 > | 
+		        < Sub-Class 5 supported : 01 > | 
+		        < Sub-Class 9 supported : 10 > | 
+		        < Reserved the network shall interpret this as 00 : 11 >
+		    >
+		    < MAC Mode Support : bit>
+		    { 0 | 1 <DTM EGPRS Multi Slot Sub-Class : bit(2)> } } ;
+	-- error: struct too short, assume features do not exist
+
+
+<A5 bits> ::=   <A5/1 : bit> 
+                <A5/2 : bit> 
+                <A5/3 : bit> 
+                <A5/4 : bit> 
+                <A5/5 : bit> 
+                <A5/6 : bit> 
+                <A5/7 : bit>; -- bits for circuit mode ciphering algorithms
+
+-- OWN DEFINITIONS 
+
+< NETWORK_CONTROL_ORDER >::=  
+                              <NC0:   00> | 
+                              <NC1:   01> | 
+                              <NC2:   10> | 
+                              <RESET: 11>;
+
+< PAGE_MODE >::=<Normal Paging:         00> |    
+                <Extended Paging:       01> | 
+                <Paging Reorganization: 10> | 
+                <Same as before:        11>; 
+
+< ALPHA > ::= < 0,0 : 0000 > |
+              < 0,1 : 0001 > |
+              < 0,2 : 0010 > |
+              < 0,3 : 0011 > |
+              < 0,4 : 0100 > |
+              < 0,5 : 0101 > |
+              < 0,6 : 0110 > |
+              < 0,7 : 0111 > |
+              < 0,8 : 1000 > |
+              < 0,9 : 1001 > |
+              < 1,0 : 1010 > |
+              < 1,0 : 1011 > |
+              < 1,0 : 1100 > |
+              < 1,0 : 1101 > |
+              < 1,0 : 1110 > |
+              < 1,0 : 1111 > ;
+
+< Pb > ::=    <  0 dB : 0000 > |
+              < -2 dB : 0001 > |
+              < -4 dB : 0010 > |
+              < -6 dB : 0011 > |
+              < -8 dB : 0100 > |
+              < -10 dB : 0101 > |
+              < -12 dB : 0110 > |
+              < -14 dB : 0111 > |
+              < -16 dB : 1000 > |
+              < -18 dB : 1001 > |
+              < -20 dB : 1010 > |
+              < -22 dB : 1011 > |
+              < -24 dB : 1100 > |
+              < -26 dB : 1101 > |
+              < -28 dB : 1110 > |
+              < -30 dB : 1111 > ;
+
+< EGPRS Modulation and Coding IE>::=
+    < MCS-1 :   0000 >
+  | < MCS-2 :   0001 >
+  | < MCS-3 :   0010 >
+  | < MCS-4 :   0011 >
+  | < MCS-5 :   0100 >
+  | < MCS-6 :   0101 >
+  | < MCS-7 :   0110 >
+  | < MCS-8 :   0111 >
+  | < MCS-9 :   1000 >
+  | < MCS-5-7 : 1001 >
+  | < MCS-6-9 : 1010 >
+;
+
+< EGPRS Window Size IE >::=
+          < 64  : 00000 >
+        | < 96  : 00001 > 
+        | < 128 : 00010 > 
+        | < 160 : 00011 > 
+        | < 192 : 00100 >
+        | < 224 : 00101 > 
+        | < 256 : 00110 >
+        | < 288 : 00111 > 
+        | < 320 : 01000 > 
+        | < 352 : 01001 > 
+        | < 384 : 01010 >
+        | < 416 : 01011 > 
+        | < 448 : 01100 > 
+        | < 480 : 01101 > 
+        | < 512 : 01110 >
+        | < 544 : 01111 >
+        | < 576 : 10000 >
+        | < 608 : 10001 >
+        | < 640 : 10010 >
+        | < 672 : 10011 > 
+        | < 704 : 10100 >
+        | < 736 : 10101 >
+        | < 768 : 10110 >
+        | < 800 : 10111 >
+        | < 832 : 11000 >
+        | < 864 : 11001 >
+        | < 896 : 11010 >
+        | < 928 : 11011 >
+        | < 960 : 11100 >
+        | < 992 : 11101 >
+        | < 1024 :     11110 >
+        | < Reserved : 11111 >;
+
+Table_FDD_CELL_INFORMATION  {
+  0,  0  
+  1,  10
+  2,  19
+  3,  28
+  4,  36
+  5,  44  
+  6,  52  
+  7,  60  
+  8,  67  
+  9,  74
+  10, 81  
+  11, 88  
+  12, 95  
+  13, 102
+  14, 109
+  15, 116   
+  16, 122
+  17, 0
+  18, 0
+  19, 0
+  20, 0
+  21, 0
+  22, 0
+  23, 0
+  24, 0
+  25, 0
+  25, 0
+  27, 0
+  28, 0
+  29, 0
+  30, 0
+  31, 0
+}   
+
+Table_TDD_CELL_INFORMATION  {
+  0,  0 
+  1,  9 
+  2,  17
+  3,  25
+  4,  32
+  5,  39  
+  6,  46  
+  7,  53
+  8,  59
+  9,  65
+  10, 71  
+  11, 77  
+  12, 83
+  13, 89
+  14, 95
+  15, 101 
+  16, 106   
+  17, 111   
+  18, 116   
+  19, 121 
+  20, 126 
+  21, 0
+  22, 0
+  23, 0
+  24, 0
+  25, 0
+  25, 0
+  27, 0
+  28, 0
+  29, 0
+  30, 0
+  31, 0
+}   
+
+-- ***
+
+< spare bit >::= bit;
+< spare bits >::= bit**;
+< spare padding > ::= L**;
+
+
+--- ??? ---
+< CDMA2000 Description struct> ::=
+
+    < cdma2000 frequency band : bit (5) >
+    < cdma2000 frequency : bit (11) >
+    < number_cdma2000_cells : bit (5) >
+
+    { < Pilot PN offset : bit (9) >
+      -- this information is enough for 1X Common Pilot
+
+    {0 | 1{ 000 { <TD_MODE : bit (2) > <TD_POWER_LEVEL : bit (3) >}
+      -- additional information for 1X Common Pilot with Transmit Diversity
+
+      | 001 { < QOF : bit (2) > <WALSH_LEN_A : bit (3) > 
+        < AUX_PILOT_WALSH : bit(val(WALSH_LEN_A)+6)>}
+        -- additional information for 1X Auxiliary Pilot
+
+      | 010 { < QOF : bit (2) > <WALSH_LEN_B : bit (3) > 
+          < AUX_TD_WALSH : bit(val(WALSH_LEN_B)+6)>
+          < AUX_TD_POWER_LEVEL : bit (2) > <TD_MODE : bit (2) >}
+        -- additional information for 1X Auxiliary Pilot with Transmit Diversity
+
+      | 011 { < SR3_PRIM_PILOT : bit (2) > <SR3_PILOT_POWER1 : bit (3) >
+          < SR3_PILOT_POWER2 : bit (3) >}
+        -- additional information for 3X Common Pilot
+
+      | 110 { < SR3_PRIM_PILOT : bit (2) > <SR3_PILOT_POWER1 : bit (3) >
+          < SR3_PILOT_POWER2 : bit (3) > <QOF : bit (2) >
+          < WALSH_LEN_C : bit (3) > 
+          < AUX_WALSH_LEN : bit(val(WALSH_LEN_C)+6)>
+        { 0 | 1 < QOF1 : bit (2) > < WALSH_LENGTH1 : bit (3) > 
+              < AUX_PILOT_WALSH1 : bit(val(WALSH_LENGTH1)+6)>}
+        { 0 | 1 < QOF2 : bit (2) > <WALSH_LENGTH2 : bit (3) >
+              <AUX_PILOT_WALSH2 : bit(val(WALSH_LENGTH2)+6)>}}
+        -- additional information for 3X Auxiliary Pilot
+        }
+      }
+    } * (val(number_cdma2000_cells)) ;
+
+-- Table 11.2.5a.1 EGPRS PACKET CHANNEL REQUEST message content
+< EGPRS Packet channel request message content > ::=
+  < One Phase Access Request :  0 < MultislotClass : bit (5) >
+      < Priority : bit (2) >
+      < RandomBits : bit (3) > >
+  | < Short Access Request :  100 < NumberOfBlocks : bit (3) >
+      < Priority : bit (2) >
+      < RandomBits : bit (3) > >
+  | < Two Phase Access Request :  110000  < Priority : bit (2) > 
+      < RandomBits : bit (3) > > 
+  | < Signalling :  110011  < RandomBits : bit (5) > > ;
+
+

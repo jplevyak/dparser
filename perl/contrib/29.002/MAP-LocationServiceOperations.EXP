@@ -1,0 +1,564 @@
+-- Expanded ASN1 Module 'MAP-LocationServiceOperations'  
+--SIEMENS ASN.1 Compiler         R6.15  (Production_6.15)    
+--            Date: 2006-12-06 Time: 12:59:59            
+
+MAP-LocationServiceOperations{ 0 identified-organization (4) etsi (0) mobileDomain (0) gsm-Network (1) modules (3) map-LocationServiceOperations (24) version10 (10) }
+
+DEFINITIONS
+
+::=
+
+BEGIN
+
+EXPORTS
+   provideSubscriberLocation, 
+   sendRoutingInfoForLCS, 
+   subscriberLocationReport;
+
+
+sendRoutingInfoForLCS OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      mlcNumber            [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      targetMS             [1] CHOICE {
+         imsi         [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+         msisdn       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )}, 
+      extensionContainer   [2] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... }
+   RESULT     SEQUENCE {
+      targetMS                    [0] CHOICE {
+         imsi         [0] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ), 
+         msisdn       [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )}, 
+      lcsLocationInfo             [1] IMPLICIT SEQUENCE {
+         networkNode-Number              OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         lmsi                            [0] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+         extensionContainer              [1] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         gprsNodeIndicator               [2] IMPLICIT NULL OPTIONAL, 
+         additional-Number               [3] CHOICE {
+            msc-Number      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+            sgsn-Number     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )} OPTIONAL, 
+         supportedLCS-CapabilitySets     [4] IMPLICIT BIT STRING {
+            lcsCapabilitySet1  (0 ), 
+            lcsCapabilitySet2  (1 ), 
+            lcsCapabilitySet3  (2 ), 
+            lcsCapabilitySet4  (3 ), 
+            lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL, 
+         additional-LCS-CapabilitySets   [5] IMPLICIT BIT STRING {
+            lcsCapabilitySet1  (0 ), 
+            lcsCapabilitySet2  (1 ), 
+            lcsCapabilitySet3  (2 ), 
+            lcsCapabilitySet4  (3 ), 
+            lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL}, 
+      extensionContainer          [2] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      v-gmlc-Address              [3] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      h-gmlc-Address              [4] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      ppr-Address                 [5] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      additional-v-gmlc-Address   [6] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      unknownSubscriber | 
+      absentSubscriber | 
+      unauthorizedRequestingNetwork }
+   CODE     local      : 85
+   }
+
+provideSubscriberLocation OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      locationType                 SEQUENCE {
+         locationEstimateType        [0] IMPLICIT ENUMERATED {
+            currentLocation                 ( 0 ), 
+            currentOrLastKnownLocation      ( 1 ), 
+            initialLocation                 ( 2 ), 
+            ... , 
+            activateDeferredLocation        ( 3 ), 
+            cancelDeferredLocation          ( 4 ), 
+            notificationVerificationOnly    ( 5 ) }, 
+         ... , 
+         deferredLocationEventType   [1] IMPLICIT BIT STRING {
+            msAvailable  (0 ), 
+            enteringIntoArea  (1 ), 
+            leavingFromArea  (2 ), 
+            beingInsideArea  (3 ), 
+            periodicLDR  (4 )} ( SIZE( 1 .. 16 ) ) OPTIONAL}, 
+      mlc-Number                   OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+      lcs-ClientID                 [0] IMPLICIT SEQUENCE {
+         lcsClientType         [0] IMPLICIT ENUMERATED {
+            emergencyServices          ( 0 ), 
+            valueAddedServices         ( 1 ), 
+            plmnOperatorServices       ( 2 ), 
+            lawfulInterceptServices    ( 3 ), 
+            ...  }, 
+         lcsClientExternalID   [1] IMPLICIT SEQUENCE {
+            externalAddress      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            extensionContainer   [1] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         lcsClientDialedByMS   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+         lcsClientInternalID   [3] IMPLICIT ENUMERATED {
+            broadcastService             ( 0 ), 
+            o-andM-HPLMN                 ( 1 ), 
+            o-andM-VPLMN                 ( 2 ), 
+            anonymousLocation            ( 3 ), 
+            targetMSsubscribedService    ( 4 ), 
+            ...  } OPTIONAL, 
+         lcsClientName         [4] IMPLICIT SEQUENCE {
+            dataCodingScheme      [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            nameString            [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 160 ) ) ( SIZE( 1 .. 63 ) ), 
+            ... , 
+            lcs-FormatIndicator   [3] IMPLICIT ENUMERATED {
+               logicalName      ( 0 ), 
+               e-mailAddress    ( 1 ), 
+               msisdn           ( 2 ), 
+               url              ( 3 ), 
+               sipUrl           ( 4 ), 
+               ...  } OPTIONAL} OPTIONAL, 
+         ... , 
+         lcsAPN                [5] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+         lcsRequestorID        [6] IMPLICIT SEQUENCE {
+            dataCodingScheme      [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            requestorIDString     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 160 ) ) ( SIZE( 1 .. 63 ) ), 
+            ... , 
+            lcs-FormatIndicator   [2] IMPLICIT ENUMERATED {
+               logicalName      ( 0 ), 
+               e-mailAddress    ( 1 ), 
+               msisdn           ( 2 ), 
+               url              ( 3 ), 
+               sipUrl           ( 4 ), 
+               ...  } OPTIONAL} OPTIONAL} OPTIONAL, 
+      privacyOverride              [1] IMPLICIT NULL OPTIONAL, 
+      imsi                         [2] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      msisdn                       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      lmsi                         [4] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+      imei                         [5] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+      lcs-Priority                 [6] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      lcs-QoS                      [7] IMPLICIT SEQUENCE {
+         horizontal-accuracy         [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         verticalCoordinateRequest   [1] IMPLICIT NULL OPTIONAL, 
+         vertical-accuracy           [2] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+         responseTime                [3] IMPLICIT SEQUENCE {
+            responseTimeCategory   ENUMERATED {
+               lowdelay         ( 0 ), 
+               delaytolerant    ( 1 ), 
+               ...  }, 
+            ... } OPTIONAL, 
+         extensionContainer          [4] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         velocityRequest             [5] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+      extensionContainer           [8] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      supportedGADShapes           [9] IMPLICIT BIT STRING {
+         ellipsoidPoint  (0 ), 
+         ellipsoidPointWithUncertaintyCircle  (1 ), 
+         ellipsoidPointWithUncertaintyEllipse  (2 ), 
+         polygon  (3 ), 
+         ellipsoidPointWithAltitude  (4 ), 
+         ellipsoidPointWithAltitudeAndUncertaintyElipsoid  (5 ), 
+         ellipsoidArc  (6 )} ( SIZE( 7 .. 16 ) ) OPTIONAL, 
+      lcs-ReferenceNumber          [10] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      lcsServiceTypeID             [11] IMPLICIT INTEGER ( 0 .. 127 ) OPTIONAL, 
+      lcsCodeword                  [12] IMPLICIT SEQUENCE {
+         dataCodingScheme    [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+         lcsCodewordString   [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 160 ) ) ( SIZE( 1 .. 20 ) ), 
+         ... } OPTIONAL, 
+      lcs-PrivacyCheck             [13] IMPLICIT SEQUENCE {
+         callSessionUnrelated   [0] IMPLICIT ENUMERATED {
+            allowedWithoutNotification    ( 0 ), 
+            allowedWithNotification       ( 1 ), 
+            allowedIfNoResponse           ( 2 ), 
+            restrictedIfNoResponse        ( 3 ), 
+            notAllowed                    ( 4 ), 
+            ...  }, 
+         callSessionRelated     [1] IMPLICIT ENUMERATED {
+            allowedWithoutNotification    ( 0 ), 
+            allowedWithNotification       ( 1 ), 
+            allowedIfNoResponse           ( 2 ), 
+            restrictedIfNoResponse        ( 3 ), 
+            notAllowed                    ( 4 ), 
+            ...  } OPTIONAL, 
+         ... } OPTIONAL, 
+      areaEventInfo                [14] IMPLICIT SEQUENCE {
+         areaDefinition   [0] IMPLICIT SEQUENCE {
+            areaList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  areaType             [0] IMPLICIT ENUMERATED {
+                     countryCode       ( 0 ), 
+                     plmnId            ( 1 ), 
+                     locationAreaId    ( 2 ), 
+                     routingAreaId     ( 3 ), 
+                     cellGlobalId      ( 4 ), 
+                     ... , 
+                     utranCellId       ( 5 ) }, 
+                  areaIdentification   [1] IMPLICIT OCTET STRING ( SIZE( 2 .. 7 ) ), 
+                  ... }, 
+            ... }, 
+         occurrenceInfo   [1] IMPLICIT ENUMERATED {
+            oneTimeEvent         ( 0 ), 
+            multipleTimeEvent    ( 1 ), 
+            ...  } OPTIONAL, 
+         intervalTime     [2] IMPLICIT INTEGER ( 1 .. 32767 ) OPTIONAL, 
+         ... } OPTIONAL, 
+      h-gmlc-Address               [15] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      mo-lrShortCircuitIndicator   [16] IMPLICIT NULL OPTIONAL, 
+      periodicLDRInfo              [17] IMPLICIT SEQUENCE {
+         reportingAmount     INTEGER ( 1 .. 8639999 ), 
+         reportingInterval   INTEGER ( 1 .. 8639999 ), 
+         ... } OPTIONAL, 
+      reportingPLMNList            [18] IMPLICIT SEQUENCE {
+         plmn-ListPrioritized   [0] IMPLICIT NULL OPTIONAL, 
+         plmn-List              [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 20 ) ) OF
+            SEQUENCE {
+               plmn-Id                       [0] IMPLICIT OCTET STRING ( SIZE( 3 ) ), 
+               ran-Technology                [1] IMPLICIT ENUMERATED {
+                  gsm         ( 0 ), 
+                  umts        ( 1 ), 
+                  ...  } OPTIONAL, 
+               ran-PeriodicLocationSupport   [2] IMPLICIT NULL OPTIONAL, 
+               ... }, 
+         ... } OPTIONAL}
+   RESULT     SEQUENCE {
+      locationEstimate                 OCTET STRING ( SIZE( 1 .. 20 ) ), 
+      ageOfLocationEstimate            [0] IMPLICIT INTEGER ( 0 .. 32767 ) OPTIONAL, 
+      extensionContainer               [1] IMPLICIT SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      add-LocationEstimate             [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 91 ) ) OPTIONAL, 
+      deferredmt-lrResponseIndicator   [3] IMPLICIT NULL OPTIONAL, 
+      geranPositioningData             [4] IMPLICIT OCTET STRING ( SIZE( 2 .. 10 ) ) OPTIONAL, 
+      utranPositioningData             [5] IMPLICIT OCTET STRING ( SIZE( 3 .. 11 ) ) OPTIONAL, 
+      cellIdOrSai                      [6] CHOICE {
+         cellGlobalIdOrServiceAreaIdFixedLength     [0] IMPLICIT OCTET STRING ( SIZE( 7 ) ), 
+         laiFixedLength                             [1] IMPLICIT OCTET STRING ( SIZE( 5 ) )} OPTIONAL, 
+      sai-Present                      [7] IMPLICIT NULL OPTIONAL, 
+      accuracyFulfilmentIndicator      [8] IMPLICIT ENUMERATED {
+         requestedAccuracyFulfilled       ( 0 ), 
+         requestedAccuracyNotFulfilled    ( 1 ), 
+         ...  } OPTIONAL, 
+      velocityEstimate                 [9] IMPLICIT OCTET STRING ( SIZE( 4 .. 7 ) ) OPTIONAL, 
+      mo-lrShortCircuitIndicator       [10] IMPLICIT NULL OPTIONAL}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      unexpectedDataValue | 
+      facilityNotSupported | 
+      unidentifiedSubscriber | 
+      illegalSubscriber | 
+      illegalEquipment | 
+      absentSubscriber | 
+      unauthorizedRequestingNetwork | 
+      unauthorizedLCSClient | 
+      positionMethodFailure }
+   CODE     local      : 83
+   }
+
+subscriberLocationReport OPERATION  ::=  {
+   ARGUMENT     SEQUENCE {
+      lcs-Event                     ENUMERATED {
+         emergencyCallOrigination       ( 0 ), 
+         emergencyCallRelease           ( 1 ), 
+         mo-lr                          ( 2 ), 
+         ... , 
+         deferredmt-lrResponse          ( 3 ), 
+         deferredmo-lrTTTPInitiation    ( 4 ) }, 
+      lcs-ClientID                  SEQUENCE {
+         lcsClientType         [0] IMPLICIT ENUMERATED {
+            emergencyServices          ( 0 ), 
+            valueAddedServices         ( 1 ), 
+            plmnOperatorServices       ( 2 ), 
+            lawfulInterceptServices    ( 3 ), 
+            ...  }, 
+         lcsClientExternalID   [1] IMPLICIT SEQUENCE {
+            externalAddress      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+            extensionContainer   [1] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         lcsClientDialedByMS   [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+         lcsClientInternalID   [3] IMPLICIT ENUMERATED {
+            broadcastService             ( 0 ), 
+            o-andM-HPLMN                 ( 1 ), 
+            o-andM-VPLMN                 ( 2 ), 
+            anonymousLocation            ( 3 ), 
+            targetMSsubscribedService    ( 4 ), 
+            ...  } OPTIONAL, 
+         lcsClientName         [4] IMPLICIT SEQUENCE {
+            dataCodingScheme      [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            nameString            [2] IMPLICIT OCTET STRING ( SIZE( 1 .. 160 ) ) ( SIZE( 1 .. 63 ) ), 
+            ... , 
+            lcs-FormatIndicator   [3] IMPLICIT ENUMERATED {
+               logicalName      ( 0 ), 
+               e-mailAddress    ( 1 ), 
+               msisdn           ( 2 ), 
+               url              ( 3 ), 
+               sipUrl           ( 4 ), 
+               ...  } OPTIONAL} OPTIONAL, 
+         ... , 
+         lcsAPN                [5] IMPLICIT OCTET STRING ( SIZE( 2 .. 63 ) ) OPTIONAL, 
+         lcsRequestorID        [6] IMPLICIT SEQUENCE {
+            dataCodingScheme      [0] IMPLICIT OCTET STRING ( SIZE( 1 ) ), 
+            requestorIDString     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 160 ) ) ( SIZE( 1 .. 63 ) ), 
+            ... , 
+            lcs-FormatIndicator   [2] IMPLICIT ENUMERATED {
+               logicalName      ( 0 ), 
+               e-mailAddress    ( 1 ), 
+               msisdn           ( 2 ), 
+               url              ( 3 ), 
+               sipUrl           ( 4 ), 
+               ...  } OPTIONAL} OPTIONAL}, 
+      lcsLocationInfo               SEQUENCE {
+         networkNode-Number              OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+         lmsi                            [0] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+         extensionContainer              [1] IMPLICIT SEQUENCE {
+            privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+               SEQUENCE {
+                  extId      MAP-EXTENSION .&extensionId  ( {
+                     , 
+                     ...} ) , 
+                  extType    MAP-EXTENSION .&ExtensionType  ( {
+                     , 
+                     ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+            pcs-Extensions         [1] IMPLICIT SEQUENCE {
+               ... } OPTIONAL, 
+            ... } OPTIONAL, 
+         ... , 
+         gprsNodeIndicator               [2] IMPLICIT NULL OPTIONAL, 
+         additional-Number               [3] CHOICE {
+            msc-Number      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+            sgsn-Number     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )} OPTIONAL, 
+         supportedLCS-CapabilitySets     [4] IMPLICIT BIT STRING {
+            lcsCapabilitySet1  (0 ), 
+            lcsCapabilitySet2  (1 ), 
+            lcsCapabilitySet3  (2 ), 
+            lcsCapabilitySet4  (3 ), 
+            lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL, 
+         additional-LCS-CapabilitySets   [5] IMPLICIT BIT STRING {
+            lcsCapabilitySet1  (0 ), 
+            lcsCapabilitySet2  (1 ), 
+            lcsCapabilitySet3  (2 ), 
+            lcsCapabilitySet4  (3 ), 
+            lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL}, 
+      msisdn                        [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      imsi                          [1] IMPLICIT OCTET STRING ( SIZE( 3 .. 8 ) ) OPTIONAL, 
+      imei                          [2] IMPLICIT OCTET STRING ( SIZE( 8 ) ) OPTIONAL, 
+      na-ESRD                       [3] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      na-ESRK                       [4] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      locationEstimate              [5] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) OPTIONAL, 
+      ageOfLocationEstimate         [6] IMPLICIT INTEGER ( 0 .. 32767 ) OPTIONAL, 
+      slr-ArgExtensionContainer     [7] IMPLICIT SEQUENCE {
+         privateExtensionList     [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         slr-Arg-PCS-Extensions   [1] IMPLICIT SEQUENCE {
+            ... , 
+            na-ESRK-Request   [0] IMPLICIT NULL OPTIONAL} OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      add-LocationEstimate          [8] IMPLICIT OCTET STRING ( SIZE( 1 .. 91 ) ) OPTIONAL, 
+      deferredmt-lrData             [9] IMPLICIT SEQUENCE {
+         deferredLocationEventType   BIT STRING {
+            msAvailable  (0 ), 
+            enteringIntoArea  (1 ), 
+            leavingFromArea  (2 ), 
+            beingInsideArea  (3 ), 
+            periodicLDR  (4 )} ( SIZE( 1 .. 16 ) ), 
+         terminationCause            [0] IMPLICIT ENUMERATED {
+            normal                                 ( 0 ), 
+            errorundefined                         ( 1 ), 
+            internalTimeout                        ( 2 ), 
+            congestion                             ( 3 ), 
+            mt-lrRestart                           ( 4 ), 
+            privacyViolation                       ( 5 ), 
+            ... , 
+            shapeOfLocationEstimateNotSupported    ( 6 ), 
+            subscriberTermination                  ( 7 ), 
+            uETermination                          ( 8 ), 
+            networkTermination                     ( 9 ) } OPTIONAL, 
+         lcsLocationInfo             [1] IMPLICIT SEQUENCE {
+            networkNode-Number              OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+            lmsi                            [0] IMPLICIT OCTET STRING ( SIZE( 4 ) ) OPTIONAL, 
+            extensionContainer              [1] IMPLICIT SEQUENCE {
+               privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+                  SEQUENCE {
+                     extId      MAP-EXTENSION .&extensionId  ( {
+                        , 
+                        ...} ) , 
+                     extType    MAP-EXTENSION .&ExtensionType  ( {
+                        , 
+                        ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+               pcs-Extensions         [1] IMPLICIT SEQUENCE {
+                  ... } OPTIONAL, 
+               ... } OPTIONAL, 
+            ... , 
+            gprsNodeIndicator               [2] IMPLICIT NULL OPTIONAL, 
+            additional-Number               [3] CHOICE {
+               msc-Number      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ), 
+               sgsn-Number     [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) )} OPTIONAL, 
+            supportedLCS-CapabilitySets     [4] IMPLICIT BIT STRING {
+               lcsCapabilitySet1  (0 ), 
+               lcsCapabilitySet2  (1 ), 
+               lcsCapabilitySet3  (2 ), 
+               lcsCapabilitySet4  (3 ), 
+               lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL, 
+            additional-LCS-CapabilitySets   [5] IMPLICIT BIT STRING {
+               lcsCapabilitySet1  (0 ), 
+               lcsCapabilitySet2  (1 ), 
+               lcsCapabilitySet3  (2 ), 
+               lcsCapabilitySet4  (3 ), 
+               lcsCapabilitySet5  (4 )} ( SIZE( 2 .. 16 ) ) OPTIONAL} OPTIONAL, 
+         ... } OPTIONAL, 
+      lcs-ReferenceNumber           [10] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL, 
+      geranPositioningData          [11] IMPLICIT OCTET STRING ( SIZE( 2 .. 10 ) ) OPTIONAL, 
+      utranPositioningData          [12] IMPLICIT OCTET STRING ( SIZE( 3 .. 11 ) ) OPTIONAL, 
+      cellIdOrSai                   [13] CHOICE {
+         cellGlobalIdOrServiceAreaIdFixedLength     [0] IMPLICIT OCTET STRING ( SIZE( 7 ) ), 
+         laiFixedLength                             [1] IMPLICIT OCTET STRING ( SIZE( 5 ) )} OPTIONAL, 
+      h-gmlc-Address                [14] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      lcsServiceTypeID              [15] IMPLICIT INTEGER ( 0 .. 127 ) OPTIONAL, 
+      sai-Present                   [17] IMPLICIT NULL OPTIONAL, 
+      pseudonymIndicator            [18] IMPLICIT NULL OPTIONAL, 
+      accuracyFulfilmentIndicator   [19] IMPLICIT ENUMERATED {
+         requestedAccuracyFulfilled       ( 0 ), 
+         requestedAccuracyNotFulfilled    ( 1 ), 
+         ...  } OPTIONAL, 
+      velocityEstimate              [20] IMPLICIT OCTET STRING ( SIZE( 4 .. 7 ) ) OPTIONAL, 
+      sequenceNumber                [21] IMPLICIT INTEGER ( 1 .. 8639999 ) OPTIONAL, 
+      periodicLDRInfo               [22] IMPLICIT SEQUENCE {
+         reportingAmount     INTEGER ( 1 .. 8639999 ), 
+         reportingInterval   INTEGER ( 1 .. 8639999 ), 
+         ... } OPTIONAL, 
+      mo-lrShortCircuitIndicator    [23] IMPLICIT NULL OPTIONAL}
+   RESULT     SEQUENCE {
+      extensionContainer           SEQUENCE {
+         privateExtensionList   [0] IMPLICIT SEQUENCE  ( SIZE( 1 .. 10 ) ) OF
+            SEQUENCE {
+               extId      MAP-EXTENSION .&extensionId  ( {
+                  , 
+                  ...} ) , 
+               extType    MAP-EXTENSION .&ExtensionType  ( {
+                  , 
+                  ...} { @extId   }  )  OPTIONAL} OPTIONAL, 
+         pcs-Extensions         [1] IMPLICIT SEQUENCE {
+            ... } OPTIONAL, 
+         ... } OPTIONAL, 
+      ... , 
+      na-ESRK                      [0] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      na-ESRD                      [1] IMPLICIT OCTET STRING ( SIZE( 1 .. 20 ) ) ( SIZE( 1 .. 9 ) ) OPTIONAL, 
+      h-gmlc-Address               [2] IMPLICIT OCTET STRING ( SIZE( 5 .. 17 ) ) OPTIONAL, 
+      mo-lrShortCircuitIndicator   [3] IMPLICIT NULL OPTIONAL, 
+      reportingPLMNList            [4] IMPLICIT SEQUENCE {
+         plmn-ListPrioritized   [0] IMPLICIT NULL OPTIONAL, 
+         plmn-List              [1] IMPLICIT SEQUENCE  ( SIZE( 1 .. 20 ) ) OF
+            SEQUENCE {
+               plmn-Id                       [0] IMPLICIT OCTET STRING ( SIZE( 3 ) ), 
+               ran-Technology                [1] IMPLICIT ENUMERATED {
+                  gsm         ( 0 ), 
+                  umts        ( 1 ), 
+                  ...  } OPTIONAL, 
+               ran-PeriodicLocationSupport   [2] IMPLICIT NULL OPTIONAL, 
+               ... }, 
+         ... } OPTIONAL, 
+      lcs-ReferenceNumber          [5] IMPLICIT OCTET STRING ( SIZE( 1 ) ) OPTIONAL}
+   ERRORS     {
+      systemFailure | 
+      dataMissing | 
+      resourceLimitation | 
+      unexpectedDataValue | 
+      unknownSubscriber | 
+      unauthorizedRequestingNetwork | 
+      unknownOrUnreachableLCSClient }
+   CODE     local      : 86
+   }
+
+END
