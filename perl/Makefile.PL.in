@@ -45,8 +45,6 @@ WriteMakefile
         -L/lib/gcc/i686-pc-cygwin/4.3.4 -lssp
      ]
      , 'OBJECT' => 'perl_wrap.@OBJEXT@'
-     #, 'SOURCES'      =>  ['perl_wrap.c', 'make_tables.c']
-     #, 'XS'	 => { 'D.xs' => 'Lex.xs.tab.c' }
 #CPM070508
 # the linking/makefile generation discards mkdparse,dparase if not compiled before hand!
 # 6.21.
@@ -60,18 +58,18 @@ WriteMakefile
      }
      #, 'realclean'    => { FILES => "@REALCLEAN" }
      , 'PREREQ_PM' => {
-	 'IO::Gzip'			=> 0
+	 'IO::String'			=> 0
+	     , 'IO::File'		=> 0
 	     , 'Data::Dumper'		=> 2.121
 	     , 'Data::Hexdumper'	=> 1.2
 	     , File::Temp        	=> 0.16
 	     , File::Spec => 0
 	     , File::Path => 0
-	     , 'Parse::Lex'		=> 2.15
+	     #, 'Parse::Lex'		=> 2.15
 	     , 'Test::More'        	=> 0.34
 	     , 'Test::Exception'	=> 0
 	     , 'Class::Container'	=> 0.12
 	     , 'Params::Validate'	=> 0
-	     , 'GraphViz' => 0
      }
      , (MM->can('signature_target') ? (SIGN => 1) : ())
 );
@@ -112,83 +110,18 @@ SHELL:=bash
 DIFF:=diff -wbB --unified=5
 pck_name:=d-1.15-src
 src_dir:=..
-pck_dir:=//s-pc37-w2k/dump/cygwin/contrib/parsers/\${pck_name}.tar.gz
+pck_dir:=/var/cache/share/contrib/parsers/\${pck_name}.tar.gz
 src_dir_orig:=\${src_dir}/orig
-CVS	:=cvs.1.11.22
+CVS	:=cvs
 CVS_RSH	:=ssh
 CVSROOT	:=-z3 -d:ext:ptizoom\@dparser.cvs.sourceforge.net:/cvsroot/dparser
-
 _END
 }
 
-sub dist_basics
-{
-  shift->SUPER::dist_basics(@_).<<_END
-
-# generate package diffs..
-# quite wrong anyway...
-diff:\$(pck_name)_orig.diff
-
-\${pck_name}_orig.diff : \${src_dir_orig}/\${pck_name} \${src_dir}/\${pck_name}
-	-\${DIFF} -r \$\^ > \$\@
-
-\${src_dir}/\${pck_name}:
-	install -d \$\@
-	tar xzuf \${pck_dir} -C \$(\@D)
-
-\${src_dir_orig}/\${pck_name}:
-	install -d \$\@
-	tar xzf \${pck_dir}  -C \$(\@D)
-
-
-#
-# other installation things
-
-co:
-	\$(CVS) \$(CVSROOT) login
-	cd /usr/src;\$(CVS) \$(CVSROOT) co dparser
-
-_END
-}
-
-sub depend_
-{
-  shift->SUPER::depend(@_).<<_END
-MYEXTLIBS:=extralibs
-.PHONY : extralibs
-
-\$(XS_FILES) : \$(C_FILES_) Dxs.c \$(H_FILES)
-
-#Dxs.c :: \$(XS_FILES)
-
-_END
-}
-
-sub subdirs_
-{
-  shift->SUPER::subdirs(@_).<<_END
-
-#-L../ -lmkdparse_gc -ldparse_gc -lgmon -lgc'
-#D_OPTIMIZE=1
-#D_LEAK_DETECT=1 but no lib leak, so don't use gc
-
-subdirs :: extralibs
-
-#	\${MAKE} D_DEBUG=1 D_USE_GC=1 D_PROFILE=1 -C \${src_dir} libs
-
-extralibs :
-	\${MAKE} D_DEBUG=1 D_PROFILE=1 -C \${src_dir} libs
-
-_END
-}
-
-
-#&Meta->write;
-sub test_
-{
-  shift->SUPER::test(@_).<<_END
-
-TEST_FILES = `find t -iname "*.t"`
-
-_END
-}
+# --- MakeMaker dist_test section:
+# --- MakeMaker makeaperl section ---
+#sub makeaperl
+#{
+#    (my $r = shift->SUPER::makeaperl(@_)) =~ s/\.perl//;
+#    return $r;
+#}

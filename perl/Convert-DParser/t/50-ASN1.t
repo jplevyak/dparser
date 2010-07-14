@@ -1,20 +1,16 @@
-#!perl
+#!/usr/bin/perl -I t
 # $File: //member/autrijus/Module-Signature/t/0-signature.t $ $Author: cmont $
 # $Revision: 1.1.1.1 $ $Change: 1871 $ $DateTime: 2002/11/03 19:22:02 $
 
-use strict;
-use Test::More tests => 14 + 3;
+
 BEGIN {
-  use_ok('Convert::DParser::ASN1');
+    require tests;
 }
-my $test_jump = "\n" x 3;
-my $test = ''; #function tested
-my $stest = ''; #function tested
-my $e = 0; # ERRNO
-my $a; # got to be the ASN1 object
-my $t;
-my $r;
-my $sub_test;
+END {
+    done_testing(14 + 3);
+}
+use_ok('Convert::DParser::ASN1');
+
 #
 #
 # the new test

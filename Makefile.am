@@ -23,7 +23,7 @@ AM_LDFLAGS =
 AM_LIBTOOLFLAGS=--verbose
 LIBS = -L/usr/local/lib $(GC_LIB) $(LEAK_LIB) $(POW_LIB)
 
-dist_doc_DATA = README COPYRIGHT CHANGES index.html manual.html faq.html
+dist_doc_DATA = index.html manual.html faq.html
 dist_doc_DATA += 4calc.g 4calc.in
 
 man1_MANS = make_dparser.1
