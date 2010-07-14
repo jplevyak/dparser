@@ -4,6 +4,8 @@
 #ifndef _d_H_
 #define _d_H_
 
+#include "d_config.h"
+
 #ifdef MEMWATCH
 #define MEMWATCH_STDIO 1
 #include "../../src/memwatch-2.67/memwatch.h"
@@ -33,7 +35,7 @@
 
 #ifdef LEAK_DETECT
 #define GC_DEBUG
-#include "gc.h"
+#include <gc.h>
 #define MALLOC(n) GC_MALLOC(n)
 #define CALLOC(m,n) GC_MALLOC((m)*(n))
 #define FREE(p) GC_FREE(p)
@@ -41,7 +43,7 @@
 #define CHECK_LEAKS() GC_gcollect()
 #else
 #ifdef USE_GC
-#include "gc.h"
+#include <gc.h>
 #define MALLOC GC_MALLOC
 #define REALLOC GC_REALLOC
 #define FREE(_x)
@@ -53,12 +55,11 @@
 #define REALLOC realloc
 #define FREE free
 #endif
+
+
 #endif
 
-#define D_VERSION			(\
-(D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + \
-D_BUILD_VERSION)
-                         
+
 /* Compilation Options 
 */
 

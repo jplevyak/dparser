@@ -1,31 +1,36 @@
-%module dparser_swig
+// $Id$
+//
+// $Log$
+//
+%module dparser
+
+%include typemaps.i
+%include cmalloc.i
+
+
+#if defined SWIGPERL
+#elif defined SWIGPYTHON
+/* http://www.swig.org/Doc1.1/HTML/Python.html#n11 */
+
 %{
 #include "pydparser.h"
 %}
 
-%typemap(python, in) PyObject* {
-  $target = $source;
+%typemap(in) PyObject* {
+  $1 = $input;
 }
-
-%typemap(python, out) PyObject* {
-  $target = $source;
+%typemap(out) PyObject* {
+  $result = $1;
 }
 
 %include pydparser.h
 
-typedef struct d_loc_t {
-  char *pathname;
-  int previous_col, col, line;
-} d_loc_t;
 
-typedef struct D_ParseNode {
-  int			symbol;
-  d_loc_t		start_loc;
-  D_ParseNode_Globals	*globals;
-  user_pyobjects	user;
-} D_ParseNode;
 
-D_ParseNode *d_get_child(D_ParseNode *pn, int child);
-D_ParseNode *d_find_in_tree(D_ParseNode *pn, int symbol);
-int d_get_number_of_children(D_ParseNode *pn);
+
+#elif defined SWIGRUBY
+#elif defined SWIGTCL
+#else
+#warning "no callbacks for this language"
+#endif
 

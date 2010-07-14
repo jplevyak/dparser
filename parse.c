@@ -62,7 +62,7 @@ xprint_paren(Parser *pp, PNode *p) {
   char *c;
   LATEST(p);
   if (!p->error_recovery) {
-    printf("%s ", pp->t->symbols[p->parse_node.symbol].name);
+    printf("[%p %s]", p, pp->t->symbols[p->parse_node.symbol].name);
     if (p->children.n) {
       printf("(");
       for (i = 0; i < p->children.n; i++)
@@ -73,10 +73,6 @@ xprint_paren(Parser *pp, PNode *p) {
       for (c = p->parse_node.start_loc.s; c < p->parse_node.end_skip; c++)
 	printf("%c", *c);
       printf(" ");
-    }
-    if (p->ambiguities) {
-      printf(" |OR| ");
-      xprint_paren(pp, p->ambiguities);
     }
   }
 }
@@ -544,10 +540,34 @@ reduce_actions(Parser *p, PNode *pn, D_Reduction *r) {
     pn->assoc = r->rule_assoc;
     pn->priority = r->rule_priority;
   }
-  if (r->speculative_code)
-    return r->speculative_code(
-      pn, (void**)&pn->children.v[0], pn->children.n,
-      (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+  //CPM0608 added another layer of code activity starting from the Parser structure.
+  if (r->speculative_code) {
+    if(p->speculative_code) {
+      return p->speculative_code
+	(
+	 (unsigned int)r->speculative_code
+	 , pn, (void**)&pn->children.v[0], pn->children.n,
+	 (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p
+	 );
+    } else {
+      return r->speculative_code
+	(
+	 pn, (void**)&pn->children.v[0], pn->children.n,
+	 (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p
+	 );
+    }
+  } else {
+    DBG(printf("reduce_action::\twhy skipping speculative reduction ?"
+	       "\tdpn@%x sym[%i]pn@[0x%x %s]\tredu@%x rscode@%x pscode@%x\n"
+	       , (unsigned int) &(pn->parse_node)
+	       , pn->parse_node.symbol
+	       , (unsigned int) pn, p->t->symbols[pn->parse_node.symbol].name
+	       , (unsigned int) r
+	       , (r == NULL ? -1 :  (unsigned int) (r->speculative_code))
+	       , (unsigned int) (p->speculative_code))
+	);
+  
+  }
   return 0;
 }
 
@@ -951,7 +971,7 @@ greedycmp(const void *ax, const void *ay) {
 }
 
 static int
-cmp_greediness(PNode *x, PNode *y) {
+cmp_greedyness(PNode *x, PNode *y) {
   VecPNode pvx, pvy;
   vec_clear(&pvx); vec_clear(&pvy); 
   get_unshared_pnodes(x, y, &pvx, &pvy);
@@ -1008,8 +1028,8 @@ cmp_pnodes(Parser *p, PNode *x, PNode *y) {
   if (!p->user.dont_use_eagerness_for_disambiguation)
     if ((r = cmp_eagerness(x, y)))
       return r;
-  if (p->user.use_greediness_for_disambiguation)
-    if ((r = cmp_greediness(x, y)))
+  if (!p->user.use_greedyness_for_disambiguation)
+    if ((r = cmp_greedyness(x, y)))
       return r;
   if (!p->user.dont_use_height_for_disambiguation) {
     if (x->height < y->height)
@@ -1064,14 +1084,34 @@ make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode 
       memset(&dummy, 0, sizeof(dummy));
       dummy.action_index = sh->action_index;
       new_pn->reduction = &dummy;
-      if (sh->speculative_code(
-	new_pn, (void**)&new_pn->children.v[0], new_pn->children.n,
-	(int)&((PNode*)(NULL))->parse_node, (D_Parser*)p)) 
+      //CPM0608 added another layer of code activity starting from the Parser structure.
+      if(p->speculative_code) {
+	i = p->speculative_code
+	  ((unsigned int)sh->speculative_code
+	   , new_pn, (void**)&new_pn->children.v[0], new_pn->children.n,
+	   (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+      } else {
+	i = sh->speculative_code
+	  (
+	   new_pn, (void**)&new_pn->children.v[0], new_pn->children.n,
+	   (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p
+	   );
+      }
+      if (i) 
       {
 	free_PNode(p, new_pn);
 	return NULL;
       }
       new_pn->reduction = NULL;
+    } else {
+      DBG(printf("make_PNode::\tskipping speculative reduction"
+		 "\tdpn@%x symb[%i]pn@[0x%x %s]\tsh@%x sscode@%x pscode@%x\n"
+		 , (unsigned int)&(new_pn->parse_node)
+		 , new_pn->parse_node.symbol
+		 , (unsigned int) new_pn, p->t->symbols[new_pn->parse_node.symbol].name
+		 , (unsigned int) sh
+		 , (sh != NULL ? (unsigned int) sh->speculative_code : -1)
+		 , (unsigned int) p->speculative_code));
     }
   } else if (r) {
     if (path)
@@ -1581,7 +1621,7 @@ binary_op_ZNode(SNode *sn) {
   return z;
 }
 
-static char *spaces = "                                                                                                  "; 
+static char *spaces = "                                                                                                  ";
 static void
 print_stack(Parser *p, SNode *s, int indent) {
   int i,j;
@@ -1811,10 +1851,32 @@ commit_tree(Parser *p, PNode *pn) {
       continue;
     }
   }
-  if (pn->reduction && pn->reduction->final_code)
-    pn->reduction->final_code(
-      pn, (void**)&pn->children.v[0], pn->children.n,
-      (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p);
+  if (pn->reduction && pn->reduction->final_code) {
+    if(p->final_code) {
+      p->final_code
+	(
+	 (unsigned int)pn->reduction->final_code
+	 , pn, (void**)&pn->children.v[0], pn->children.n,
+	 (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p
+	 );
+    } else {
+      pn->reduction->final_code
+	(
+	 pn, (void**)&pn->children.v[0], pn->children.n,
+	 (int)&((PNode*)(NULL))->parse_node, (D_Parser*)p
+	 );
+    }
+  } else {
+    DBG(printf("commit_tree::\tskipping final reduction"
+	       "\tdpn@%x sym[%i]pn@[0x%x %s]\tredu@%x rfcode@%x pfcode@%x\n"
+	       , (unsigned int)&(pn->parse_node)
+	       , pn->parse_node.symbol
+	       , (unsigned int) pn, p->t->symbols[pn->parse_node.symbol].name
+	       , (unsigned int)(pn->reduction)
+	       , (pn->reduction != NULL ? (unsigned int) pn->reduction->final_code : -1)
+	       , (unsigned int)(p->final_code)
+	       ));
+  }
   if (pn->evaluated) {
     if (!p->user.save_parse_tree && !internal)
       free_ParseTreeBelow(p, pn);
@@ -2242,6 +2304,8 @@ new_subparser(Parser *p) {
   Parser * pp = (Parser *)new_D_Parser(p->t, p->user.sizeof_user_parse_node);
   pp->end = p->end;
   pp->pinterface1 = p->pinterface1;
+  pp->speculative_code = p->speculative_code;
+  pp->final_code = p->final_code;
   alloc_parser_working_data(pp);
   return pp;
 }

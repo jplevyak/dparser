@@ -53,6 +53,8 @@ typedef struct Shift {
   struct Shift		*next;
 } Shift;
 
+typedef int (*Parser_D_ReductionCode)(unsigned int, void *, void **, int, int, struct D_Parser *);
+
 typedef struct Parser {
   D_Parser user;
   /* string to parse */
@@ -84,6 +86,10 @@ typedef struct Parser {
   struct Parser *whitespace_parser;
   /* interface support */
   void *pinterface1;
+  Parser_D_ReductionCode final_code;
+  Parser_D_ReductionCode speculative_code;
+
+
 #ifdef TRACK_PNODES
   struct PNode *xall;
 #endif  

@@ -1090,6 +1090,29 @@ find_symbol(Grammar *g, char *s, char *e, int kind) {
   return -1;
 }
 
+static unsigned int is_perl = 0;
+
+static char*
+perl_detection(char* c, unsigned int* is_perl) {
+  // perl detection:
+  //    #!perl   
+  // without stuff around!
+  if(*c == '#') {
+    char* c0 = c++;
+    while(*c && isspace(*c)) c++;
+    if(*c == '!') {
+      char *e = ++c;
+      while (*e && !isspace(*e)) e++;
+      if(STREQ(c, e-c, "perl")) {
+	*is_perl = 1;
+      }
+    }
+    c = c0;
+  }
+  return c;
+}
+
+
 static void
 write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 		char *fname, int line, char *pathname) 
@@ -1097,7 +1120,7 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
   char *c;
 
   if (!fp) {
-    d_warn("trying to write code to binary file");
+    //d_warn("trying to write code to binary file");
     return;
   }
   if (g->write_line_directives) {
@@ -1109,37 +1132,58 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
   while (*c) {
     if (*c == '\n')
       g->write_line++;
+
+    c = perl_detection(c, &is_perl);
+
     if (*c == '$') {
-      c++;
+      char *c0 = c++;
       if (*c == '#') {
 	c++;
 	if (isdigit(*c)) {
 	  int n = atoi(c);
-	  fprintf(fp, "(d_get_number_of_children((D_PN(_children[%d], _offset))))", n);
+	  is_perl
+	    ? fprintf(fp, "$_[1][%d]->d_get_number_of_children", n)
+	    : fprintf(fp, "(d_get_number_of_children((D_PN(_children[%d], _offset))))", n);
 	  if (n > r->elems.n-1)
 	    d_fail("$nXXXX greater than number of children at line %d", line);
 	  while (isdigit(*c)) c++;
 	} else
-	  fprintf(fp, "(_n_children)");
+	  is_perl
+	    ?  fprintf(fp, "$#{$_[1]}")
+	    : fprintf(fp, "(_n_children)");
       } else if (*c == 'g') {
-	fprintf(fp, "(D_PN(_ps, _offset)->globals)");
+	is_perl
+	  ? fprintf(fp, "$_[0]->globals")
+	  : fprintf(fp, "(D_PN(_ps, _offset)->globals)");
 	c++;
       } else if (*c == 'n') {
 	++c;
 	if (isdigit(*c)) {
 	  int n = atoi(c);
-	  fprintf(fp, "(*(D_PN(_children[%d], _offset)))", n);
-	  if (n > r->elems.n-1)
+	  (is_perl
+	   ? fprintf(fp, "$_[1][%d]", n)
+	   : fprintf(fp, "(*(D_PN(_children[%d], _offset)))", n));
+	  if (n > r->elems.n-1) {
 	    d_fail("$nXXXX greater than number of children at line %d", line);
-	  while (isdigit(*c)) c++;
-	} else 
-	  fprintf(fp, "(*(D_PN(_ps, _offset)))");
+	  }
+	  while(isdigit(*c)) c++;
+	} else {	  
+	  if(is_perl) {
+	    fprintf(fp, "$_[0]");
+	  } else {
+	    fprintf(fp, "(*(D_PN(_ps, _offset)))");
+	  }
+	}
       } else if (*c == '$') {
-	fprintf(fp, "(D_PN(_ps, _offset)->user)");
+	is_perl
+	  ? fprintf(fp, "$_[0]->user")
+	  : fprintf(fp, "(D_PN(_ps, _offset)->user)");
 	c++;
       } else if (isdigit(*c)) {
 	int n = atoi(c);
-	fprintf(fp, "(D_PN(_children[%d], _offset)->user)", n);
+	is_perl
+	  ? fprintf(fp, "$_[1][%d]->user", n)
+	  : fprintf(fp, "(D_PN(_children[%d], _offset)->user)", n);
 	while (isdigit(*c)) c++;
       } else if (*c == '{') {
 	char *e = ++c, *a;
@@ -1162,9 +1206,13 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 	      d_fail("bad ${...} at line %d", line);
 	    n = dup_str(ss, e);
 	    if (!*y)
-	      sprintf(x, "(D_PN(_children[%s], _offset))", n);
-	    else
-	      sprintf(x, "d_get_child(%s, %s)", y, n);
+	      is_perl
+		? sprintf(x, "$_[1][%s]", n)
+		: sprintf(x, "(D_PN(_children[%s], _offset))", n);
+	    else //not sure there...
+	      is_perl
+		? sprintf(x, "$_[1][%s]->d_get_child($_[1][%s])", y, n)
+		: sprintf(x, "d_get_child(%s, %s)", y, n);
 	    if (*e == ',') e++;
 	    if (isspace(*e)) e++;
 	    i = !i;
@@ -1175,11 +1223,17 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 	} else if (STREQ(c, e-c, "reject")) {
 	  fprintf(fp, " return -1 ");
 	} else if (STREQ(c, e-c, "free_below")) {
-	  fprintf(fp, " free_D_ParseTreeBelow(_parser, (D_PN(_ps, _offset)))");
+	  is_perl
+	  ? fprintf(fp, "$_[2]->free_D_ParseTreeBelow($_[0])")
+	  : fprintf(fp, " free_D_ParseTreeBelow(_parser, (D_PN(_ps, _offset)))");
 	} else if (STREQ(c, e-c, "scope")) {
-	  fprintf(fp, "(D_PN(_ps, _offset)->scope)");
+	  is_perl
+	  ? fprintf(fp, "$_[0]->scope")
+	  : fprintf(fp, "(D_PN(_ps, _offset)->scope)");
 	} else if (STREQ(c, e-c, "parser")) {
-	  fprintf(fp, "_parser");
+	  is_perl
+	  ? fprintf(fp, "$_[2]")
+	  : fprintf(fp, "_parser");
 	} else if (STREQ(c, e-c, "nterm")) {
 	  fprintf(fp, "%d", find_symbol(g, e, a, D_SYMBOL_NTERM));
 	} else if (STREQ(c, e-c, "string")) {
@@ -1189,11 +1243,21 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 	  if (!p)
 	    d_fail("unknown pass '%s' line %d", dup_str(e, a), line);
 	  fprintf(fp, "%d", p->index);
+	} else {
+	  if(is_perl) {
+	    fputc(*c0, fp);
+	    a = c0;
+	  } else
+	    d_fail("bad $ escape in code line %u\n", line);
+	}
+	c = a + 1;
+      } else {
+	if(is_perl) {
+	  fputc(*c0, fp);
+	  c = ++c0;
 	} else
 	  d_fail("bad $ escape in code line %u\n", line);
-	c = a + 1;
-      } else
-	d_fail("bad $ escape in code line %u\n", line);
+      }
     } else { 
       fputc(*c, fp); 
       c++;
@@ -1207,6 +1271,8 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
     g->write_line++;
   }
 }
+
+
 
 static void
 write_global_code(FILE *fp, Grammar *g, char *tag) {
@@ -1222,6 +1288,9 @@ write_global_code(FILE *fp, Grammar *g, char *tag) {
     while (*c) {
       if (*c == '\n')
 	g->write_line++;
+
+      c = perl_detection(c, &is_perl);
+
       if (*c == '$') {
 	c++;
 	if (*c == '{') {
@@ -1261,6 +1330,7 @@ write_global_code(FILE *fp, Grammar *g, char *tag) {
 
 static char * reduction_args = "(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser)";
 
+
 static void
 write_reductions(File *file, Grammar *g, char *tag) {
   int i, j, k, l, pmax;
@@ -1268,7 +1338,8 @@ write_reductions(File *file, Grammar *g, char *tag) {
   Rule *r, *rdefault = NULL;
   char final_code[256], speculative_code[256], pass_code[256];
   FILE *fp = file->fp;
-
+  /*CPM070919 need to restart in case perl is used!redu_index = 0;*/
+  void* redu_index = (void*) 0;
   pdefault = lookup_production(g, "_", 1);
   if (pdefault) {
     rdefault = pdefault->rules.v[0];
@@ -1286,6 +1357,8 @@ write_reductions(File *file, Grammar *g, char *tag) {
 	      i, rdefault->prod->index, rdefault->index, tag, reduction_args);
       g->write_line += 1;
     }
+    redu_index = (void*)(2 + rdefault->pass_code.n);
+    redu_index = (void*) 2; // need to implement pass_code...
   }
   for (i = 0; i < g->productions.n; i++) {
     p = g->productions.v[i];
@@ -1386,7 +1459,20 @@ write_reductions(File *file, Grammar *g, char *tag) {
       add_struct_member(file, D_Reduction, %d, r->elems.n,       nelements);
       add_struct_member(file, D_Reduction, %d, r->prod->index,   symbol);
       if (file->binary) {
-        if (!r->prod->internal && r->action_index >= 0) {
+	if(is_perl) {
+	  if(r->speculative_code.code) {
+	    redu_index++;
+	    add_struct_member(file, D_Reduction, %d, redu_index, speculative_code);
+	  } else if(rdefault && rdefault->speculative_code.code) {
+	    add_struct_member(file, D_Reduction, %d, (void*)1, speculative_code);
+	  }
+	  if(r->final_code.code) {
+	    redu_index++;
+	    add_struct_member(file, D_Reduction, %d, redu_index, final_code);
+	  } else if(rdefault && rdefault->final_code.code) {
+	    add_struct_member(file, D_Reduction, %d, (void*)2, final_code);
+	  }
+	} else if (!r->prod->internal && r->action_index >= 0) {
 	  add_struct_ptr_member(file, D_Reduction, "", &spec_code_entry,  speculative_code);
 	  add_struct_ptr_member(file, D_Reduction, "", &final_code_entry,  final_code);
 	} else {
@@ -1745,7 +1831,6 @@ write_parser_tables(Grammar *g, char *tag, File *file) {
   if (file->binary) {
     file->d_parser_tables_loc = file->tables.cur - file->tables.start;
   }
-
   start_struct(file, D_ParserTables, make_name("parser_tables_%s", tag), "\n");
   add_struct_member(file, D_ParserTables, %d, g->states.n, nstates);
   add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_states_%s", tag), state);

@@ -1,44 +1,51 @@
-#!/bin/tcsh 
+#!/bin/bash -xv
 
-#setenv VALGRIND 'linux32 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes'
-setenv VALGRIND ''
+export VALGRIND='linux32 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes'
+export VALGRIND=''
 
-cp BUILD_VERSION Makefile *.c *.h grammar.g tests
-cd tests
-$MAKE -s make_dparser
-$MAKE gram
-$MAKE -s make_dparser
-set failed = 0
-foreach g (*.test.g)
+#cp -auv BUILD_VERSION Makefile *.c *.h grammar.g tests
+pushd tests
+#$MAKE -s make_dparser
+#$MAKE gram
+#$MAKE -s make_dparser
+let failed=0
+for g in *.test.g
+do
   rm -f sample_parser
-  if (-e $g.flags) then
-    set flags = `cat $g.flags`
+  if [ -e $g.flags ]
+  then
+    flags=`cat $g.flags`
   else
-    set flags = 
-  endif
+    flags= 
+  fi
   $VALGRIND ./make_dparser $flags $g
-  $MAKE -s sample_parser SAMPLE_GRAMMAR=$g:t
-  foreach t ( $g.[0-9] $g.[0-9][0-9] )
-    if (-e $t.flags) then
-      set flags = `cat $t.flags`
+  #mv -v gmon.out
+  $MAKE -s sample_parser SAMPLE_GRAMMAR=$g
+  for t in $(ls -1 $g.[0-9]{,[0-9]})
+  do
+    if [ -e $t.flags ]
+	then
+      flags=`cat $t.flags`
     else
-      set flags = 
-    endif
+      flags= 
+    fi
     $VALGRIND ./sample_parser $flags -v $t >&! $t.out
     diff $t.out $t.check
-    if ($?) then
+    if [ $? ]
+	then
       echo $t "******** FAILED ********"
-      set failed = `expr $failed + 1`
+      let failed++
     else
       echo $t "PASSED"
-    endif
-  end
-end
+    fi
+  done
+done
 echo "---------------------------------------"
-if (! $failed) then
+if ( ! ( $failed ))
+then
   echo "ALL tests PASSED"
 else
   echo "********" $failed "test(s) FAILED *********"
-endif
-rm -f sample_parser BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
-cd ..
+fi
+#rm -vf sample_parser BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
+popd

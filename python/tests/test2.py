@@ -40,5 +40,5 @@ def ambiguity_func(v):
 def d_whitespace(t, spec):
     "whitespace : ' '*"
     
-if Parser().parse('1  +2* (3+ 4+5)', ambiguity_fn = ambiguity_func, print_debug_info=0) != 25:
+if Parser().parse('1  +2* (3+ 4+5)', ambiguity_fn = ambiguity_func) != 25:
     print 'fail'

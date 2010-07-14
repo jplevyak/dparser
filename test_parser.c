@@ -123,7 +123,7 @@ main(int argc, char *argv[]) {
   D_ParserTables *parser_tables_gram;
 
   process_args(&arg_state, argv);
-  if (arg_state.nfile_arguments < 2)
+  if (arg_state.nfile_arguments < 1)
     help(&arg_state, NULL);
 
   /* build grammar */

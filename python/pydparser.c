@@ -11,7 +11,31 @@ static int my_speculative_action(void *new_ps, void **children, int n_children, 
 				 struct D_Parser *parser); 
 static PyObject *make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string);
 
-void SWIG_MakePtr(char *_c, const void *_ptr, char *type);
+//CPM100628 yuk... gone with new SWIG stuff...
+//void SWIG_MakePtr(char *_c, const void *_ptr, char *type);
+void SWIG_MakePtr(char *_c, const void *_ptr, char *type) {
+  static char _hex[16] =
+  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+   'a', 'b', 'c', 'd', 'e', 'f'};
+  unsigned long _p, _s;
+  char _result[20], *_r;    /* Note : a 64-bit hex number = 16 digits */
+  _r = _result;
+  _p = (unsigned long) _ptr;
+  if (_p > 0) {
+    while (_p > 0) {
+      _s = _p & 0xf;
+      *(_r++) = _hex[_s];
+      _p = _p >> 4;
+    }
+    *_r = '_';
+    while (_r >= _result)
+      *(_c++) = *(_r--);
+  } else {
+    strcpy (_c, "NULL");
+  }
+  if (_ptr)
+    strcpy (_c, type);
+}
 
 typedef struct D_ParserPyInterface {
   PyObject *reject;
@@ -263,7 +287,7 @@ make_parser(long int idpt,
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
   p->error_recovery = error_recovery;
   p->free_node_fn = free_node_fn;
-  ppi = malloc(sizeof(D_ParserPyInterface)); 
+  ppi = MALLOC(sizeof(D_ParserPyInterface)); 
   memset(ppi, 0, sizeof(D_ParserPyInterface));
   ((Parser*)p)->pinterface1 = ppi;
   /* d_interface(p) = ppi; */
@@ -334,7 +358,7 @@ del_parser(D_Parser *dp) {
     free_D_ParseNode(dp, ppi->top_node);
   }
   free_D_Parser(dp);
-  free(ppi);
+  FREE(ppi);
 }
 
 PyObject *
@@ -665,7 +689,7 @@ d_version(char *v) {
   v[0] = 0;
 }
 
-long int 
+long int
 load_parser_tables(char *tables_name) {
   return (long int)read_binary_tables(tables_name, my_speculative_action, my_final_action);
 }

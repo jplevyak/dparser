@@ -15,7 +15,7 @@
 #include "dparse.h"
 
 extern D_ParserTables parser_tables_gram;
-extern int verbose_level;
+int verbose_level;
 extern struct D_ParseNode *my_ambiguity_fn(struct D_Parser *pp, int n,
                                            struct D_ParseNode **v );
 

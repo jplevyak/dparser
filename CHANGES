@@ -1,6 +1,3 @@
-1.15    Removed call to exec in python interface (Brian Sabbey)
-        Fix binary_op_left in python interface (Brian Sabbey)
-
 1.14	Support generation of code from a grammar to print 
           the parse tree instead of executing the actions (Wlodzimierz Bzyl)
         Support user-defined print functions (Wlodzimierz Bzyl)

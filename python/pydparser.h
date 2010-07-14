@@ -1,13 +1,49 @@
+/* $Id$
+ *
+ * $Log$
+ */
+#ifndef __PYDPARSER_H__
+#define __PYDPARSER_H__
+
+#include <Python.h>
+
 typedef struct user_pyobjects {
   PyObject *t;
   PyObject *s;
   int inced_global_state;
 } user_pyobjects;
 
-#ifndef SWIG
-#define D_ParseNode_User user_pyobjects
 #define D_ParseNode_Globals PyObject
-#include "../d.h"
+#define D_ParseNode_User user_pyobjects
+#define dont_use_malloc_use_MALLOC_instead MALLOC
+#define dont_use_free_use_FREE_instead FREE
+
+#if defined SWIG
+//TODO:CPM100701 check with %typemap() (char* end)
+//in dparser_tables.h
+typedef struct d_loc_t {
+  char *pathname;
+  int previous_col, col, line;
+} d_loc_t;
+
+//in dparse.h
+typedef struct D_ParseNode {
+  int			symbol;
+  d_loc_t		start_loc;
+  D_ParseNode_Globals	*globals;
+  user_pyobjects	user;
+} D_ParseNode;
+
+
+
+D_ParseNode *d_get_child(D_ParseNode *pn, int child);
+D_ParseNode *d_find_in_tree(D_ParseNode *pn, int symbol);
+int d_get_number_of_children(D_ParseNode *pn);
+
+#else
+
+#include "d.h"
+
 #endif
 
 void my_d_loc_t_s_set(d_loc_t *dlt, D_Parser *dp, int val);
@@ -46,3 +82,5 @@ D_Parser *make_parser(long int idpt,
 PyObject *run_parser(D_Parser *dp, PyObject* string, int buf_idx);
 int make_tables(char *grammar_string, char *grammar_pathname);
 long int load_parser_tables(char *tables_name);
+
+#endif
