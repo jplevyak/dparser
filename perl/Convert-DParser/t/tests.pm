@@ -7,11 +7,10 @@
 #
 # $Log$
 #
-
-use Data::Dumper;
-use Digest::MD5 qw(md5 md5_hex md5_base64);
 use IO::String;
 use IO::File;
+use Digest::MD5 qw(md5 md5_hex md5_base64);
+use Data::Dumper;
 use Data::Hexdumper qw(hexdump) ;
 use File::Temp	qw/tempfile tempdir mktemp/;
 use File::Path	qw(remove_tree make_path);
@@ -20,18 +19,21 @@ use File::Basename;
 use Tie::IxHash;
 use Storable;
 
-
-
 BEGIN {
-	if($0 =~ qr#/usr/.*src/#) {
-		my($p) = $0 =~ m#/usr/.*src/[^/]+/#g;
-		unshift(@INC, File::Spec->catfile($p, 'lib'));
+    @libs = ();
+    $p = File::Basename->dirname($0);
+    $i = 3;
+    while($i--) {
+	$l = File::Spec->catfile($p, 'lib');
+	if(-d $l) {
+	    push(@libs, $l);
 	}
-	use lib qw(
-	/net/stenb-d530-04/c/cygwin/usr/lib/perl5/site_perl
-	//stnb-d530-04/c/usr/lib/perl5/site_perl
-    );
+	$p = File::Spec->catfile($p, '..');
+    }
+    push @libs, '../../blib/lib', '../../blib/arch';
 }
+
+use lib @libs;
 
 sub ok {
 	_base_dumper('ok', @_);

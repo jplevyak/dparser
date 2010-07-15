@@ -1,7 +1,9 @@
+ChangeLog
 Makefile.PL
 lib/Convert/DParser/ASN1.pm
 lib/Convert/DParser/ASN1/Decode.pm
 lib/Convert/DParser/ASN1/Encode.pm
+lib/Convert/DParser/ASN1/Grammar.pm
 t/50-ASN1.t
 t/tests.pm
 contrib/ASN1.g

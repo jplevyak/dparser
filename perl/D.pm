@@ -1,5 +1,5 @@
 
-=head3 COPYRIGHTS
+=head1 COPYRIGHTS
 
  @PACKAGE_COPYRIGHT@
 
@@ -479,7 +479,6 @@ use warnings;
 #use strict;
 use Carp qw(croak carp);
 use vars qw($VERSION @ISA $AUTOLOAD $use_XSLoader);
-#use Attribute::Handlers;
 require AutoLoader;
 
 $VERSION = q[1.14.2];
@@ -529,7 +528,7 @@ $Data::Dumper::Indent = 1;
 use FileHandle;
 use Parser::D::Node;
 
-if ($use_XSLoader)
+if($use_XSLoader)
   { XSLoader::load("Parser::D", $VERSION)}
 else
   { bootstrap Parser::D $VERSION }  
@@ -597,7 +596,9 @@ __PACKAGE__->contained_objects
   );
 
 
-=heads3 new
+=head2 new
+
+=head3 DESCRIPTION
 
   the new function will create an instance of Parser::D,
   but also possibly compile its grammar, and load resulting tables,
@@ -606,10 +607,10 @@ __PACKAGE__->contained_objects
   finaly initialise the jump-start and the parser
   would be ready to run... all this.
 
-=heads4 SYNOPSIS
+=head3 SYNOPSIS
 
 
-=heads4 INPUT
+=head3 FLOW
 
 
 
@@ -623,11 +624,12 @@ __PACKAGE__->contained_objects
 sub new {
   my $class = shift || __PACKAGE__;
   my $d = $class->SUPER::new(@_);
-  # ..or directly create the SV called by initial_white_space_fn()
+  #TODO:CPM07 ..or directly create the SV called by initial_white_space_fn()
   if(defined($d->{initial_skip_space_fn})) {
-    *ParserPtr::white_space_fn = $d->{initial_skip_space_fn};
+      undef *ParserPtr::white_space_fn;
+      *ParserPtr::white_space_fn = $d->{initial_skip_space_fn};
   }
-  # may be do a group commande here...
+  #TODO:CPM07 may be do a group commande here...
   $d->make_gramma(undef, undef, @_);
   $d->load_tables(undef, @_);
   $d->{top_node} = $d->init;

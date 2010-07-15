@@ -1,7 +1,7 @@
 #!/usr/bin/perl -I t
-# $File: //member/autrijus/Module-Signature/t/0-signature.t $ $Author: cmont $
-# $Revision: 1.1.1.1 $ $Change: 1871 $ $DateTime: 2002/11/03 19:22:02 $
-
+# 
+# $Id$
+#
 
 BEGIN {
     require tests;
@@ -9,6 +9,7 @@ BEGIN {
 END {
     done_testing(14 + 3);
 }
+
 use_ok('Convert::DParser::ASN1');
 
 #
@@ -21,7 +22,7 @@ is(ref($a = Convert::DParser::ASN1->new), $test, $test)
 #
 # check this simple preparation
 #
-my $desc=<<ESD
+$desc=<<ESD
 Constant-definitions DEFINITIONS AUTOMATIC TAGS ::=
 BEGIN
 hiPDSCHidentities                       INTEGER ::= 64
@@ -91,29 +92,29 @@ ESD
 ;
 
 ok($a = Convert::DParser::ASN1->new
-  (d_debug_level => 0
-   , d_verbose_level => 0
-   , description => $desc
-   , initial_skip_space_fn => sub  {
-     my $p = shift || die (__PACKAGE__ , "::my_white_space_fn::wehere is ppi?");
-     my $loc = Parser::D::d_loc_t->new(shift, $p);
-     my $g = shift || undef;
-     my $s = ${$loc->{buf}};
-     my $a = pos($s) = $loc->tell;
-     $s =~ m/\G\s*/gcs;
-     my (@comments) = $s =~ m/\G\s*(--.*)\s*/gcm;
-     #
-     # trigger token in globals?
-     #
-     $loc->seek(my $b = pos($s));
-     if(@comments && defined $g) {
-       push @{$g->{comments}}, @comments;
-     }
-   }
-  )
-  , $test);
+   (d_debug_level => 0
+    , d_verbose_level => 0
+    , description => $desc
+    , initial_skip_space_fn => sub  {
+	my $p = shift || die (__PACKAGE__ , "::my_white_space_fn::wehere is ppi?");
+	my $loc = Parser::D::d_loc_t->new(shift, $p);
+	my $g = shift || undef;
+	my $s = ${$loc->{buf}};
+	my $a = pos($s) = $loc->tell;
+	$s =~ m/\G\s*/gcs;
+	my(@comments) = $s =~ m/\G\s*(--.*)\s*/gcm;
+	#
+	# trigger token in globals?
+	#
+	$loc->seek(my $b = pos($s));
+	if(@comments && defined $g) {
+	    push @{$g->{comments}}, @comments;
+	}
+    }
+   )
+   , $test);
 
-#TODO comments are not yet linked to there modules etc...
+#TODO comments are not yet linked to the modules etc...
 is($#{$a->{comments}}, 10, $stest . '::found all comments');
 is(${$a->{comments}}[0]
    , '-- ***************************************************'

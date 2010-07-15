@@ -20,17 +20,11 @@ use File::Basename;
 use Tie::IxHash;
 use Storable;
 
-
-
 BEGIN {
 	if($0 =~ qr#/usr/.*src/#) {
-		my($p) = $0 =~ m#/usr/.*src/[^/]+/#g;
+		my($p) = $0 =~ m#.*/usr/.*src/[^/]+/#g;
 		unshift(@INC, File::Spec->catfile($p, 'lib'));
 	}
-	use lib qw(
-	/net/stenb-d530-04/c/cygwin/usr/lib/perl5/site_perl
-	//stnb-d530-04/c/usr/lib/perl5/site_perl
-    );
 }
 
 sub ok {

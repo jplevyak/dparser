@@ -20,7 +20,7 @@
 #
 #
 # 
-
+###################################################################
 MODULE = Parser::D        PACKAGE = D_ParserTablesPtr PREFIX = tables_
 
 void
@@ -54,7 +54,8 @@ CODE:
 OUTPUT:
 	RETVAL
 
-
+#
+###################################################################
 MODULE = Parser::D        PACKAGE = Parser::D::Tables PREFIX = tables_
 
 
@@ -695,7 +696,7 @@ CODE:
 #
 # XS functions to link the
 # Perl Object Parser::D::Gammar to its C conterpart.
-#
+####################################################################
 MODULE = Parser::D   PACKAGE = Parser::D::Gammar  PREFIX = g_
 
 
