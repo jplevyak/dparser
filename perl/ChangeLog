@@ -1,0 +1,6 @@
+2010-07-15  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* D.pm (new):
+	fixed a warning for redifining ParserPtr::white_space_fn()
+	with initial_skip_space_fn().
+

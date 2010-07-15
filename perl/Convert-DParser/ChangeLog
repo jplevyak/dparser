@@ -1,0 +1,5 @@
+2010-07-15  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* lib/Convert/DParser/ASN1.pm (prepare):
+	add error check after run().
+
