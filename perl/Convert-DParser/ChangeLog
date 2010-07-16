@@ -1,3 +1,11 @@
+2010-07-16  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
+
+	* lib/Convert/DParser/ASN1.pm (white_space_fn):
+	changed working buffer string SCALAR into SCALARREF.
+	(prepare):
+	now {description} is parsed as HASH parameter.
+	(%gram_parm): default parameters for first grammar compilation.
+
 2010-07-15  Montanari  <Christian Montanari <c.montanari@ste.sharp-eu.com>>
 
 	* t/tests.pm:

@@ -138,7 +138,27 @@ _GRAM_
 ;
 
 
+sub  white_space_0 {
+    my $pp = shift;
+    my $loc = Parser::D::d_loc_t->new(shift, $pp);
+    my $s = ${$loc->{buf}};
+    my $a = pos($s) = $loc->tell;
+    $s =~ m/\G\s*/gcs;
+    my(@comments) = $s =~ m/\G\s*(--.*)\s*/gcm;
+    $loc->seek(my $b = pos($s));
+    if(@comments) {
+	my $ppi = $pp->interface;
+	push @{$ppi->{comments}}, ($a, @comments);
+    }
+}
 
+sub clean_compile {
+    my $s = md5_hex($_[0]);
+    unlink($d_t .'asn_' . $s . '.i'
+	   , $d_t .'.d_parser.' . $s . '.o'
+	   , $d_t .  '.' . $s . '.c'	   
+	);
+}
 
 1;
 __END__

@@ -5,6 +5,7 @@
 
 BEGIN {
     require tests;
+    unlink('asn_96ada479a8b8037d0dcc1e83dde88188.i');
 }
 END {
     done_testing(14 + 3);
@@ -28,10 +29,12 @@ BEGIN
 hiPDSCHidentities                       INTEGER ::= 64
 END
 ESD
-;
+    ;
+clean_compile($desc);
+
 $test =  'Convert::DParser::ASN1::prepare';
-$stest =  $test . ':: small  scalar description';
-is(ref($a->prepare(\$desc)), 'Convert::DParser::ASN1', $stest);
+$stest =  $test . ':: small scalar ref description';
+is(ref($a->prepare(description => \$desc)), 'Convert::DParser::ASN1', $stest);
 is(ref($t = $a->{script}), 'Convert::DParser::ASN1', $stest);
 
 $stest =  $test . ':: small description names ok';
@@ -46,10 +49,80 @@ $test =  'Convert::DParser::ASN1::verify';
 #$a = Convert::DParser::ASN1->new->prepare(\$desc);
 $test =  'Convert::DParser::ASN1::compile';
 
+# Convert::DParser::ASN1::prepare $desc is a GLOB (like with an IO::String )
+
+#rConvert::DParser::ASN1::prepare reuse compilations 
+
+#crash when no grammar
+#3 states 1 scans 0 shifts 1 reductions 0 compares 0 ambiguities
+#fail: no productions in grammar '-'
+#
+#Debugger exited abnormally with code 1
+
 }
 
 
-# test 21 comments
+# test  default comments white space
+$desc=<<ESD
+--
+InformationElements DEFINITIONS AUTOMATIC TAGS ::= BEGIN aa INTEGER ::= 0 END
+ESD
+    ;
+$test=' test  default comments white space default Convert::DParser::ASN1::white_space_fn::';
+clean_compile($desc);
+ok($a = Convert::DParser::ASN1->new
+   (d_debug_level => 1
+    , d_verbose_level => 1
+    , description => $desc
+   )
+   , $test);
+is($a->{comments}[1], '--', $test);
+
+$test='Convert::DParser::ASN1::white_space_fn:: with my own function';
+clean_compile($desc);
+ok($a = Convert::DParser::ASN1->new
+   (
+    description => $desc
+    , initial_skip_space_fn => \&white_space_0
+   )
+   , $test);
+is($a->{comments}[1], '--', $test);
+
+
+$test='Convert::DParser::ASN1::white_space_fn:: more complex combinations';
+# test  default comments
+$desc=<<ESD
+
+InformationElements DEFINITIONS AUTOMATIC TAGS ::= --
+-- ***************************************************
+--     CORE NETWORK INFORMATION ELEMENTS (10.3.1)
+-- *************************************************** -- double comment shall be ignored
+BEGIN -- BEGIN it is a comment
+CN-DomainIdentity ::=				ENUMERATED {
+										cs-domain,
+ 										ps-domain }
+END
+ESD
+    ;
+clean_compile($desc);
+ok($a = Convert::DParser::ASN1->new
+   (d_debug_level => 0
+    , d_verbose_level => 2
+    , description => $desc
+   )
+   , $test);
+
+@b = qw();
+
+is_deeply($a->{parser}{comments}, @b, $test);
+#TODO comments are not yet linked to the modules etc...
+is($#{$a->{parser}{comments}}, 10, $test . '::found all comments');
+is(${$a->{parser}{comments}}[0]
+   , '-- ***************************************************'
+   , $stest . ':: is this a good comment');
+
+
+
 $desc=<<ESD
 InformationElements DEFINITIONS AUTOMATIC TAGS ::=
 
@@ -57,13 +130,13 @@ InformationElements DEFINITIONS AUTOMATIC TAGS ::=
 --
 --     CORE NETWORK INFORMATION ELEMENTS (10.3.1)
 --
--- *************************************************** -- double comment shall be ignored
+-- ***************************************************
 
-BEGIN -- BEGIN it is a comment
+BEGIN
 
 CN-DomainIdentity ::=				ENUMERATED {
 										cs-domain,
-										ps-domain }
+ 										ps-domain }
 
 CN-DomainInformation ::=			SEQUENCE {
 	cn-DomainIdentity					CN-DomainIdentity,
@@ -93,32 +166,11 @@ ESD
 
 ok($a = Convert::DParser::ASN1->new
    (d_debug_level => 0
-    , d_verbose_level => 0
+    , d_verbose_level => 3
     , description => $desc
-    , initial_skip_space_fn => sub  {
-	my $p = shift || die (__PACKAGE__ , "::my_white_space_fn::wehere is ppi?");
-	my $loc = Parser::D::d_loc_t->new(shift, $p);
-	my $g = shift || undef;
-	my $s = ${$loc->{buf}};
-	my $a = pos($s) = $loc->tell;
-	$s =~ m/\G\s*/gcs;
-	my(@comments) = $s =~ m/\G\s*(--.*)\s*/gcm;
-	#
-	# trigger token in globals?
-	#
-	$loc->seek(my $b = pos($s));
-	if(@comments && defined $g) {
-	    push @{$g->{comments}}, @comments;
-	}
-    }
    )
    , $test);
 
-#TODO comments are not yet linked to the modules etc...
-is($#{$a->{comments}}, 10, $stest . '::found all comments');
-is(${$a->{comments}}[0]
-   , '-- ***************************************************'
-   , $stest . ':: is this a good comment');
 
 #
 $test =  'Convert::DParser::ASN1::encode';

@@ -202,11 +202,8 @@ our %per_item_bit_size
 __PACKAGE__->valid_params
   (
    filename => {default => ".d_parser", optional => 1}
-   , grammar => {default => \$Convert::DParser::ASN1::grammar}
-   , start_token => {default => 'top'}
-   , description => {default => ""}
+#   , description => {default => ''}
    , parser => {isa => 'Parser', optional => 1 }
-   , initial_skip_space_fn => {default => *white_space_fn}
   );
 
 __PACKAGE__->contained_objects
@@ -241,24 +238,27 @@ our %EXPORT_TAGS
 
 =head2 new
 
-    simple instenciator.
+    simple instanciator.
 
-accet parameters:
+accept parameters from <Parser::D> and Convert::DParser::ASN1::Encode Convert::DParser::ASN1::Decode
 
    filename => {default => ".d_parser", optional => 1}
+
    , grammar => {default => \$Convert::DParser::ASN1::grammar}
    , start_token => {default => 'top'}
-   , description => {default => ""}
-   , parser => {isa => 'Parser', optional => 1 }
    , initial_skip_space_fn => {default => *white_space_fn}
+
+
+#   , description => {default => ""}
+   , parser => {isa => 'Parser', optional => 1 }
+
 
 
 =cut
 
 sub new {
   my $c = shift || __PACKAGE__;
-  my $t = $c->SUPER::new(@_);
-  return $t->prepare;
+  return prepare($c, @_);
 }
 
 sub save_state {
@@ -331,36 +331,51 @@ my $asn = __PACKAGE__->new->prepare(\$other_grammar);
 
 =cut
 
+our %gram_parm = (
+    initial_skip_space_fn => \&white_space_fn
+   , grammar => \$Convert::DParser::ASN1::grammar
+   , start_token => 'top'
+);
 
 sub prepare {
   my $t = shift || return;
-  my $asn = shift || $t->{description} || return $t;
+  unless(ref($t)) {
+      $t = $t->SUPER::new(%gram_parm, @_);
+  } else {
+      my %h = (@_);
+      while(my($k, $v) = each(%h)) {
+	  #TODO:CPM100720 allowed_params here
+	  $t->{$k} = $v;
+      }
+  }
+#TODO:CPM100720 be sure to use text SCALAR, put a type check in param validate...
+  my $asn = $t->{description} || $t->{parser}{description} || return $t;
   my $txt = (ref($asn) eq 'SCALAR' ? $asn : \$asn);
   if(ref($asn) eq 'GLOB') {
     local $/ = undef;
-    $txt = \${<$asn>}; #TODO tobe checked 070920
+#TODO tobe checked 070920
+    $txt = \${<$asn>};
   }
   if($txt) {
       my($r, $err);
       my $s = md5_hex($$txt);
       my $path = 'asn_' . $s . '.i';
       unless($s = $t->restore_state($path)) {
-	  $t->{parser} = $t->create_delayed_object
-	      ('parser'
-	       , map(($_ => $t->{$_}), qw(grammar start_token))
-	       , @_
-	      );
+	  $t->{parser} = $t->create_delayed_object('parser', @_);
+	      #, map(($_ => $t->{$_}), qw(grammar start_token))
+	      #);
 	  ($r, $err) = $t->{parser}->run($txt);
 	  if($@ || (ref($r) ne 'D_ParseNodePtr')) {
-	      carp "failed second stage compilation of grammar " . $s
-		  . sprintf('%30s ... ', $txt);
+	      carp("failed second stage compilation of grammar "
+		   . $path
+		   . sprintf('%30s ... ', $txt)
+		  );
 	      return $t;
 	  }
 	  my $tree = $t->{htree} = $r->user;
 	  _make_graph($tree, 'parsed.' . $$);
-	  #CPM070924
-	  #TODO: comments are not yet linked to there modules etc...
-	  $t->{comments} = $t->{parser}->{comments};
+	  #TODO:CPM070924 comments are not yet linked to their modules etc...
+	  $t->{comments} = $t->{parser}{comments};
 	  $err = $t->verify($tree);
 	  _make_graph($tree, 'verife.' . $$);
 	  carp(caller(), $err, Dumper($tree)) if($err);
@@ -2693,20 +2708,17 @@ to find a way linking nodes into comments, may be by using locy?
 
 =cut
 
-
 sub white_space_fn {
   my $pp = shift || die (__PACKAGE__ , "::my_white_space_fn::wehere is ppi?");
   my $loc = Parser::D::d_loc_t->new(shift, $pp);
-  my $s = $loc->{buf};
-  my $a = pos($$s) = $loc->tell;
-  $$s =~ m/\G\s*/gcs;
-  my (@comments) = $$s =~ m/\G\s*(--.*)\s*/gcm;
-  #
-  # trigger token in globals?
-  $loc->seek(my $b = pos($$s));
+  my $s = ${$loc->{buf}};
+  my $a = pos($s) = $loc->tell;
+  $s =~ m/\G\s*/gcs;
+  my(@comments) = $s =~ m/\G\s*(--.*)\s*/gcm;
+  $loc->seek(my $b = pos($s));
   if(@comments) {
-    my $p = $pp->interface;
-    push @{$p->{comments}}, ($a, @comments);
+    my $pi = $pp->interface;
+    push @{$pi->{comments}}, ($a, @comments);
   }
 }
 
@@ -3053,9 +3065,8 @@ __END__
 
 =head1 COPYRIGHTS, LICENCES, and DISCLAIMERS
 
-the squeleton shall be  borrowed from  <Convert::ASN1> (c)2000-2005 Graham Barr <gbarr@pobox.com>
-
-thee flesh and a few more functions is Copyright (c) 2006-2007 <christian.montanari@sharp.eu>, Sharp-Telecommunication of Europe Ltd. . All rights reserved.
+the constants and a feww basic functions are borrowed from  <Convert::ASN1>
+the flesh and a few more functions is Copyright (c) 2006-2007 <christian.montanari@sharp.eu>, Sharp-Telecommunication of Europe Ltd. . All rights reserved.
 
 This program is free software; you can redistribute it and/or  modify it under the same terms as Perl itself.
 
