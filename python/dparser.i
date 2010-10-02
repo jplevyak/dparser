@@ -8,7 +8,7 @@
 typedef struct d_loc_t {
   long int s;
   char *pathname, *ws;
-  int col, previous_col, line;
+  int col, line;
 } d_loc_t;
 
 typedef struct D_ParseNode {

@@ -1610,7 +1610,7 @@ print_production(Production *p) {
       //      }
     } else {
       if (variant==0)
-	printf(next_or_rule);
+	printf("%s", next_or_rule);
       else
 	printf("%s%s%s", opening[variant], p->name, middle[variant]);
     }
@@ -1635,7 +1635,7 @@ print_production(Production *p) {
     if ((d_rdebug_grammar_level == 2 && variant == 0) ||
 	(d_rdebug_grammar_level == 3 && variant == 1)) {
       if (variant==1)
-	printf(speculative_final_closing);
+	printf("%s", speculative_final_closing);
       variant=2;
       goto Lmore;
     }
