@@ -1,7 +1,8 @@
 # Copyright (c) 2003, 2004 Brian Sabbey
 # contributions by Milosz Krajewski
+# contributions by John Plevyak
 
-import sys, types, os, md5, dparser_swigc, string 
+import sys, types, os, hashlib, dparser_swigc, string 
 
 class user_pyobjectsPtr :
     def __init__(self,this):
@@ -136,7 +137,7 @@ def my_ambiguity_func(nodes):
 
 class Tables:
     def __init__(self):
-        self.sig = md5.new()
+        self.sig = hashlib.md5();
         self.sig.update('1.15')
         self.tables = None
         
