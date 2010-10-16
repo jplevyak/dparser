@@ -386,7 +386,7 @@ escape_string_internal(char *s, int single_quote) {
 	*ss++ = *s;
         break;
       default:
-	if (isprint(*s))
+	if (isprint_(*s))
 	  *ss++ = *s;
 	else {
 	  *ss++ = '\\';

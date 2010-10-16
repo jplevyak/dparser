@@ -1065,7 +1065,7 @@ write_scanner_code(File *file, Grammar *g, char *tag) {
 
 static int
 find_symbol(Grammar *g, char *s, char *e, int kind) {
-  while (*s && isspace(*s)) s++;
+  while (*s && isspace_(*s)) s++;
   if (e > s) {
     if (kind == D_SYMBOL_NTERM) {
       Production *p;
@@ -1124,12 +1124,12 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
       c++;
       if (*c == '#') {
 	c++;
-	if (isdigit(*c)) {
+	if (isdigit_(*c)) {
 	  int n = atoi(c);
 	  fprintf(fp, "(d_get_number_of_children((D_PN(_children[%d], _offset))))", n);
 	  if (n > r->elems.n-1)
 	    d_fail("$nXXXX greater than number of children at line %d", line);
-	  while (isdigit(*c)) c++;
+	  while (isdigit_(*c)) c++;
 	} else
 	  fprintf(fp, "(_n_children)");
       } else if (*c == 'g') {
@@ -1137,26 +1137,26 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 	c++;
       } else if (*c == 'n') {
 	++c;
-	if (isdigit(*c)) {
+	if (isdigit_(*c)) {
 	  int n = atoi(c);
 	  fprintf(fp, "(*(D_PN(_children[%d], _offset)))", n);
 	  if (n > r->elems.n-1)
 	    d_fail("$nXXXX greater than number of children at line %d", line);
-	  while (isdigit(*c)) c++;
+	  while (isdigit_(*c)) c++;
 	} else 
 	  fprintf(fp, "(*(D_PN(_ps, _offset)))");
       } else if (*c == '$') {
 	fprintf(fp, "(D_PN(_ps, _offset)->user)");
 	c++;
-      } else if (isdigit(*c)) {
+      } else if (isdigit_(*c)) {
 	int n = atoi(c);
 	fprintf(fp, "(D_PN(_children[%d], _offset)->user)", n);
-	while (isdigit(*c)) c++;
+	while (isdigit_(*c)) c++;
       } else if (*c == '{') {
 	char *e = ++c, *a;
-	while (*e && *e != '}' && !isspace(*e)) e++;
+	while (*e && *e != '}' && !isspace_(*e)) e++;
 	a = e;
-	if (isspace(*a)) a++;
+	if (isspace_(*a)) a++;
 	while (*a && *a != '}') a++;
 	if (!*a)
 	  d_fail("unterminated ${...} at line %d", line);
@@ -1177,7 +1177,7 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
 	    else
 	      sprintf(x, "d_get_child(%s, %s)", y, n);
 	    if (*e == ',') e++;
-	    if (isspace(*e)) e++;
+	    if (isspace_(*e)) e++;
 	    i = !i;
 	  }
 	  if (!xx[!i])
@@ -1237,9 +1237,9 @@ write_global_code(FILE *fp, Grammar *g, char *tag) {
 	c++;
 	if (*c == '{') {
 	  char *e = ++c, *a;
-	  while (*e && *e != '}' && !isspace(*e)) ++e;
+	  while (*e && *e != '}' && !isspace_(*e)) ++e;
 	  a = e;
-	  if (isspace(*a)) ++a;
+	  if (isspace_(*a)) ++a;
 	  while (*a && *a != '}') a++;
 	  if (STREQ(c, e-c, "nterm")) {
 	    fprintf(fp, "%d", find_symbol(g, e, a, D_SYMBOL_NTERM));

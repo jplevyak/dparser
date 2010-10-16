@@ -55,6 +55,12 @@
 #endif
 #endif
 
+// enough already with the signed/unsiged char issues
+#define isspace_(_c) isspace((unsigned char)(_c))
+#define isdigit_(_c) isdigit((unsigned char)(_c))
+#define isxdigit_(_c) isxdigit((unsigned char)(_c))
+#define isprint_(_c) isprint((unsigned char)(_c))
+
 #define D_VERSION			(\
 (D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + \
 D_BUILD_VERSION)

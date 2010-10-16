@@ -137,24 +137,24 @@ unescape_term_string(Term *t) {
 	    goto Ldefault;
 	case 'x':
 	  length = 0;
-	  if (isxdigit(s[2])) {
+	  if (isxdigit_(s[2])) {
 	    base = 16;
 	    start = s + 2;
 	    length++;
-	    if (isxdigit(s[3]))
+	    if (isxdigit_(s[3]))
 	      length++;
 	  }
 	  s += length + 1;
 	  goto Lncont;
 	case 'd':
 	  length = 0;
-	  if (isdigit(s[2])) {
+	  if (isdigit_(s[2])) {
 	    base = 10;
 	    start = s + 2;
 	    length++;
-	    if (isdigit(s[3])) {
+	    if (isdigit_(s[3])) {
 	      length++;
-	      if (isdigit(s[4]) && ((s[2] < '2') || ((s[2] == '2') && ((s[3] < '5') || 
+	      if (isdigit_(s[4]) && ((s[2] < '2') || ((s[2] == '2') && ((s[3] < '5') || 
                    ((s[3] == '5') && (s[4] < '6')))))) 
 		length++;
 	    }
@@ -166,9 +166,9 @@ unescape_term_string(Term *t) {
 	  length = 1;
 	  base = 8;
 	  start = s + 1;
-	  if (isdigit(s[2]) && (s[2] != '8') && (s[2] != '9')) {
+	  if (isdigit_(s[2]) && (s[2] != '8') && (s[2] != '9')) {
 	    length++;
-	    if (isdigit(s[3]) && (s[3] != '8') && (s[3] != '9')) {
+	    if (isdigit_(s[3]) && (s[3] != '8') && (s[3] != '9')) {
 	      length++;
 	    }
 	  }
@@ -336,7 +336,7 @@ add_declaration(Grammar *g, char *start, char *end, uint kind, uint line) {
 D_Pass *
 find_pass(Grammar *g, char *start, char *end) {
   int i, l;
-  while (*start && isspace(*start)) start++;
+  while (*start && isspace_(*start)) start++;
   l = end - start;
   for (i = 0; i < g->passes.n; i++)
     if (l == g->passes.v[i]->name_len &&
@@ -1659,7 +1659,7 @@ print_productions(Grammar *g, char *pathname) {
 }
 
 static void print_declare(char *s, char *n) {
-  while (*n && (isspace(*n) || isdigit(*n))) n++;
+  while (*n && (isspace_(*n) || isdigit_(*n))) n++;
   printf(s, n);
 }
 

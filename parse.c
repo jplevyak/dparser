@@ -2142,9 +2142,9 @@ white_space(D_Parser *p, d_loc_t *loc, void **p_user_globals) {
 	  while (wspace(*s)) s++;
 	}
       }
-      if (isdigit(*s)) { 
+      if (isdigit_(*s)) { 
 	loc->line = atoi(s) - 1;
-	while (isdigit(*s)) s++;
+	while (isdigit_(*s)) s++;
 	while (wspace(*s)) s++;
 	if (*s == '"')
 	  loc->pathname = s;
