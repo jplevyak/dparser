@@ -162,7 +162,11 @@ usage(ArgumentState *arg_state, char *arg_unused) {
 #ifdef FreeBSD
                 " %-9qd",
 #else
+#ifdef __MINGW32__
+                " %-9I64d",
+#else
                 " %-9lld",
+#endif
 #endif
 #endif
                 *(int64*)desc[i].location);
