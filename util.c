@@ -64,9 +64,11 @@ buf_read(const char *pathname, char **buf, int *len) {
   fstat(fd, &sb);
   *len = sb.st_size;
   *buf = (char*)MALLOC(*len + 2);
-  (*buf)[*len] = 0;		/* terminator */
-  (*buf)[*len + 1] = 0;		/* sentinal */
-  read(fd, *buf, *len);
+  // MINGW likes to convert cr lf => lf which messes with the size
+  size_t real_size = read(fd, *buf, *len);
+  (*buf)[real_size] = 0;
+  (*buf)[real_size + 1] = 0;
+  *len = real_size;
   close(fd);
   return *len;
 }
