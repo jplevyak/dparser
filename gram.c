@@ -228,7 +228,7 @@ new_utf8_char(Grammar *g, char *s, char *e, Rule *r) {
   if (utf32_code < 0x80) {
     utf8_code[0] = utf32_code;
     len = 1;
-  } else if (utf32_code < 0x1000) {
+  } else if (utf32_code < 0x800) {
     utf8_code[0] = 0xc0 | ((utf32_code >> 6) & 0x1f);
     utf8_code[1] = 0x80 | (utf32_code & 0x3f);
     len = 2;

@@ -204,7 +204,7 @@ make_dparser.cat: make_dparser.1
 	rm -f make_dparser.cat
 	nroff -man make_dparser.1 | sed -e 's/.//g' > make_dparser.cat
 
-BUILD_VERSION: $(EXECUTABLES)
+build_version:
 	rm -f BUILD_VERSION.tmp
 	echo $(D_BUILD_VERSION) > BUILD_VERSION.tmp
 	mv BUILD_VERSION.tmp BUILD_VERSION

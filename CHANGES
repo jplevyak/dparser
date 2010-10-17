@@ -1,4 +1,7 @@
+1.26    Unicode fix thanx to agsags
+
 1.25    Fix const issues thanx to Harald Gutsche
+        Fix MINGW issue where it lies about the size of a file
 
 1.24    Fixed bug in with -R option
         Prevented substitutions in strings in code 
