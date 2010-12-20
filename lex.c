@@ -100,7 +100,8 @@ nfa_closure(DFAState *x) {
       for (k = 0; k < x->states.n; k++)
 	if (x->states.v[i]->epsilon.v[j] == x->states.v[k])
 	  goto Lbreak;
-      vec_add(&x->states, x->states.v[i]->epsilon.v[j]);
+      NFAState *s = x->states.v[i];
+      vec_add(&x->states, s->epsilon.v[j]);
     Lbreak:;
     }
   qsort(x->states.v, x->states.n, sizeof(x->states.v[0]), nfacmp);
