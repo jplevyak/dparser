@@ -2169,8 +2169,6 @@ white_space(D_Parser *p, d_loc_t *loc, void **p_user_globals) {
   if (s[0] == '/') {
     if (s[1] == '/') {
       while (*s && *s != '\n') { s++; }
-      loc->line++;
-      s++;
       goto Lmore;
     }
     if (s[1] == '*') {

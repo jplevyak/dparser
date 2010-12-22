@@ -1,4 +1,5 @@
 1.26    Unicode fix thanx to agsags
+        Fixed some compilation warnings
 
 1.25    Fix const issues thanx to Harald Gutsche
         Fix MINGW issue where it lies about the size of a file
