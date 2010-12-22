@@ -1,3 +1,5 @@
+1.27    Fixed error with input ending on C++ style comment (thanx voiz)
+
 1.26    Unicode fix thanx to agsags
         Fixed some compilation warnings
 
