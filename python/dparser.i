@@ -6,7 +6,7 @@
 %include "pydparser.h"
 
 typedef struct d_loc_t {
-  long int s;
+  void *s: /* converting to a string would be too expensive */
   char *pathname, *ws;
   int col, line;
 } d_loc_t;
