@@ -1790,7 +1790,7 @@ fixup_internal_symbol(Parser *p, PNode *pn, int ichild) {
 
 static PNode *
 commit_tree(Parser *p, PNode *pn) {
-  int i, n, fixup_ebnf = 0, fixup = 0, internal = 0;
+  int i, fixup_ebnf = 0, fixup = 0, internal = 0;
   LATEST(p, pn);
   if (pn->evaluated)
     return pn;
@@ -1808,7 +1808,6 @@ commit_tree(Parser *p, PNode *pn) {
       unref_pn(p, pn->children.v[i]);
       pn->children.v[i] = tpn;
     }
-    n = pn->children.v[i]->children.n;
     if (fixup && 
 	(fixup_ebnf ? is_symbol_internal_or_EBNF(p, pn->children.v[i]) :
 	 is_symbol_internal(p, pn->children.v[i])))

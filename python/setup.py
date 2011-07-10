@@ -18,7 +18,7 @@ module_swigc = Extension('_dparser_swigc',
     define_macros = [('SWIG_GLOBAL', None)],
                          libraries = ['mkdparse', 'dparse'],
                          library_dirs = ['../'],
-                         extra_compile_args = ['-Wall'])
+                         extra_compile_args = ['-Wall', '-ggdb3'])
     
 setup(name="dparser",
     cmdclass = {"install_data": smart_install_data},

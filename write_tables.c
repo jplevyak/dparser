@@ -903,7 +903,7 @@ write_goto_data(File *fp, Grammar *g, char *tag) {
   Vec(intptr_t) vgoto;
   State *s;
   uint8 *goto_valid = NULL;
-  int i, j, x, again, lowest, nvalid_bytes, sym, lowest_sym;
+  int i, j, x, again, nvalid_bytes, sym, lowest_sym;
 
   nvalid_bytes = ((g->productions.n + g->terminals.n) + 7) / 8;
   goto_valid = MALLOC(nvalid_bytes);
@@ -918,16 +918,13 @@ write_goto_data(File *fp, Grammar *g, char *tag) {
 	  s->goto_on_token = 1;
       /* find lowest goto, set valid bits */
       memset(goto_valid, 0, nvalid_bytes);
-      lowest = 0;
       lowest_sym = elem_symbol(g, s->gotos.v[0]->elem);
       SET_BIT(goto_valid, lowest_sym);
       for (j = 1; j < s->gotos.n; j++) {
 	sym = elem_symbol(g, s->gotos.v[j]->elem);
 	SET_BIT(goto_valid, sym);
-	if (sym < lowest_sym) {
-	  lowest = j;
+	if (sym < lowest_sym)
 	  lowest_sym = sym;
-	}
       }
       /* insert into vgoto */
       again = 1;
@@ -1116,6 +1113,26 @@ write_code(FILE *fp, Grammar *g, Rule *r, char *code,
     if (*c != '\\') {
       if (c[1] == '\'' || c[1] == '"') {
         if (in_string == c[1]) in_string = 0; else if (!in_string) in_string = c[1];
+      }
+    }
+    if (!in_string && *c == '/') {
+      // pass through c++ style comments
+      if (c[1] == '/') {
+        while (*c && *c != '\n') {
+          fputc(*c, fp); 
+          c++;
+        }
+      } else if (c[1] == '*') {
+        while (*c && *c != '*' && c[1] != '\\') {
+          fputc(*c, fp); 
+          c++;
+        }
+        if (*c) {
+          fputc(*c, fp); 
+          c++;
+          fputc(*c, fp); 
+          c++;
+        }
       }
     }
     if (*c == '\n')

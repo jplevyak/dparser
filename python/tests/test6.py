@@ -5,12 +5,9 @@ from dparser import Parser
 
 # turn a tree of strings into a single string (slowly):
 def stringify(s):
-    if type(s) == str:
-        return s
-    out = ''
-    for c in s:
-        out += stringify(c)
-    return out
+    if not isinstance(s, str):
+        return ''.join(map(stringify, s))
+    return s
 
 def d_add1(t, s):
     "add : add '%' exp"
