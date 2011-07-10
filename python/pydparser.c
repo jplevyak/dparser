@@ -206,11 +206,11 @@ my_ambiguity_fn(struct D_Parser *dp,
   }
   arglist = Py_BuildValue("(O)", list);
   result = PyEval_CallObject(d_interface(dp)->ambiguity_fn, arglist);
-  if(result == NULL) {
+  if (result == NULL) {
     PyErr_Print();
     goto hack;
   }
-  if(result == Py_None) {
+  if (result == Py_None) {
 hack:
     Py_DECREF(list);
     Py_DECREF(arglist);
