@@ -152,7 +152,7 @@ version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
 test:
-	(MAKE=$(MAKE) ./parser_tests)
+	(MAKE=$(MAKE) ./parser_tests.sh)
 
 install:
 	mkdir -p $(PREFIX)/bin
