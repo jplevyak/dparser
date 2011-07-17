@@ -8,7 +8,7 @@
 
 #include "dparse_tree.h"
 
-char *dup_str(char *s, char *e);  /* defined in util.h */
+char *dup_str(const char *s, const char *e);  /* defined in util.h */
 
 /* tunables */
 

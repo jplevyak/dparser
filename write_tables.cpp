@@ -136,7 +136,7 @@ free_tables(File *f) {
 static void
 init_buf(Buf *buf, int initial_size) {
   buf->len = initial_size;
-  buf->start = MALLOC(buf->len); 
+  buf->start = (char*)MALLOC(buf->len); 
   memset(buf->start, 0, buf->len);
   buf->cur = buf->start;
 }
@@ -162,7 +162,7 @@ make_room_in_buf(Buf *buf, size_t size) {
   while (buf->cur + size > buf->start + buf->len) {
     int cur = buf->cur - buf->start;
     buf->len = buf->len*2 + 1;
-    buf->start = REALLOC(buf->start, buf->len);
+    buf->start = (char *)REALLOC(buf->start, buf->len);
     buf->cur = buf->start + cur;
     memset(buf->cur, 0, buf->len - (buf->cur - buf->start));
   }
@@ -170,7 +170,7 @@ make_room_in_buf(Buf *buf, size_t size) {
 
 static void
 new_offset(File *fp, char *name) {
-  OffsetEntry *entry = MALLOC(sizeof(OffsetEntry));
+  OffsetEntry *entry = (OffsetEntry *)MALLOC(sizeof(OffsetEntry));
   memset(entry, 0, sizeof(OffsetEntry));
   entry->name = name;
   entry->offset = fp->tables.cur - fp->tables.start;
@@ -236,7 +236,7 @@ make_name(char* fmt, ...) {
   n = vsnprintf(buf, sizeof(buf), fmt, ap);
   va_end(ap);
   assert(n < 256 && n >= 0);
-  h_buf = MALLOC(n+1);
+  h_buf = (char *)MALLOC(n+1);
   strcpy(h_buf, buf);
   return h_buf;
 }
@@ -250,7 +250,7 @@ print_no_comma(File *fp, char *str) {
 }
 
 static void 
-print(File *fp, char *str) {
+print(File *fp, const char *str) {
   if (!fp->binary) {
     fprintf(fp->fp, "%s", str);
   }
@@ -370,7 +370,7 @@ static void
 add_struct_str_member_fn(File *fp, char **dest, const char *str) {
   if (fp->binary) {
     *dest = (char*)make_string(fp, str);
-    vec_add(&fp->str_relocations, (void*)((char*)dest - fp->tables.start));
+    vec_add(&fp->str_relocations, (char*)((char*)dest - fp->tables.start));
   } else {
     if (!fp->first_member)
       fprintf(fp->fp, ", ");
@@ -383,7 +383,7 @@ static void
 add_struct_ptr_member_fn(File *fp, void **dest, OffsetEntry *oe, char *format) {
   if (fp->binary) {
     *dest = (void*)(uintptr_t)oe->offset;
-    vec_add(&fp->relocations, (void*)((char*)dest - fp->tables.start));
+    vec_add(&fp->relocations, (char*)((char*)dest - fp->tables.start));
   } else {
     if (*format == '&' && strcmp(oe->name, "NULL") == 0)
       format++;
@@ -399,7 +399,7 @@ add_array_ptr_member_fn(File *fp, OffsetEntry *oe, char *format, int last) {
   if (fp->binary) {
     add_array_member_internal(fp);
     *(void**)fp->tables.cur = (void*)(intptr_t)oe->offset;
-    vec_add(&fp->relocations, (void*)(fp->tables.cur - fp->tables.start));
+    vec_add(&fp->relocations, (char*)(fp->tables.cur - fp->tables.start));
     fp->tables.cur += fp->elem_size;
   } else {
     if (*format == '&' && strcmp(oe->name, "NULL") == 0)
@@ -432,7 +432,7 @@ end_struct_fn(File *fp, int size, char *whitespace) {
 }
 
 static void
-end_struct_in_array(File *fp, char *last) {
+end_struct_in_array(File *fp, const char *last) {
   if (fp->binary) {
     fp->tables.cur += fp->elem_size;
   } else {
@@ -676,7 +676,7 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
   nvsblocks = 0;
   for (i = 0; i < g->states.n; i++)
     nvsblocks += g->states.v[i]->scanner.states.n * g->scanner_blocks;
-  vsblock = MALLOC((nvsblocks ? nvsblocks : 1) * sizeof(ScannerBlock));
+  vsblock = (ScannerBlock*)MALLOC((nvsblocks ? nvsblocks : 1) * sizeof(ScannerBlock));
   for (i = 0; i < 4; i++) {
     vec_clear(&scanner_block_hash[i]);
     vec_clear(&trans_scanner_block_hash[i]);
@@ -727,15 +727,15 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	  vsblock[ivsblock].state_index = s->index;
 	  vsblock[ivsblock].scanner_index = j;
 	  vsblock[ivsblock].block_index = k;
-	  vsblock[ivsblock].chars = 
+          vsblock[ivsblock].chars = (ScanState **)
 	    (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-	  vsblock[ivsblock].transitions = 
+          vsblock[ivsblock].transitions = (ScanStateTransition **)
 	    (void*)&ss->v[j]->transition[k * g->scanner_block_size];
 	  xv = &vsblock[ivsblock];
 	  ivsblock++;
 	  assert(ivsblock <= nvsblocks);
 	  /* output state scanner blocks */
-	  yv = set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
+          yv = (ScannerBlock*)set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
 	  if (xv == yv) {
 	    int size = scanner_size(s);
 	    start_array_fn(fp, size, "", make_type(size), make_name("d_scanner_%d_%d_%d_%s", i, j, k, tag), "SCANNER_BLOCK_SIZE", SCANNER_BLOCK_SIZE, "\n");
@@ -749,7 +749,7 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	  }
 	  if (s->scan_kind != D_SCAN_LONGEST || s->trailing_context) {
 	    /* output accept_diff scanner blocks */
-	    yv = set_add_fn(ptrans_scanner_block_hash, xv, 
+            yv = (ScannerBlock*)set_add_fn(ptrans_scanner_block_hash, xv, 
 			    &trans_scanner_block_fns);
 	    if (xv == yv) {
 	      int size = scanner_size(s);
@@ -774,7 +774,7 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	      if (a->temp_string)
 		continue;
 	      a->temp_string = dup_str(tmp, 0);
-	      aa = set_add_fn(&shift_hash, a, &shift_fns);
+              aa = (Action*)set_add_fn(&shift_hash, a, &shift_fns);
 	      if (aa != a)
 		continue;
 	    }
@@ -819,7 +819,7 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	if (ss->v[j]->accepts.n) {
 	  a = ss->v[j]->accepts.v[0];
 	  if (ss->v[j]->accepts.n == 1) {
-	    a = set_add_fn(&shift_hash, a, &shift_fns);
+            a = (Action*)set_add_fn(&shift_hash, a, &shift_fns);
 	    add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "%s", a->temp_string), shift);
 	  } else
 	    add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "d_shift_%d_%d_%s", i, j, tag), shift);
@@ -831,11 +831,11 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	  vs.state_index = s->index;
 	  vs.scanner_index = j;
 	  vs.block_index = k;
-	  vs.chars = (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-	  vs.transitions = 
+          vs.chars = (ScanState **)(void*)&ss->v[j]->chars[k * g->scanner_block_size];
+          vs.transitions = (ScanStateTransition **)
 	    (void*)&ss->v[j]->transition[k * g->scanner_block_size];
 	  xv = &vs;
-	  yv = set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
+          yv = (ScannerBlock *)set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
 	  assert(yv != xv);
 	  add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "d_scanner_%d_%d_%d_%s", yv->state_index, yv->scanner_index, yv->block_index, tag), scanner_block[k]);
 	  if (k != g->scanner_blocks-1) {
@@ -863,11 +863,11 @@ write_scanner_data(File *fp, Grammar *g, char *tag) {
 	    vs.state_index = s->index;
 	    vs.scanner_index = j;
 	    vs.block_index = k;
-	    vs.chars = (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-	    vs.transitions = 
+            vs.chars = (ScanState **)(void*)&ss->v[j]->chars[k * g->scanner_block_size];
+            vs.transitions = (ScanStateTransition **)
 	      (void*)&ss->v[j]->transition[k * g->scanner_block_size];
 	    xv = &vs;
-	    yv = set_add_fn(ptrans_scanner_block_hash, xv, 
+            yv = (ScannerBlock *)set_add_fn(ptrans_scanner_block_hash, xv, 
 			    &trans_scanner_block_fns);
 	    assert(yv != xv);
 	    add_struct_ptr_member(fp, SB_trans_uint8, "", 
@@ -906,7 +906,7 @@ write_goto_data(File *fp, Grammar *g, char *tag) {
   int i, j, x, again, nvalid_bytes, sym, lowest_sym;
 
   nvalid_bytes = ((g->productions.n + g->terminals.n) + 7) / 8;
-  goto_valid = MALLOC(nvalid_bytes);
+  goto_valid = (uint8*)MALLOC(nvalid_bytes);
   vec_clear(&vgoto);
   for (i = 0; i < g->states.n; i++) {
     s = g->states.v[i];
@@ -1495,7 +1495,7 @@ write_error_data(File *fp, Grammar *g, VecState *er_hash, char *tag) {
     for (i = 0; i < g->states.n; i++) {
       s = g->states.v[i];
       if (s->error_recovery_hints.n) {
-	h = set_add_fn(er_hash, s, &er_hint_hash_fns);
+        h = (State *)set_add_fn(er_hash, s, &er_hint_hash_fns);
 	if (h == s) {
 	  start_array(fp, D_ErrorRecoveryHint, make_name("d_error_recovery_hints_%d_%s", i, tag), "", 0, "");
 	  print(fp, s->error_recovery_hints.n > 1 ? "\n" : "");
@@ -1559,7 +1559,7 @@ write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag) {
       print(fp, "}, ");
       print_no_comma(fp, "{");
       if (s->error_recovery_hints.n) {
-	h = set_add_fn(er_hash, s, &er_hint_hash_fns);
+        h = (State *)set_add_fn(er_hash, s, &er_hint_hash_fns);
 	add_struct_member(fp, D_State, %d, s->error_recovery_hints.n, error_recovery_hints.n);
 	add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_error_recovery_hints_%d_%s", h->index, tag), error_recovery_hints.v);
       } else {

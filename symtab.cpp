@@ -55,7 +55,7 @@ symhash_add(D_SymHash *sh, D_Sym *s) {
     vv.n = sh->syms.n;
     sh->syms.n = sh->grow;
     sh->grow = sh->grow * 2 + 1;
-    sh->syms.v = MALLOC(sh->syms.n * sizeof(void *));
+    sh->syms.v = (D_Sym**)MALLOC(sh->syms.n * sizeof(void *));
     memset(sh->syms.v, 0, sh->syms.n * sizeof(void *));
     v = sh->syms.v;
     n = sh->syms.n;
@@ -80,11 +80,11 @@ symhash_add(D_SymHash *sh, D_Sym *s) {
 
 static D_SymHash * 
 new_D_SymHash() {
-  D_SymHash *sh = MALLOC(sizeof(D_SymHash));
+  D_SymHash *sh = (D_SymHash*)MALLOC(sizeof(D_SymHash));
   memset(sh, 0, sizeof(D_SymHash));
   sh->grow = INITIAL_SYMHASH_SIZE * 2 + 1;
   sh->syms.n = INITIAL_SYMHASH_SIZE;
-  sh->syms.v = MALLOC(sh->syms.n * sizeof(void *));
+  sh->syms.v = (D_Sym**)MALLOC(sh->syms.n * sizeof(void *));
   memset(sh->syms.v, 0, sh->syms.n * sizeof(void *));
   return sh;
 }
@@ -104,7 +104,7 @@ free_D_SymHash(D_SymHash *sh) {
 
 D_Scope *
 new_D_Scope(D_Scope *parent) {
-  D_Scope *st = MALLOC(sizeof(D_Scope));
+  D_Scope *st = (D_Scope*)MALLOC(sizeof(D_Scope));
   memset(st, 0, sizeof(D_Scope));
   if (parent) {
     st->depth = parent->depth + 1;
@@ -176,7 +176,7 @@ equiv_D_Scope(D_Scope *current) {
 
 D_Scope *
 enter_D_Scope(D_Scope *current, D_Scope *scope) {
-  D_Scope *st = MALLOC(sizeof(D_Scope)), *parent = scope->up;
+  D_Scope *st = (D_Scope*)MALLOC(sizeof(D_Scope)), *parent = scope->up;
   memset(st, 0, sizeof(D_Scope));
   st->depth = scope->depth;
   st->up = parent;
@@ -215,7 +215,7 @@ global_D_Scope(D_Scope *current) {
 
 D_Scope *
 scope_D_Scope(D_Scope *current, D_Scope *scope) {
-  D_Scope *st = MALLOC(sizeof(D_Scope)), *parent = current->up;
+  D_Scope *st = (D_Scope*)MALLOC(sizeof(D_Scope)), *parent = current->up;
   memset(st, 0, sizeof(D_Scope));
   st->depth = current->depth;
   st->up = parent;
@@ -290,7 +290,7 @@ commit_D_Scope(D_Scope *st) {
 D_Sym *
 new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym) {
   int len = end ? end - name : name ? strlen(name) : 0;
-  D_Sym *s = MALLOC(sizeof_D_Sym);
+  D_Sym *s = (D_Sym*)MALLOC(sizeof_D_Sym);
   memset(s, 0, sizeof_D_Sym);
   s->name = name;
   s->len = len;
@@ -443,7 +443,7 @@ update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym) {
   D_Sym *s;
 
   sym = current_D_Sym(st, sym);
-  s = MALLOC(sizeof_D_Sym);
+  s = (D_Sym*)MALLOC(sizeof_D_Sym);
   memcpy(s, sym, sizeof(D_Sym));
   if (sym->update_of) sym = sym->update_of;
   s->update_of = sym;

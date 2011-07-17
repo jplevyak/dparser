@@ -31,7 +31,7 @@ typedef struct LexState {
 
 static NFAState *
 new_NFAState(LexState *ls) {
-  NFAState *n = MALLOC(sizeof(NFAState));
+  NFAState *n = (NFAState*)MALLOC(sizeof(NFAState));
   memset(n, 0, sizeof(NFAState));
   n->index = ls->nfa_index++;
   vec_add(&ls->allnfas, n);
@@ -40,7 +40,7 @@ new_NFAState(LexState *ls) {
 
 static DFAState *
 new_DFAState() {
-  DFAState *n = MALLOC(sizeof(DFAState));
+  DFAState *n = (DFAState*)MALLOC(sizeof(DFAState));
   memset(n, 0, sizeof(DFAState));
   return n;
 }
@@ -79,7 +79,7 @@ free_VecNFAState(VecNFAState *nfas) {
 
 static ScanState *
 new_ScanState() {
-  ScanState *n = MALLOC(sizeof(ScanState));
+  ScanState *n = (ScanState*)MALLOC(sizeof(ScanState));
   memset(n, 0, sizeof(ScanState));
   return n;
 }
@@ -94,13 +94,14 @@ nfacmp(const void *ai, const void *aj) {
 static void
 nfa_closure(DFAState *x) {
   int i, j, k;
+  NFAState *s;
 
   for (i = 0; i < x->states.n; i++)
     for (j = 0; j < x->states.v[i]->epsilon.n; j++) {
       for (k = 0; k < x->states.n; k++)
 	if (x->states.v[i]->epsilon.v[j] == x->states.v[k])
 	  goto Lbreak;
-      NFAState *s = x->states.v[i];
+      s = x->states.v[i];
       vec_add(&x->states, s->epsilon.v[j]);
     Lbreak:;
     }
@@ -434,7 +435,7 @@ build_transitions(LexState *ls, Scanner *s) {
     ss = states->v[i];
     for (j = 0; j < 256; j++) {
       if (!trans) {
-	trans = MALLOC(sizeof(*trans));
+        trans = (ScanStateTransition*)MALLOC(sizeof(*trans));
 	memset(trans, 0, sizeof(*trans));
       }
       if (ss->chars[j]) {
@@ -442,7 +443,7 @@ build_transitions(LexState *ls, Scanner *s) {
 	action_intersect(&trans->accepts_diff, &ss->accepts, 
 			 &trans->live_diff);
       }
-      if ((x = set_add_fn(&s->transitions, trans, &trans_hash_fns)) == trans)
+      if ((x = (ScanStateTransition*)set_add_fn(&s->transitions, trans, &trans_hash_fns)) == trans)
 	trans = NULL;
       else {
 	vec_free(&trans->live_diff); 
@@ -541,7 +542,7 @@ build_state_scanner(Grammar *g, LexState *ls, State *s) {
 
 static LexState *
 new_LexState() {
-  LexState *ls = MALLOC(sizeof(LexState));
+  LexState *ls = (LexState*)MALLOC(sizeof(LexState));
   memset(ls, 0, sizeof(LexState));
   vec_clear(&ls->allnfas);
   return ls;

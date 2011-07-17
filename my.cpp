@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "dparse.h"
 extern D_ParserTables parser_tables_gram;
 int
@@ -9,4 +10,5 @@ main(int argc, char *argv[]) {
     printf("success\n");
   else
     printf("failure\n");
+  return 0;
 }

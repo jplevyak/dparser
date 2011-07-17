@@ -20,7 +20,7 @@ static int scanner_block_size;
 static int write_line_directives = 1;
 static int write_header = -1;
 static int token_type = 0;
-static char write_extension[256] = "c";
+static char write_extension[256] = "cpp";
 static char output_file [1024] = "";
 
 static ArgumentDescription arg_desc[] = {
@@ -88,6 +88,17 @@ main(int argc, char *argv[]) {
   if (arg_state.nfile_arguments != 1)
     help(&arg_state, NULL);
   grammar_pathname = arg_state.file_argument[0];
+
+  /* fix Win32 path */
+  {
+    char *P = grammar_pathname;
+    while(*P) {
+      if (*P == '\\')
+        *P = '/';
+      P++;
+    }
+  }
+
   g = new_D_Grammar(grammar_pathname);
   /* grammar construction options */
   g->set_op_priority_from_rule = set_op_priority_from_rule;

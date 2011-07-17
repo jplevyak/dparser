@@ -3,6 +3,10 @@
 */
 
 #include "d.h"
+#ifdef __MINGW32__
+#define _INTPTR_T_DEFINED
+#include <io.h>
+#endif
 
 uint d_prime2[] = {
   1, 3, 7, 13, 31, 61, 127, 251, 509, 1021, 2039, 4093, 8191,

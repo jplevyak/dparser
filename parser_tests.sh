@@ -35,7 +35,7 @@ do
     else
       flags= 
     fi
-    $VALGRIND ./sample_parser $flags -v $t > $t.out
+    $VALGRIND ./sample_parser $flags -v $t >& $t.out
     #dos2unix $t.out
     diff -db $t.out $t.check
     if [ $? -ne 0 ] ; then
@@ -52,5 +52,5 @@ if [ $failed -eq 0 ] ; then
 else
   echo "********" $failed "test(s) FAILED *********"
 fi
-#rm -vf sample_parser BUILD_VERSION Makefile *.c *.h *.o *.cpp make_dparser make_dparser.exe libdparse.a grammar.g
+#rm -vf sample_parser.* BUILD_VERSION Makefile *.c *.h *.o *.cpp *.out make_dparser make_dparser.exe libdparse.a libmkdparse.a grammar.g
 cd ..

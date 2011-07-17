@@ -158,7 +158,7 @@ void print_pg(PythonGlobals *pg, char *s) {
 
 void python_whitespace(struct D_Parser *parser, d_loc_t *loc, void **p_globals) {
   char *p = loc->s;
-  PythonGlobals *pg = *p_globals;
+  PythonGlobals *pg = (PythonGlobals*)*p_globals;
   int i;
   if (!pg) { 
     *p_globals = (void**)(pg = (PythonGlobals*)malloc(sizeof(PythonGlobals)));

@@ -42,7 +42,7 @@ ifeq ($(ARCH),x86_64)
   CFLAGS += -fPIC
 endif
 
-ifeq ($(OS_TYPE),CYGWIN)
+ifeq ($(OS_TYPE),MINGW32)
 GC_CFLAGS += -L/usr/local/lib
 else
 GC_CFLAGS += -I/usr/local/include -L/usr/local/lib
@@ -91,9 +91,11 @@ ifdef D_PROFILE
 CFLAGS += -pg
 endif
 
+CPPFLAGS = $(CFLAGS)
+
 LIBS += -lm 
 
-AUX_FILES = d/Makefile d/COPYRIGHT d/README d/CHANGES d/4calc.g d/4calc.in d/my.g d/my.c d/index.html d/manual.html d/faq.html d/make_dparser.1 d/make_dparser.cat
+AUX_FILES = d/Makefile d/COPYRIGHT d/README d/CHANGES d/4calc.g d/4calc.in d/my.g d/my.cpp d/index.html d/manual.html d/faq.html d/make_dparser.1 d/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
 TEST_FILES = d/parser_tests d/baseline $(TESTS:%=d/%)
 PYTHON_FILES = d/python/Makefile d/python/*.py d/python/*.c d/python/*.h d/python/*.i d/python/README d/python/*.html d/python/contrib/d* d/python/tests/*.py
@@ -102,11 +104,11 @@ d/verilog/main.c d/verilog/vparse.c d/verilog/vparse.h d/verilog/verilog_tests
 TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) d/BUILD_VERSION \
 d/grammar.g d/sample.g d/my.g 
 
-LIB_SRCS = arg.c parse.c scan.c symtab.c util.c read_binary.c dparse_tree.c
-LIB_OBJS = $(LIB_SRCS:%.c=%.o)
+LIB_SRCS = arg.cpp parse.cpp scan.cpp symtab.cpp util.cpp read_binary.cpp dparse_tree.cpp
+LIB_OBJS = $(LIB_SRCS:%.cpp=%.o)
 
-MK_LIB_SRCS = mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c
-MK_LIB_OBJS = $(MK_LIB_SRCS:%.c=%.o)
+MK_LIB_SRCS = mkdparse.cpp write_tables.cpp grammar.g.cpp gram.cpp lex.cpp lr.cpp
+MK_LIB_OBJS = $(MK_LIB_SRCS:%.cpp=%.o)
 
 ifdef D_USE_GC
 LIBMKDPARSE = libmkdparse_gc.a
@@ -116,16 +118,16 @@ LIBMKDPARSE = libmkdparse.a
 LIBDPARSE = libdparse.a
 endif
 
-MAKE_PARSER_SRCS = make_dparser.c
-MAKE_PARSER_OBJS = $(MAKE_PARSER_SRCS:%.c=%.o)
+MAKE_PARSER_SRCS = make_dparser.cpp
+MAKE_PARSER_OBJS = $(MAKE_PARSER_SRCS:%.cpp=%.o)
 
 SAMPLE_GRAMMAR = sample.g
-BASE_SAMPLE_PARSER_SRCS = sample_parser.c
-SAMPLE_PARSER_SRCS = sample_parser.c $(SAMPLE_GRAMMAR).d_parser.c
-SAMPLE_PARSER_OBJS = $(SAMPLE_PARSER_SRCS:%.c=%.o)
+BASE_SAMPLE_PARSER_SRCS = sample_parser.cpp
+SAMPLE_PARSER_SRCS = sample_parser.cpp $(SAMPLE_GRAMMAR).d_parser.cpp
+SAMPLE_PARSER_OBJS = $(SAMPLE_PARSER_SRCS:%.cpp=%.o)
 
-TEST_PARSER_SRCS = test_parser.c
-TEST_PARSER_OBJS = $(TEST_PARSER_SRCS:%.c=%.o)
+TEST_PARSER_SRCS = test_parser.cpp
+TEST_PARSER_OBJS = $(TEST_PARSER_SRCS:%.cpp=%.o)
 
 MAKE_DPARSER = ./make_dparser
 
@@ -136,7 +138,7 @@ INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h
 MANPAGES = make_dparser.1
 
 EXECS = $(EXECUTABLES) sample_parser test_parser
-ifeq ($(OS_TYPE),CYGWIN)
+ifeq ($(OS_TYPE),MINGW32)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
 else
@@ -171,7 +173,7 @@ deinstall:
 	rm $(MANPAGES:%=$(PREFIX)/man/man1/%)
 
 make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS) 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.cpp $(LIBS) 
 
 $(LIBDPARSE): $(LIB_OBJS)
 	ar cruv $@ $^
@@ -181,22 +183,22 @@ $(LIBMKDPARSE): $(MK_LIB_OBJS)
 	ar cruv $@ $^
 	ranlib $@
 
-%.d_parser.c: % make_dparser
+%.d_parser.cpp: % make_dparser
 	$(MAKE_DPARSER) $<
 
 sample_parser: $(SAMPLE_PARSER_OBJS) $(INSTALL_LIBRARIES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.cpp $(LIBS)
 
 test_parser: $(TEST_PARSER_OBJS) $(LIBRARIES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.cpp $(LIBS)
 
 myexample: make_dparser
 	$(MAKE_DPARSER) my.g
-	cc -I/usr/local/include my.c my.g.d_parser.c -L/usr/local/lib -ldparse
+	c++ -I/usr/local/include my.cpp my.g.d_parser.c -L/usr/local/lib -ldparse
 
 gram: make_dparser
 	$(MAKE_DPARSER) -i dparser_gram grammar.g
-	mv grammar.g.d_parser.c grammar.g.c
+	mv grammar.g.d_parser.cpp grammar.g.cpp
 	rm -f grammar.g.o
 	$(MAKE) make_dparser
 
@@ -210,13 +212,13 @@ build_version:
 	mv BUILD_VERSION.tmp BUILD_VERSION
 
 tar:
-	(cd ..;tar czf d-$(RELEASE)-src.tar.gz d/*.c d/*.h $(TAR_FILES)) 
+	(cd ..;tar czf d-$(RELEASE)-src.tar.gz d/*.cpp d/*.h $(TAR_FILES)) 
 
 bintar:
 	(cd ..;tar czf d-$(RELEASE)-$(OS_TYPE)-bin.tar.gz $(AUX_FILES) $(LIBRARIES:%=d/%) $(INCLUDES:%=d/%) $(EXECUTABLE_FILES:%=d/%))
 
 clean:
-	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
+	\rm -f *.o core *.core *.gmon *.d_parser.c* *.d_parser.h *.a $(EXEC_FILES)
 	(cd python;make clean)
 
 depend:

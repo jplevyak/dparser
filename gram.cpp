@@ -18,7 +18,7 @@ new_production(Grammar *g, char *name) {
     FREE(name);
     return p;
   }
-  p = MALLOC(sizeof(Production));
+  p = (Production*)MALLOC(sizeof(Production));
   memset(p, 0, sizeof(Production));
   vec_add(&g->productions, p);
   p->name = name;
@@ -28,14 +28,14 @@ new_production(Grammar *g, char *name) {
 
 static Elem *
 new_elem() {
-  Elem *e = MALLOC(sizeof(Elem));
+  Elem *e = (Elem*)MALLOC(sizeof(Elem));
   memset(e, 0, sizeof(Elem));
   return e;
 }
 
 Rule *
 new_rule(Grammar *g, Production *p) {
-  Rule *r = MALLOC(sizeof(Rule));
+  Rule *r = (Rule*)MALLOC(sizeof(Rule));
   memset(r, 0, sizeof(Rule));
   r->prod = p;
   r->end = new_elem();
@@ -47,7 +47,7 @@ new_rule(Grammar *g, Production *p) {
 
 static Term *
 new_term() {
-  Term *term = MALLOC(sizeof(Term));
+  Term *term = (Term*)MALLOC(sizeof(Term));
   memset(term, 0, sizeof(Term));
   return term;
 }
@@ -76,7 +76,7 @@ new_term_string(Grammar *g, char *s, char *e, Rule *r) {
   Term *t = new_term();
   Elem *elem;
 
-  t->string = MALLOC(e - s + 1);
+  t->string = (char*)MALLOC(e - s + 1);
   memcpy(t->string, s, e - s);
   t->string[e - s] = 0;
   t->string_len = e - s;
@@ -266,7 +266,7 @@ new_ident(char *s, char *e, Rule *r) {
 void
 new_token(Grammar *g, char *s, char *e) {
   Term *t = new_term();
-  t->string = MALLOC(e - s + 1);
+  t->string = (char*)MALLOC(e - s + 1);
   memcpy(t->string, s, e - s);
   t->string[e - s] = 0;
   t->string_len = e - s;
@@ -283,7 +283,7 @@ new_code(Grammar *g, char *s, char *e, Rule *r) {
 
 Elem *
 dup_elem(Elem *e, Rule *r) {
-  Elem *ee = MALLOC(sizeof(Elem));
+  Elem *ee = (Elem*)MALLOC(sizeof(Elem));
   memcpy(ee, e, sizeof(Elem));
   if (ee->kind == ELEM_UNRESOLVED)
     ee->e.unresolved.string = dup_str(e->e.unresolved.string, 0);
@@ -293,9 +293,9 @@ dup_elem(Elem *e, Rule *r) {
 
 void
 add_global_code(Grammar *g, char *start, char *end, int line) {
-  if (!g->code) g->code = MALLOC(sizeof(Code) * 4);
+  if (!g->code) g->code = (Code*)MALLOC(sizeof(Code) * 4);
   else if (!((g->ncode + 1) & 4))
-    g->code = REALLOC(g->code, sizeof(Code) * (g->ncode + 4));
+    g->code = (Code*)REALLOC(g->code, sizeof(Code) * (g->ncode + 4));
   g->code[g->ncode].code = dup_str(start, end);
   g->code[g->ncode].line = line;
   g->ncode++;
@@ -303,7 +303,7 @@ add_global_code(Grammar *g, char *start, char *end, int line) {
 
 void
 new_declaration(Grammar *g, Elem *e, uint kind) {
-  Declaration *d = MALLOC(sizeof(*d));
+  Declaration *d = (Declaration*)MALLOC(sizeof(*d));
   d->elem = e;
   d->kind = kind;
   d->index = g->declarations.n;
@@ -350,7 +350,7 @@ add_pass(Grammar *g, char *start, char *end, uint kind, uint line) {
   if (find_pass(g, start, end))
     d_fail("duplicate pass '%s' line %d", dup_str(start, end), line);
   else {
-    D_Pass *p = MALLOC(sizeof(*p));
+    D_Pass *p = (D_Pass*)MALLOC(sizeof(*p));
     p->name = dup_str(start, end);
     p->name_len = end - start;
     p->kind = kind;
@@ -367,7 +367,7 @@ add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end,
   if (!p)
     d_fail("unknown pass '%s' line %d", dup_str(pass_start, pass_end), pass_line);
   while (r->pass_code.n <= p->index) vec_add(&r->pass_code, NULL);
-  r->pass_code.v[p->index] = MALLOC(sizeof(Code));
+  r->pass_code.v[p->index] = (Code*)MALLOC(sizeof(Code));
   r->pass_code.v[p->index]->code = dup_str(code_start, code_end);
   r->pass_code.v[p->index]->line = code_line;
 }
@@ -375,8 +375,8 @@ add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end,
     
 Production *
 new_internal_production(Grammar *g, Production *p) {
-  char *n = p ? p->name : " _synthetic";
-  char *name = MALLOC(strlen(n) + 21);
+  const char *n = p ? p->name : " _synthetic";
+  char *name = (char*)MALLOC(strlen(n) + 21);
   Production *pp = NULL, *tp = NULL, *ttp;
   int i, found = 0;
   sprintf(name, "%s__%d", n, g->productions.n);
@@ -1541,7 +1541,7 @@ print_term_escaped(Term *t, int double_escaped) {
   } else if (t->kind == TERM_REGEX) {
     s = t->string ? escape_string(t->string) : NULL;
     //char *s = t->string; // ? escape_string(t->string) : NULL;
-    char *quote = double_escaped ? "\\\"" : "\"";
+    const char *quote = double_escaped ? "\\\"" : "\"";
     printf("%s%s%s ", quote, double_escaped?escape_string(s):s, quote);
     if (t->ignore_case)
       printf("/i ");

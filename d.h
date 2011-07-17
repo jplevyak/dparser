@@ -25,11 +25,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#ifndef __MINGW32__
 #include <sys/time.h>
-#include <sys/stat.h>
 #include <dirent.h>
+#endif
+#include <sys/stat.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef __MINGW32__
+#include <stdint.h>
+#endif
 
 #ifdef LEAK_DETECT
 #define GC_DEBUG
@@ -79,14 +84,20 @@ typedef char int8;
 typedef unsigned char uint8;
 typedef int int32;
 typedef unsigned int uint32;
+#ifndef __MINGW32__
 typedef long long int64;
 typedef unsigned long long uint64;
+#else
+typedef __int64 int64;
+typedef unsigned __int64 uint64;
+#endif
 typedef short int16;
 typedef unsigned short uint16;
 #ifdef __MINGW32__
 /* already part of most systems */
 typedef unsigned long ulong;
 typedef uint32 uint; 
+#pragma warning(disable: 4018)
 #endif
 
 #include "dparse.h"

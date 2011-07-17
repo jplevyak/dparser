@@ -29,7 +29,7 @@ itemcmp(const void *ai, const void *aj) {
 
 static State *
 new_state() {
-  State *s = MALLOC(sizeof(State));
+  State *s = (State*)MALLOC(sizeof(State));
   memset(s, 0, sizeof(State));
   return s;
 }
@@ -92,14 +92,14 @@ build_closure(Grammar *g, State *s) {
 
 static Elem *
 clone_elem(Elem *e) {
-  Elem *ee = MALLOC(sizeof(*ee));
+  Elem *ee = (Elem*)MALLOC(sizeof(*ee));
   memcpy(ee, e, sizeof(*ee));
   return ee;
 }
 
 static void
 add_goto(State *s, State *ss, Elem *e) {
-  Goto *g = MALLOC(sizeof(Goto));
+  Goto *g = (Goto*)MALLOC(sizeof(Goto));
   g->state = ss;
   g->elem = clone_elem(e);
   vec_add(&s->gotos, g);
@@ -193,9 +193,9 @@ build_LR_sets(Grammar *g) {
 
 static Action *
 new_Action(Grammar *g, int akind, Term *aterm, Rule *arule, State *astate) {
-  Action *a = MALLOC(sizeof(Action));
+  Action *a = (Action*)MALLOC(sizeof(Action));
   memset(a, 0, sizeof(Action));
-  a->kind = akind;
+  a->kind = (ActionKind)akind;
   a->term = aterm;
   a->rule = arule;
   a->state = astate;
@@ -305,7 +305,7 @@ goto_State(State *s, Elem *e) {
 
 static Hint *
 new_Hint(uint d, State *s, Rule *r) {
-  Hint *h = MALLOC(sizeof(*h));
+  Hint *h = (Hint*)MALLOC(sizeof(*h));
   h->depth = d;
   h->state = s;
   h->rule = r;

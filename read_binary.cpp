@@ -17,12 +17,12 @@ read_binary_tables_internal(FILE *fp, unsigned char *str,
 {
   BinaryTablesHead tables;
   int i;
-  BinaryTables * binary_tables = MALLOC(sizeof(BinaryTables));
+  BinaryTables * binary_tables = (BinaryTables*)MALLOC(sizeof(BinaryTables));
   char *tables_buf, *strings_buf;
 
   read_chk(&tables, sizeof(BinaryTablesHead), 1, fp, &str);
 
-  tables_buf = MALLOC(tables.tables_size + tables.strings_size);
+  tables_buf = (char*)MALLOC(tables.tables_size + tables.strings_size);
   read_chk(tables_buf, sizeof(char), tables.tables_size, fp, &str);
   strings_buf = tables_buf + tables.tables_size;
   read_chk(strings_buf, sizeof(char), tables.strings_size, fp, &str);
@@ -41,13 +41,23 @@ read_binary_tables_internal(FILE *fp, unsigned char *str,
     } else if (*intptr == -3) {
       *ptr = (void*)final_code;
     } else {
+#ifndef _MSC_VER
       *ptr += (intptr_t)tables_buf;
+#else
+      // CHECK_ME: is it right?
+      *ptr = (void*)((unsigned)*ptr + (intptr_t)tables_buf);
+#endif
     }
   }
   for (i=0; i<tables.n_strings; i++) {
     intptr_t offset;
     read_chk((void*)&offset, sizeof(intptr_t), 1, fp, &str);
+#ifndef _MSC_VER
     *(void**)(tables_buf+offset) += (intptr_t)strings_buf;
+#else
+    // CHECK_ME
+    *(int**)(tables_buf+offset) += (intptr_t)strings_buf;
+#endif
   }
   if (fp)
     fclose(fp);

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 char *xdup(char *s, char *e) {
-  char *ss = malloc( e - s + 2 );
+  char *ss = (char*)malloc( e - s + 2 );
   memcpy(ss, s, e-s);
   ss[e-s] = 0;
   return ss;
