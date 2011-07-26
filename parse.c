@@ -605,6 +605,10 @@ static int
 check_child(int ppri, AssocKind passoc, int cpri, AssocKind cassoc,
 	    int left, int right) 
 {
+  if (IS_UNARY_ASSOC(passoc) && passoc == cassoc)
+    return 1;
+  if (IS_UNARY_ASSOC(passoc) != IS_UNARY_ASSOC(cassoc))
+    return 1;
   int p = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : 
           (passoc == ASSOC_UNARY_LEFT ? 2 : 3);
   int c = IS_BINARY_NARY_ASSOC(cassoc) ? 0 : 
