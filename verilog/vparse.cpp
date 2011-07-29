@@ -16,6 +16,10 @@
 
 #include "vparse.h"
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    #define bzero(p, s) memset((p), 0, (s))
+#endif
+
 char *v_incdirs = NULL;
 
 /* Definition table for preprocessor. */
@@ -217,7 +221,7 @@ define_directive( struct fileinfo_s *pfi )
 		}
 
 		/* Copy into new buffer. */
-		psub = psubd = malloc( sublen+1 );
+		psub = psubd = (char *)malloc( sublen+1 );
 		while ( sublen-- > 0 ) {
 			if ( psubs[0] == '\\' && psubs[1] == '\n' ) {
 				*psubd++ = '\n';
@@ -229,7 +233,7 @@ define_directive( struct fileinfo_s *pfi )
 		*psubd++ = '\0';
 	}
 	else {
-		psub = malloc( 1 );
+		psub = (char *)malloc( 1 );
 		psub[0] = '\0';
 	}
 
@@ -459,7 +463,7 @@ f_appendc( struct fileinfo_s *pfi, char c )
 	if ( ! pfi->ifdefd_out || c == '\n' ) {
 		if ( pfi->newlen >= pfi->newspace-64 ) {
 			pfi->newspace += 1024;
-			pfi->newbuf = realloc( pfi->newbuf, pfi->newspace );
+			pfi->newbuf = (char *)realloc( pfi->newbuf, pfi->newspace );
 			if ( ! pfi->newbuf )
 				fprintf( stderr, "f_appendc: out of memory "
 					 "(newspace=%d)\n",
@@ -488,7 +492,7 @@ f_appends( struct fileinfo_s *pfi, const char *s )
 			pfi->newspace += l;
 			pfi->newspace = ((pfi->newspace + 1023) & ~1024);
 
-			pfi->newbuf = realloc( pfi->newbuf, pfi->newspace );
+			pfi->newbuf = (char *)realloc( pfi->newbuf, pfi->newspace );
 			if ( ! pfi->newbuf )
 				fprintf( stderr, "f_appends: out of memory "
 					 "(newspace=%d)\n",
@@ -661,7 +665,7 @@ v_getfile2( const char *filename, struct fileinfo_s *pfi )
 	if ( pfi->srclen < 0 )
 		abort();
 
-	pfi->srcbuf = pfi->sp = malloc( pfi->srclen + 16 );
+	pfi->srcbuf = pfi->sp = (char *)malloc( pfi->srclen + 16 );
 	if ( ! pfi->srcbuf ) {
 		fprintf( stderr, "Couldn't allocate %d bytes for %s\n",
 			 pfi->srclen, filename );
@@ -681,7 +685,7 @@ v_getfile2( const char *filename, struct fileinfo_s *pfi )
 
 	if ( ! pfi->newspace ) {
 		pfi->newspace = (pfi->srclen+1023) & ~1023;
-		pfi->newbuf = pfi->dp = malloc( pfi->newspace );
+		pfi->newbuf = pfi->dp = (char *)malloc( pfi->newspace );
 		if ( ! pfi->newbuf )
 			fprintf( stderr, "v_getfile2: couldn't malloc "
 				 "newbuf.\n" ),exit(1);
@@ -714,7 +718,7 @@ v_getfile( const char *filename, char **pbuf, int *plen )
 
 	bzero( & fi, sizeof(fi) );
 
-	fi.deftab = malloc( sizeof(struct deftab_s) );
+	fi.deftab = (deftab_s *)malloc( sizeof(struct deftab_s) );
 	if ( ! fi.deftab )
 		fprintf( stderr, "v_getfile: couldn't malloc deftab.\n" ),
 			exit(1);
@@ -778,7 +782,7 @@ def_add( struct deftab_s *dt, const char *name, int namelen,
 		fprintf( stderr, "adddef: out of memory." ),exit(1);
 	*ppde = pde;
 
-	pde->name = malloc( namelen+1 );
+	pde->name = (char *)malloc( namelen+1 );
 	if ( ! pde->name )
 		fprintf( stderr, "addef: out of memory.\n" ),exit(1);
 	memcpy( pde->name, name, namelen );

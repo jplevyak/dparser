@@ -9,10 +9,11 @@ GRAMMAR= verilog.g
 DPARSEFLAGS= -l -v
 
 TARGET= v
-CSRCS= main.c vparse.c ambig.c
-OBJS= $(CSRCS:.c=.o) $(GRAMMAR).d_parser.o
+CSRCS= main.cpp vparse.cpp ambig.cpp
+OBJS= $(CSRCS:.cpp=.o) $(GRAMMAR).d_parser.o
 INCDIRSS= -I$(DPARSERDIR)
 CFLAGS= -g $(INCDIRSS)
+CPPFLAGS = $(CFLAGS)
 
 #########
 
@@ -21,10 +22,10 @@ target: $(TARGET)
 ##########
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) \
+	$(CXX) $(CFLAGS) -o $@ $(OBJS) \
 		-L$(DPARSERDIR) -ldparse
 
-$(GRAMMAR).d_parser.c: $(GRAMMAR)
+$(GRAMMAR).d_parser.cpp: $(GRAMMAR)
 	$(DPARSERDIR)/make_dparser $(DPARSEFLAGS) $(GRAMMAR)
 
 lint:
@@ -36,4 +37,4 @@ test:	$(TARGET)
 	grep failed log.txt | wc -l
 
 clean:
-	rm -f $(GRAMMAR).d_parser.c $(TARGET) $(OBJS) log.txt
+	rm -f $(GRAMMAR).d_parser.cpp $(TARGET) $(OBJS) log.txt
