@@ -1869,21 +1869,32 @@ syntax_error_report_fn(struct D_Parser *ap) {
   char *fn = d_dup_pathname_str(p->user.loc.pathname);
   char *after = 0;
   ZNode *z = p->snode_hash.last_all ? p->snode_hash.last_all->zns.v[0] : 0;
+  SNode *s = p->snode_hash.last_all;
+
   while (z && z->pn->parse_node.start_loc.s == z->pn->parse_node.end)
     z = (z->sns.v && z->sns.v[0]->zns.v) ? z->sns.v[0]->zns.v[0] : 0;
   if (z && z->pn->parse_node.start_loc.s != z->pn->parse_node.end)
     after = dup_str(z->pn->parse_node.start_loc.s, z->pn->parse_node.end);
 #ifndef _MSC_VER
   if (after)
-    fprintf(stderr, "%s:%d: syntax error after '%s'\n", fn, p->user.loc.line, after);
+    fprintf(stderr, "%s:%d: syntax error after '%s'", fn, p->user.loc.line, after);
   else
-    fprintf(stderr, "%s:%d: syntax error\n", fn, p->user.loc.line);
+    fprintf(stderr, "%s:%d: syntax error", fn, p->user.loc.line);
 #else
   if (after)
-    fprintf(stderr, "%s:(%d): syntax error after '%s'\n", fn, p->user.loc.line, after);
+    fprintf(stderr, "%s:(%d:%d): syntax error after '%s'", fn, p->user.loc.line, p->user.loc.col, after);
   else
-    fprintf(stderr, "%s:(%d): syntax error\n", fn, p->user.loc.line);
+    fprintf(stderr, "%s:(%d:%d): syntax error", fn, p->user.loc.line, p->user.loc.col);
+  if (s) {
+    int i;
+    fprintf(stderr, ", expecting ");
+    for(i=0;i<p->t->nstates;i++) {
+      if ( IS_BIT_SET(s->state->goto_valid, i) )
+        fprintf(stderr, "%s, ", p->t->symbols[i].name);
+    }
+  }
 #endif
+  fprintf(stderr, "\n");
   fflush(stderr);
   if (after)
     FREE(after);
