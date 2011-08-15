@@ -519,6 +519,7 @@ v_preprocess( struct fileinfo_s *pfi )
 {
 	int i;
 	int is_start_of_line = 1;
+    int rec;
 
 	while (pfi->srcleft > 0) {
 
@@ -602,12 +603,27 @@ v_preprocess( struct fileinfo_s *pfi )
 			/* Handle C-like comments. */
 			pfi->sp += 2;
 			pfi->srcleft -= 2;
+            rec = 1;
 
-			while ( pfi->srcleft > 1 &&
-				(pfi->sp[0] != '*' || pfi->sp[1] != '/') ) {
+            while ( pfi->srcleft > 1) {
 
-				if ( *pfi->sp == '\n' )
+                if (pfi->sp[0] == '/' && pfi->sp[1] == '*') {
+                    rec++;
+    				pfi->srcleft -= 2;
+	    			pfi->sp += 2;
+                    continue;
+                }
+                else if (pfi->sp[0] == '*' && pfi->sp[1] == '/') {
+                    rec--;
+    				pfi->srcleft -= 2;
+	    			pfi->sp += 2;
+                    continue;
+                }
+                else if ( pfi->sp[0] == '\n' )
 					f_appendc( pfi, '\n' );
+
+                if (rec == 0)
+                    break;
 
 				pfi->srcleft--;
 				pfi->sp++;
@@ -619,6 +635,9 @@ v_preprocess( struct fileinfo_s *pfi )
 				pfi->sp += 2;
 			}
 
+            if (rec > 0) {
+                fprintf( stderr, "Comment error!\n" );
+            }
 			continue;
 		}
 #endif
