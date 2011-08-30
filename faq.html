@@ -12,7 +12,7 @@
 <div style="text-align: left;"><big><br>
 <br>
 <span style="font-weight: bold;"></span></big><span
- style="font-weight: bold;"><span style="font-weight: bold;">1. How do
+ style="font-weight: bold;"><span style="font-weight: bold;">1a. How do
 I access the subnodes for expressions like "S: A*;" ?<br>
 <span style="font-weight: bold;"><span style="font-weight: bold;"><span
  style="font-weight: bold;"><br>
@@ -25,6 +25,17 @@ d_get_number_of_children(&amp;$n0) and individual children by calling
 d_get_child(&amp;$n0, x).<br>
 <br>
 See the example: tests/g27.test.g<br>
+<br>
+<span style="font-weight: bold;"></span></big><span
+ style="font-weight: bold;"><span style="font-weight: bold;">1b. How do
+I access the subnodes for expressions like "S: (A)*;" ?<br>
+<span style="font-weight: bold;"><span style="font-weight: bold;"><span
+ style="font-weight: bold;"><br>
+</span></span></span></span></span>In this case, you get the number of 
+children (<span style="font-weight: bold;">A</span>'s) by calling
+d_get_number_of_children(&amp;$n0) and individual children by calling
+d_get_child(d_get_child(&amp;$n0, x), 0).<br>
+<br>
 <span style="font-weight: bold;"><br>
 <span style="font-weight: bold;">2. Why doesn't '$n0.end_skip' include
 the trailing whitespace when $n0 is a string/regex?<br>
