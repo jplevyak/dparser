@@ -1,3 +1,5 @@
+1.29    Fixed bug with handling of priorities and associativity (thanx Sjoerd Cranen)
+
 1.28    Fixed bug with actions containing commments containing '
         Python 2.6+ support, thanx to jonas@lophus.org
 
