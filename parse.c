@@ -589,13 +589,13 @@ static int child_table[4][3][6] = {
 },
 { /* left unary parent */
   { 1, 0, 0, x, 0, x}, /* binary child */
-  { 1, 0, 1, x, x, x}, /* left unary child */
-  { 1, 1, x, x, 1, x}  /* right unary child */
+  { 1, 1, 1, x, x, x}, /* left unary child */
+  { 1, 0, x, x, 1, x}  /* right unary child */
 },
 { /* right unary parent */
   { 1, 0, x, 0, x, 0}, /* binary child */
-  { 1, 1, x, 1, x, x}, /* left unary child */
-  { 1, 0, x, x, x, 1}  /* right unary child */
+  { 1, 0, x, 1, x, x}, /* left unary child */
+  { 1, 1, x, x, x, 1}  /* right unary child */
 }
 };
 #undef x
@@ -605,10 +605,6 @@ static int
 check_child(int ppri, AssocKind passoc, int cpri, AssocKind cassoc,
 	    int left, int right) 
 {
-  if (IS_UNARY_ASSOC(passoc) && passoc == cassoc)
-    return 1;
-  if (IS_UNARY_ASSOC(passoc) != IS_UNARY_ASSOC(cassoc))
-    return 1;
   int p = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : 
           (passoc == ASSOC_UNARY_LEFT ? 2 : 3);
   int c = IS_BINARY_NARY_ASSOC(cassoc) ? 0 : 
