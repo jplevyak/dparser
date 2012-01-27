@@ -14,7 +14,7 @@
 :159: syntax error after '}}
 	'
 :160: syntax error after ')'
-:161: syntax error after 'RightButton) ) {
+:161: syntax error after 'LeftButton || button == Key.RightButton) ) {
 			if(!dragged) '
 :162: syntax error after '}'
 :163: syntax error after '}'
@@ -33,6 +33,9 @@
 			if( modifiers[Key.LeftShift] '
 :169: syntax error after ')'
 :171: syntax error after '}'
-:176: syntax error after ';'
-:177: syntax error after ';'
-fatal error, '' line 177
+:185: syntax error after 't'
+:187: syntax error after ';'
+:188: syntax error after ';'
+:189: syntax error after ';'
+:190: syntax error after ';'
+fatal error, '' line 190

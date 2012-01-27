@@ -737,22 +737,17 @@ compare_priorities(int xpri[], int xn, int ypri[], int yn) {
 }
 
 static void
-intsort(int *xp, int n) {
-  int again = 1, i, t;
-  while (again) {
-    again = 0;
-    for (i = 0; i < n - 1; i++) {
-      if (xp[i] > xp[i+1]) {
-        t = xp[i];
-        xp[i] = xp[i + 1];
-        xp[i + 1] = t;
-        again = 1;
-      }
-    }
+intreverse(int *xp, int n) {
+  int *a = xp, *b = xp + n -1;
+  while (a < b) {
+    int t = *a;
+    *a = *b;
+    *b = t;
+    a++; b--;
   }
 }
 
-/* sort by deepest, then by address */
+/* sort by deepest, then by location */
 static void
 priority_insert(StackPNode *psx, PNode *x) {
   PNode *t, **start, **cur;
@@ -763,7 +758,8 @@ priority_insert(StackPNode *psx, PNode *x) {
   for (;cur > start + 1;cur--) {
     if (cur[-1]->height > cur[-2]->height)
       continue;
-    if (cur[-1]->height == cur[-2]->height && cur[-1] > cur[-2])
+    if (cur[-1]->height == cur[-2]->height &&
+        cur[-1]->parse_node.start_loc.s > cur[-2]->parse_node.start_loc.s)
       continue;
     t = cur[-1];
     cur[-1] = cur[-2];
@@ -868,8 +864,8 @@ cmp_priorities(Parser *p, PNode *x, PNode *y) {
   get_exp_one(p, x, &psx, &isx);
   get_exp_one(p, y, &psy, &isy);
   get_unshared_priorities(p, &psx, &psy, &isx, &isy);
-  intsort(isx.start, stack_depth(&isx));
-  intsort(isy.start, stack_depth(&isy));
+  intreverse(isx.start, stack_depth(&isx));
+  intreverse(isy.start, stack_depth(&isy));
   int r = compare_priorities(isx.start, stack_depth(&isx),
                      isy.start, stack_depth(&isy));
   stack_free(&psx); stack_free(&psy); stack_free(&isx); stack_free(&isy);
@@ -989,15 +985,7 @@ static int
 cmp_pnodes(Parser *p, PNode *x, PNode *y) {
   int r = 0;
   if (x->assoc && y->assoc) {
-    /* simple case */
-    if (!IS_NARY_ASSOC(x->assoc) && !IS_NARY_ASSOC(y->assoc)) {
-      if (x->priority > y->priority)
-       return -1;
-      if (x->priority < y->priority)
-       return 1;
-    }
-    r = cmp_priorities(p, x, y);
-    if (r)
+    if ((r = cmp_priorities(p, x, y)))
       return r;
   }
   if (!p->user.dont_use_greediness_for_disambiguation)

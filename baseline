@@ -1,4 +1,4 @@
-#!/usr/local/bin/tcsh
+#!/bin/tcsh
 
 setenv MAKE gmake
 parser_tests
