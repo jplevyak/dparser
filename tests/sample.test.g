@@ -65,7 +65,9 @@ constant : integer | float | character | strings;
 strings : string+;
 
 binary_operator
-	: '.'		$binary_op_left 9900
+	: '::'		$binary_op_right 10000
+        | '.'		$binary_op_left 9900
+	| '->'		$binary_op_left 9900
 	| '*'		$binary_op_left 9600
 	| '/'		$binary_op_left 9600
 	| '%'		$binary_op_left 9600
@@ -96,31 +98,29 @@ binary_operator
 	| '|='		$binary_op_left 8500
 	| '^='		$binary_op_left 8500
 	| ','		$binary_op_left 8400
-	| '->'		$binary_op_left 9900
-	| '::'		$binary_op_right 10000
 	|		$binary_op_left 7000
 	;
 
 pre_operator
-	: '-'		$unary_op_right 9800
-	| '+'		$unary_op_right 9800
-	| '~'		$unary_op_right 9800
-	| '!'		$unary_op_right 9800
-	| '*'		$unary_op_right 9800
-	| '&'		$unary_op_right 9800
+	: '::'          $unary_op_right	10000
 	| '--'		$unary_op_right 9800
 	| '++'		$unary_op_right 9800
-	| '(' external_type ')' $unary_op_right 9800
-	| 'sizeof'	 $unary_op_right	9900
-	| '::'		 $unary_op_right	10000
+        | '-'		$unary_op_right 8600
+	| '+'		$unary_op_right 8600
+	| '~'		$unary_op_right 8600
+	| '!'		$unary_op_right 8600
+	| '*'		$unary_op_right 8600
+	| '&'		$unary_op_right 8600
+	| '(' external_type ')' $unary_op_right 8600
+	| 'sizeof'	 $unary_op_right	8600
 	;
 
 post_operator
-	: '--' 	$unary_op_left 9800
-	| '++' 	$unary_op_left 9800
-	| '{' expression '}' $unary_op_left 9900
-	| '(' expression ')' $unary_op_left 9900
-	| '[' expression ']' $unary_op_left 9900
+	: '--' 	$unary_op_left 9700
+	| '++' 	$unary_op_left 9700
+	| '{' expression '}' $unary_op_left 9700
+	| '(' expression ')' $unary_op_left 9700
+	| '[' expression ']' $unary_op_left 9700
 	;
 
 builtin_types
