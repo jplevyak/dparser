@@ -1952,7 +1952,11 @@ error_recovery(Parser *p) {
     rr->symbol = best_er->symbol;
     update_line(best_loc.s, best_s, &best_loc.line);
     best_loc.s = (char*)best_s;
-    best_pn = best_sn->zns.v[0]->pn;
+    for (i = 0; i < best_sn->zns.n; i++)
+      if (best_sn->zns.v[i]) {
+        best_pn = best_sn->zns.v[i]->pn;
+        break;
+      }
     best_pn->parse_node.white_space(
       (D_Parser*)p, &best_loc, (void**)&best_pn->parse_node.globals);
     new_pn = add_PNode(p, 0, &p->user.loc,  best_loc.s, best_pn, 0, 0, 0);
