@@ -1894,7 +1894,7 @@ error_recovery(Parser *p) {
   int i, j, head = 0, tail = 0, res = 1;
   D_ErrorRecoveryHint *best_er = NULL;
   SNode **q = 0;
-  PNode *best_pn;
+  PNode *best_pn = NULL;
 
   if (!p->snode_hash.last_all)
     return res;

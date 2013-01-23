@@ -1,7 +1,7 @@
 # Makefile for D_Parser
 
-D_DEBUG=1
-#D_OPTIMIZE=1
+#D_DEBUG=1
+D_OPTIMIZE=1
 #D_PROFILE=1
 #D_USE_GC=1
 #D_LEAK_DETECT=1
@@ -64,12 +64,9 @@ ifdef D_USE_FREELISTS
 CFLAGS += -DUSE_FREELISTS
 endif
 
-D_BUILD_VERSION = $(shell svnversion .)
-ifeq ($(D_BUILD_VERSION),exported)
-  D_BUILD_VERSION = $(shell git show-ref 2> /dev/null | head -1 | cut -d ' ' -f 1)
-  ifeq ($(D_BUILD_VERSION),)
-    D_BUILD_VERSION = $(shell cat D_BUILD_VERSION)
-  endif
+D_BUILD_VERSION = $(shell git show-ref 2> /dev/null | head -1 | cut -d ' ' -f 1)
+ifeq ($(D_BUILD_VERSION),)
+  D_BUILD_VERSION = $(shell cat D_BUILD_VERSION)
 endif
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR) -DD_BUILD_VERSION=\"$(D_BUILD_VERSION)\"
 
