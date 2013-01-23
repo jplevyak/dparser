@@ -85,7 +85,6 @@ new_term_string(Grammar *g, char *s, char *e, Rule *r) {
   return elem;
 }
 
-#define ESC(_c) *ss++ = '\\'; *ss++ = _c; break;
 char *
 escape_string_for_regex(const char *s) {
   char *ss = (char*)MALLOC((strlen(s) + 1) * 2), *sss = ss;
@@ -117,6 +116,11 @@ unescape_term_string(Term *t) {
   for (ss = s = t->string; *s; s++) {
     if (*s == '\\') {
       switch (s[1]) {
+	case '\\':
+    if (t->kind == TERM_STRING)
+      { *ss = '\\'; s++; break; }
+    else
+      goto Ldefault;
 	case 'b': *ss = '\b'; s++; break;
 	case 'f': *ss = '\f'; s++; break;
 	case 'n': *ss = '\n'; s++; break;
