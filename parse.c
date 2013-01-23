@@ -1069,7 +1069,7 @@ make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode 
       int n = path->n;
       for (i = 0; i < n; i += n-1) {
         PNode *child = new_pn->children.v[i];
-        if (child->assoc &&
+        if (child->assoc && new_pn->assoc &&
             !check_child(new_pn->priority, new_pn->assoc,
                          child->priority, child->assoc, i == 0, i == n - 1))
         {
