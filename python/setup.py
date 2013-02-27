@@ -22,7 +22,7 @@ module_swigc = Extension('_dparser_swigc',
     
 setup(name="dparser",
     cmdclass = {"install_data": smart_install_data},
-    version = "1.9",
+    version = "1.30",
     description = 'DParser for Python',
     py_modules = ["dparser", "dparser_swigc"],
     ext_modules = [module_swigc],

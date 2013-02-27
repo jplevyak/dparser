@@ -1,14 +1,14 @@
 # Makefile for D_Parser
 
-#D_DEBUG=1
-D_OPTIMIZE=1
+D_DEBUG=1
+#D_OPTIMIZE=1
 #D_PROFILE=1
-#D_USE_GC=1
+D_USE_GC=1
 #D_LEAK_DETECT=1
 D_USE_FREELISTS=1
 
 MAJOR=1
-MINOR=29
+MINOR=30
 RELEASE=$(MAJOR).$(MINOR)
 
 CC = gcc
@@ -96,7 +96,7 @@ TEST_FILES = d/parser_tests d/baseline $(TESTS:%=d/%)
 PYTHON_FILES = d/python/Makefile d/python/*.py d/python/*.c d/python/*.h d/python/*.i d/python/README d/python/*.html d/python/contrib/d* d/python/tests/*.py
 VERILOG_FILES = d/verilog/Makefile d/verilog/verilog.g d/verilog/README d/verilog/ambig.c \
 d/verilog/main.c d/verilog/vparse.c d/verilog/vparse.h d/verilog/verilog_tests
-TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) d/BUILD_VERSION \
+TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) d/D_BUILD_VERSION \
 d/grammar.g d/sample.g d/my.g 
 
 LIB_SRCS = arg.c parse.c scan.c symtab.c util.c read_binary.c dparse_tree.c
@@ -143,7 +143,7 @@ endif
 
 ALL_SRCS = $(MAKE_PARSER_SRCS) $(BASE_SAMPLE_PARSER_SRCS) $(LIB_SRCS) $(MK_LIB_SRCS)
 
-all: $(EXECS) $(LIBRARIES) BUILD_VERSION make_dparser.cat
+all: $(EXECS) $(LIBRARIES) D_BUILD_VERSION make_dparser.cat
 
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
@@ -201,10 +201,10 @@ make_dparser.cat: make_dparser.1
 	rm -f make_dparser.cat
 	nroff -man make_dparser.1 | sed -e 's/.//g' > make_dparser.cat
 
-build_version:
-	rm -f BUILD_VERSION.tmp
-	echo $(D_BUILD_VERSION) > BUILD_VERSION.tmp
-	mv BUILD_VERSION.tmp BUILD_VERSION
+D_BUILD_VERSION:
+	rm -f D_BUILD_VERSION.tmp
+	echo $(D_BUILD_VERSION) > D_BUILD_VERSION.tmp
+	mv D_BUILD_VERSION.tmp D_BUILD_VERSION
 
 tar:
 	(cd ..;tar czf d-$(RELEASE)-src.tar.gz d/*.c d/*.h $(TAR_FILES)) 
