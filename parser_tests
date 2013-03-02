@@ -4,7 +4,7 @@
 #setenv VALGRIND 'valgrind -q '
 setenv VALGRIND ' '
 
-cp BUILD_VERSION Makefile *.c *.h grammar.g tests
+cp D_BUILD_VERSION Makefile *.c *.h grammar.g tests
 cd tests
 $MAKE -s make_dparser
 $MAKE gram
@@ -41,5 +41,5 @@ if (! $failed) then
 else
   echo "********" $failed "test(s) FAILED *********"
 endif
-rm -f sample_parser BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
+rm -f sample_parser D_BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
 cd ..
