@@ -1,4 +1,4 @@
-install: make
+script: make && make test
 language: c
 compiler:
   - clang
