@@ -7,4 +7,3 @@ compiler:
   - gcc
 os:
   - linux
-  - osx
