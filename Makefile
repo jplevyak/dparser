@@ -169,11 +169,11 @@ make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS) 
 
 $(LIBDPARSE): $(LIB_OBJS)
-	ar cruv $@ $^
+	ar crv $@ $^
 	ranlib $@
 
 $(LIBMKDPARSE): $(MK_LIB_OBJS)
-	ar cruv $@ $^
+	ar crv $@ $^
 	ranlib $@
 
 %.d_parser.c: % make_dparser
