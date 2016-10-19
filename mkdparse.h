@@ -11,8 +11,8 @@ extern "C" {
 
 struct Grammar;
 
-void mkdparse(struct Grammar *g, char *grammar_pathname);
-void mkdparse_from_string(struct Grammar *g, char *str);
+void mkdparse(struct Grammar* g, char* grammar_pathname);
+void mkdparse_from_string(struct Grammar* g, char* str);
 
 #if defined(__cplusplus)
 }
