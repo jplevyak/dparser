@@ -35,9 +35,9 @@
 #define GC_DEBUG
 #include "gc.h"
 #define MALLOC(n) GC_MALLOC(n)
-#define CALLOC(m,n) GC_MALLOC((m)*(n))
+#define CALLOC(m, n) GC_MALLOC((m) * (n))
 #define FREE(p) GC_FREE(p)
-#define REALLOC(p,n) GC_REALLOC((p),(n))
+#define REALLOC(p, n) GC_REALLOC((p), (n))
 #define CHECK_LEAKS() GC_gcollect()
 #else
 #ifdef USE_GC
@@ -56,24 +56,23 @@
 #endif
 
 // enough already with the signed/unsiged char issues
-#define isspace_(_c) isspace((unsigned char)(_c))
-#define isdigit_(_c) isdigit((unsigned char)(_c))
-#define isxdigit_(_c) isxdigit((unsigned char)(_c))
-#define isprint_(_c) isprint((unsigned char)(_c))
+#define isspace_(_c) isspace((unsigned char) (_c))
+#define isdigit_(_c) isdigit((unsigned char) (_c))
+#define isxdigit_(_c) isxdigit((unsigned char) (_c))
+#define isprint_(_c) isprint((unsigned char) (_c))
 
-#define D_VERSION			(\
-(D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + \
-D_BUILD_VERSION)
-                         
-/* Compilation Options 
+#define D_VERSION                                                            \
+    ((D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + D_BUILD_VERSION)
+
+/* Compilation Options
 */
 
-#define round2(_x,_n) ((_x + ((_n)-1)) & ~((_n)-1))
-#define tohex1(_x) \
-((((_x)&15) > 9) ? (((_x)&15) - 10 + 'A') : (((_x)&15) + '0'))
-#define tohex2(_x) \
-((((_x)>>4) > 9) ? (((_x)>>4) - 10 + 'A') : (((_x)>>4) + '0'))
-#define numberof(_x) ((sizeof(_x))/(sizeof((_x)[0])))
+#define round2(_x, _n) ((_x + ((_n) -1)) & ~((_n) -1))
+#define tohex1(_x)                                                           \
+    ((((_x) &15) > 9) ? (((_x) &15) - 10 + 'A') : (((_x) &15) + '0'))
+#define tohex2(_x)                                                           \
+    ((((_x) >> 4) > 9) ? (((_x) >> 4) - 10 + 'A') : (((_x) >> 4) + '0'))
+#define numberof(_x) ((sizeof(_x)) / (sizeof((_x)[0])))
 
 typedef char int8;
 typedef unsigned char uint8;
@@ -86,7 +85,7 @@ typedef unsigned short uint16;
 #ifdef __MINGW32__
 /* already part of most systems */
 typedef unsigned long ulong;
-typedef uint32 uint; 
+typedef uint32 uint;
 #endif
 
 #include "dparse.h"
@@ -101,13 +100,17 @@ typedef uint32 uint;
 #include "read_binary.h"
 
 #ifdef D_DEBUG
-#define DBG(_x) if (d_debug_level>1) { _x; }
+#define DBG(_x)                                                              \
+    if (d_debug_level > 1)                                                   \
+    {                                                                        \
+        _x;                                                                  \
+    }
 #else
 #define DBG(_x)
 #endif
 
-void d_version(char *);
+void d_version(char*);
 
-#define USE_SCANNER		1
+#define USE_SCANNER 1
 
 #endif
