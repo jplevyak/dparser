@@ -55,13 +55,13 @@ OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code")-1, -3};
 
 uint32 
 offset_hash_fn(OffsetEntry *entry, struct hash_fns_t* fn) {
-  fn = fn;
+  (void)fn;
   return strhashl(entry->name, entry->len);
 }
 
 int 
 offset_cmp_fn(OffsetEntry *a, OffsetEntry *b, struct hash_fns_t* fn) {
-  fn = fn;
+  (void)fn;
   return strcmp(a->name, b->name);
 }
 
