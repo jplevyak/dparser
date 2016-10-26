@@ -2197,35 +2197,52 @@ write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int bin
   write_parser_tables(g, tag, &file);
 }
 
-int
-write_c_tables(Grammar *g) {
-  write_parser_tables_internal(g, g->pathname,
-                               *g->grammar_ident ? g->grammar_ident : NULL,
-                               0, 0, 0, 0);
-  return 0;
+int write_c_tables(Grammar* g)
+{
+    write_parser_tables_internal(g,
+                                 g->pathname,
+                                 *g->grammar_ident ? g->grammar_ident : NULL,
+                                 0,
+                                 0,
+                                 0,
+                                 0);
+    return 0;
 }
 
-int
-write_binary_tables(Grammar *g) {
-  write_parser_tables_internal(g, g->pathname,
-                               *g->grammar_ident ? g->grammar_ident : NULL,
-                               1, 0, 0, 0);
-  return 0;
+int write_binary_tables(Grammar* g)
+{
+    write_parser_tables_internal(g,
+                                 g->pathname,
+                                 *g->grammar_ident ? g->grammar_ident : NULL,
+                                 1,
+                                 0,
+                                 0,
+                                 0);
+    return 0;
 }
 
-int
-write_binary_tables_to_file(Grammar *g, FILE *fp) {
-  write_parser_tables_internal(g, g->pathname,
-                               *g->grammar_ident ? g->grammar_ident : NULL,
-                               1, fp, 0, 0);
-  return 0;
+int write_binary_tables_to_file(Grammar* g, FILE* fp)
+{
+    write_parser_tables_internal(g,
+                                 g->pathname,
+                                 *g->grammar_ident ? g->grammar_ident : NULL,
+                                 1,
+                                 fp,
+                                 0,
+                                 0);
+    return 0;
 }
 
-int
-write_binary_tables_to_string(Grammar *g, unsigned char **str, unsigned int *str_len) {
-  write_parser_tables_internal(g, g->pathname,
-                               *g->grammar_ident ? g->grammar_ident : NULL,
-                               1, 0, str, str_len);
-  return 0;
+int write_binary_tables_to_string(Grammar* g,
+                                  unsigned char** str,
+                                  unsigned int* str_len)
+{
+    write_parser_tables_internal(g,
+                                 g->pathname,
+                                 *g->grammar_ident ? g->grammar_ident : NULL,
+                                 1,
+                                 0,
+                                 str,
+                                 str_len);
+    return 0;
 }
-
