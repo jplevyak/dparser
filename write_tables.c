@@ -292,122 +292,199 @@ array of structs:
   end_array
 */
 
-#define start_struct(file, type, name, whitespace) start_struct_fn(file, sizeof(type), #type, name, whitespace)
-#define start_array(file, type, name, length_str, length_data, whitespace) \
-   start_array_fn(file, sizeof(type), "", #type, name, length_str, length_data, whitespace)
-#define add_struct_member(file, struct_type, format, data, member_name) do { \
-  if ((file)->binary) { \
-    ((struct_type*)((file)->tables.cur))->member_name = data; \
-  } else { \
-     handle_comma(file); \
-     fprintf((file)->fp, #format, data); \
-  }} while(0)
-#define add_struct_const_member(file, struct_type, string, value, member_name) do { \
-  if ((file)->binary) { \
-     ((struct_type*)((file)->tables.cur))->member_name = value; \
-  } else { \
-     handle_comma(file); \
-     fprintf((file)->fp, string); \
-  }} while(0)
-#define add_struct_str_member(file, struct_type, string, member_name) \
-  add_struct_str_member_fn(file, (char**)&((struct_type*)(file)->tables.cur)->member_name, string)
-#define add_struct_ptr_member(file, struct_type, ampersand, entry, member_name) \
-  add_struct_ptr_member_fn(file, (void**)&((struct_type*)(file)->tables.cur)->member_name, entry, ampersand "%s")
-#define add_array_member(file, type, format, data, last) do {\
-if ((file)->binary) {\
-    add_array_member_internal(file);\
-    *((type*)((file)->tables.cur)) = data;\
-    (file)->tables.cur += (file)->elem_size;\
-  } else {\
-    fprintf((file)->fp, #format "%s", data, last ? "" : ",");\
-  }} while(0)
-#define add_array_ptr_member(file, type, ampersand, entry, last) \
-  add_array_ptr_member_fn(file, entry, ampersand "%s%s", last)
-#define end_struct(file, type, whitespace) end_struct_fn(file, sizeof(type), whitespace)
+#define start_struct(file, type, name, whitespace)                           \
+    start_struct_fn(file, sizeof(type), #type, name, whitespace)
+#define start_array(file, type, name, length_str, length_data, whitespace)   \
+    start_array_fn(file,                                                     \
+                   sizeof(type),                                             \
+                   "",                                                       \
+                   #type,                                                    \
+                   name,                                                     \
+                   length_str,                                               \
+                   length_data,                                              \
+                   whitespace)
+#define add_struct_member(file, struct_type, format, data, member_name)      \
+    do                                                                       \
+    {                                                                        \
+        if ((file)->binary)                                                  \
+        {                                                                    \
+            ((struct_type*) ((file)->tables.cur))->member_name = data;       \
+        }                                                                    \
+        else                                                                 \
+        {                                                                    \
+            handle_comma(file);                                              \
+            fprintf((file)->fp, #format, data);                              \
+        }                                                                    \
+    } while (0)
+#define add_struct_const_member(                                             \
+    file, struct_type, string, value, member_name)                           \
+    do                                                                       \
+    {                                                                        \
+        if ((file)->binary)                                                  \
+        {                                                                    \
+            ((struct_type*) ((file)->tables.cur))->member_name = value;      \
+        }                                                                    \
+        else                                                                 \
+        {                                                                    \
+            handle_comma(file);                                              \
+            fprintf((file)->fp, string);                                     \
+        }                                                                    \
+    } while (0)
+#define add_struct_str_member(file, struct_type, string, member_name)        \
+    add_struct_str_member_fn(                                                \
+        file,                                                                \
+        (char**) &((struct_type*) (file)->tables.cur)->member_name,          \
+        string)
+#define add_struct_ptr_member(                                               \
+    file, struct_type, ampersand, entry, member_name)                        \
+    add_struct_ptr_member_fn(                                                \
+        file,                                                                \
+        (void**) &((struct_type*) (file)->tables.cur)->member_name,          \
+        entry,                                                               \
+        ampersand "%s")
+#define add_array_member(file, type, format, data, last)                     \
+    do                                                                       \
+    {                                                                        \
+        if ((file)->binary)                                                  \
+        {                                                                    \
+            add_array_member_internal(file);                                 \
+            *((type*) ((file)->tables.cur)) = data;                          \
+            (file)->tables.cur += (file)->elem_size;                         \
+        }                                                                    \
+        else                                                                 \
+        {                                                                    \
+            fprintf((file)->fp, #format "%s", data, last ? "" : ",");        \
+        }                                                                    \
+    } while (0)
+#define add_array_ptr_member(file, type, ampersand, entry, last)             \
+    add_array_ptr_member_fn(file, entry, ampersand "%s%s", last)
+#define end_struct(file, type, whitespace)                                   \
+    end_struct_fn(file, sizeof(type), whitespace)
 
-static void
-add_array_member_internal(File *fp) {
-  fp->n_elems++;
-  make_room_in_buf(&fp->tables, fp->elem_size);
+static void add_array_member_internal(File* fp)
+{
+    fp->n_elems++;
+    make_room_in_buf(&fp->tables, fp->elem_size);
 }
 
-static void
-handle_comma(File *file) {
-  if (!file->first_member)
-    fprintf(file->fp, ", ");
-  file->first_member = 0;
+static void handle_comma(File* file)
+{
+    if (!file->first_member)
+        fprintf(file->fp, ", ");
+    file->first_member = 0;
 }
 
-static void
-start_array_internal(File *fp, int length, int size) {
-  fp->array_length = length;
-  fp->n_elems = 0;
-  fp->elem_size = size;
+static void start_array_internal(File* fp, int length, int size)
+{
+    fp->array_length = length;
+    fp->n_elems = 0;
+    fp->elem_size = size;
 }
 
-static void
-start_struct_fn(File *fp, int size, char *type_str, char *name, char *whitespace) {
-  new_offset(fp, name);
-  fp->first_member = 1;
-  if (fp->binary) {
-    make_room_in_buf(&fp->tables, size);
-  } else {
-    fprintf(fp->fp, "%s %s = {%s", type_str, name, whitespace);
-  }
-}
-
-static void
-start_struct_in_array(File *fp) {
-  fp->first_member = 1;
-  if (fp->binary) {
-    add_array_member_internal(fp);
-  } else {
-    fprintf(fp->fp, "{");
-  }
-}
-
-static void
-start_array_fn(File *fp, int type_size, char *type_prefix, char *type_str,
-               char *name, char *length_str, int length_data, char *whitespace) {
-  new_offset(fp, name);
-  if (fp->binary) {
-    start_array_internal(fp, length_data, type_size);
-  } else {
-    if (length_data == 0)
-      fprintf(fp->fp, "%s%s %s[] = {%s", type_prefix, type_str, name, whitespace);
-    else if(strlen(length_str) == 0)
-      fprintf(fp->fp, "%s%s %s[%d] = {%s", type_prefix, type_str, name, length_data, whitespace);
+static void start_struct_fn(
+    File* fp, int size, char* type_str, char* name, char* whitespace)
+{
+    new_offset(fp, name);
+    fp->first_member = 1;
+    if (fp->binary)
+    {
+        make_room_in_buf(&fp->tables, size);
+    }
     else
-      fprintf(fp->fp, "%s%s %s[%s] = {%s", type_prefix, type_str, name, length_str, whitespace);
-  }
+    {
+        fprintf(fp->fp, "%s %s = {%s", type_str, name, whitespace);
+    }
+}
+
+static void start_struct_in_array(File* fp)
+{
+    fp->first_member = 1;
+    if (fp->binary)
+    {
+        add_array_member_internal(fp);
+    }
+    else
+    {
+        fprintf(fp->fp, "{");
+    }
+}
+
+static void start_array_fn(File* fp,
+                           int type_size,
+                           char* type_prefix,
+                           char* type_str,
+                           char* name,
+                           char* length_str,
+                           int length_data,
+                           char* whitespace)
+{
+    new_offset(fp, name);
+    if (fp->binary)
+    {
+        start_array_internal(fp, length_data, type_size);
+    }
+    else
+    {
+        if (length_data == 0)
+            fprintf(fp->fp,
+                    "%s%s %s[] = {%s",
+                    type_prefix,
+                    type_str,
+                    name,
+                    whitespace);
+        else if (strlen(length_str) == 0)
+            fprintf(fp->fp,
+                    "%s%s %s[%d] = {%s",
+                    type_prefix,
+                    type_str,
+                    name,
+                    length_data,
+                    whitespace);
+        else
+            fprintf(fp->fp,
+                    "%s%s %s[%s] = {%s",
+                    type_prefix,
+                    type_str,
+                    name,
+                    length_str,
+                    whitespace);
+    }
+}
+
+static void add_struct_str_member_fn(File* fp, char** dest, const char* str)
+{
+    if (fp->binary)
+    {
+        *dest = (char*) make_string(fp, str);
+        vec_add(&fp->str_relocations,
+                (void*) ((char*) dest - fp->tables.start));
+    }
+    else
+    {
+        if (!fp->first_member)
+            fprintf(fp->fp, ", ");
+        fprintf(fp->fp, "\"%s\"", str);
+    }
+    fp->first_member = 0;
 }
 
 static void
-add_struct_str_member_fn(File *fp, char **dest, const char *str) {
-  if (fp->binary) {
-    *dest = (char*)make_string(fp, str);
-    vec_add(&fp->str_relocations, (void*)((char*)dest - fp->tables.start));
-  } else {
-    if (!fp->first_member)
-      fprintf(fp->fp, ", ");
-    fprintf(fp->fp, "\"%s\"", str);
-  }
-  fp->first_member = 0;
-}
-
-static void
-add_struct_ptr_member_fn(File *fp, void **dest, OffsetEntry *oe, char *format) {
-  if (fp->binary) {
-    *dest = (void*)(uintptr_t)oe->offset;
-    vec_add(&fp->relocations, (void*)((char*)dest - fp->tables.start));
-  } else {
-    if (*format == '&' && strcmp(oe->name, "NULL") == 0)
-      format++;
-    if (!fp->first_member)
-      fprintf(fp->fp, ", ");
-    fprintf(fp->fp, format, oe->name);
-  }
-  fp->first_member = 0;
+add_struct_ptr_member_fn(File* fp, void** dest, OffsetEntry* oe, char* format)
+{
+    if (fp->binary)
+    {
+        *dest = (void*) (uintptr_t) oe->offset;
+        vec_add(&fp->relocations, (void*) ((char*) dest - fp->tables.start));
+    }
+    else
+    {
+        if (*format == '&' && strcmp(oe->name, "NULL") == 0)
+            format++;
+        if (!fp->first_member)
+            fprintf(fp->fp, ", ");
+        fprintf(fp->fp, format, oe->name);
+    }
+    fp->first_member = 0;
 }
 
 static void
