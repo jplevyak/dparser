@@ -1,5 +1,6 @@
 /*
-    $URL: http://manta.univ.gda.pl/svn/wb/parsing/dparser/D/driver_parsetree.c$
+    $URL:
+   http://manta.univ.gda.pl/svn/wb/parsing/dparser/D/driver_parsetree.c$
     $Revision: 1.1 $
 */
 
