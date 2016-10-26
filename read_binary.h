@@ -20,7 +20,7 @@ typedef struct BinaryTablesHead
 
 typedef struct BinaryTables
 {
-    D_ParserTables* parser_tables_gram;
+    D_ParserTables* parser_tables_dparser_gram;
     char* tables;
 } BinaryTables;
 

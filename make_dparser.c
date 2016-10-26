@@ -13,7 +13,7 @@ static int states_for_whitespace = 1;
 static int states_for_all_nterms = 0;
 static int tokenizer = 0;
 static int longest_match = 0;
-static char grammar_ident[256] = "gram";
+static char grammar_ident[256] = "dparser_gram";
 static int ident_from_filename = 0;
 static int scanner_blocks = 4;
 static int scanner_block_size;

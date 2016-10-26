@@ -95,11 +95,11 @@ packages)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br>
 #include &lt;stdio.h&gt;<br>
 #include &lt;dparse.h&gt;<br>
-extern D_ParserTables parser_tables_gram;<br>
+extern D_ParserTables parser_tables_dparser_gram;<br>
 int<br>
 main(int argc, char *argv[]) {<br>
 &nbsp; char s[256], *ss;<br>
-&nbsp; D_Parser *p = new_D_Parser(&amp;parser_tables_gram, 0);<br>
+&nbsp; D_Parser *p = new_D_Parser(&amp;parser_tables_dparser_gram, 0);<br>
 &nbsp; if (fgets(s,255,stdin) &amp;&amp; dparse(p, s, strlen(s))
 &amp;&amp; !p-&gt;syntax_errors)<br>
 &nbsp;&nbsp;&nbsp; printf("success\n");<br>
@@ -312,7 +312,7 @@ for the substates must be disjoint.<br>
 6.5 Longest Match<br>
 <br>
 &nbsp; Longest match lexical ambiguity resolution is a technique used
-by separate phase lexers to help decide (along with lexical priorities) 
+by separate phase lexers to help decide (along with lexical priorities)
 which single token to select for a given input
 string.&nbsp; It is used in the definition of ANSI-C, but not in C++
 because of a snafu in the definition of templates whereby templates of

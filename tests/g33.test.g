@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "dparse_tables.h"
-extern D_Symbol d_symbols_gram[];
+extern D_Symbol d_symbols_dparser_gram[];
 char *xdup(char *s, char *e) {
   char *ss = malloc( e - s + 2 );
   memcpy(ss, s, e-s);
@@ -17,34 +17,34 @@ ${pass gen for_all postorder}
 
 translation_unit: statement*;
 
-_: 
-  sym: { 
-    printf("default sym(%s : \"%s\")\n",	
-	   d_symbols_gram[$n.symbol].name,
+_:
+  sym: {
+    printf("default sym(%s : \"%s\")\n",
+	   d_symbols_dparser_gram[$n.symbol].name,
 	   xdup($n.start_loc.s, $n.end)
-	   ); 	
+	   );
   }
-  gen: { 
-    printf("default gen(%s : \"%s\")\n",	
-	   d_symbols_gram[$n.symbol].name,
+  gen: {
+    printf("default gen(%s : \"%s\")\n",
+	   d_symbols_dparser_gram[$n.symbol].name,
 	   xdup($n.start_loc.s, $n.end)
-	   ); 	
+	   );
   }
  ;
- 
-statement 
-  : expression ';' 
-  { 
-    printf("final expression\n"); 
-    d_pass(${parser}, &$n, ${pass sym}); 
-    d_pass(${parser}, &$n, ${pass gen}); 
+
+statement
+  : expression ';'
+  {
+    printf("final expression\n");
+    d_pass(${parser}, &$n, ${pass sym});
+    d_pass(${parser}, &$n, ${pass gen});
   }
   ;
 
-expression 
+expression
   : identifier '=' expression $right 1
   sym: { printf("sym expression: =\n"); }
-  | integer 
+  | integer
   gen: { printf("gen expression: integer\n"); }
   sym: { printf("sym expression: integer\n"); }
   | expression '+' expression $right 2

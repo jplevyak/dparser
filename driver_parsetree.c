@@ -11,7 +11,7 @@
 
 char* sbuf_read(char* pathname); /* defined in util.h */
 
-extern D_ParserTables parser_tables_gram;
+extern D_ParserTables parser_tables_dparser_gram;
 
 int main(int argc, char* argv[])
 {
@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     D_ParseNode* pn;
     /* any number greater than sizeof(D_ParseNode_User) will do;
        below 1024 is used */
-    D_Parser* p = new_D_Parser(&parser_tables_gram, 1024);
+    D_Parser* p = new_D_Parser(&parser_tables_dparser_gram, 1024);
     p->save_parse_tree = 1;
 
     if (argc != 2)
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     {
         printf("\nparse tree\n");
         printf("----------\n");
-        print_parsetree(parser_tables_gram, pn, NULL, NULL);
+        print_parsetree(parser_tables_dparser_gram, pn, NULL, NULL);
         printf("\n");
     }
     else

@@ -286,7 +286,7 @@ D_Parser* make_parser(long int idpt,
     BinaryTables* dpt = (BinaryTables*) idpt;
     D_ParserPyInterface* ppi;
     D_Parser* p =
-        new_D_Parser(dpt->parser_tables_gram, sizeof(D_ParseNode_User));
+        new_D_Parser(dpt->parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     p->fixup_EBNF_productions = fixup_EBNF_productions;
     p->save_parse_tree = 1;
     p->initial_scope = NULL;
@@ -338,18 +338,18 @@ D_Parser* make_parser(long int idpt,
     if (start_symbol[0])
     {
         int i;
-        for (i = 0; i < dpt->parser_tables_gram->nsymbols; i++)
+        for (i = 0; i < dpt->parser_tables_dparser_gram->nsymbols; i++)
         {
-            if (dpt->parser_tables_gram->symbols[i].kind == D_SYMBOL_NTERM &&
-                strcmp(dpt->parser_tables_gram->symbols[i].name,
+            if (dpt->parser_tables_dparser_gram->symbols[i].kind == D_SYMBOL_NTERM &&
+                strcmp(dpt->parser_tables_dparser_gram->symbols[i].name,
                        start_symbol) == 0)
             {
                 p->start_state =
-                    dpt->parser_tables_gram->symbols[i].start_symbol;
+                    dpt->parser_tables_dparser_gram->symbols[i].start_symbol;
                 break;
             }
         }
-        if (i == dpt->parser_tables_gram->nsymbols)
+        if (i == dpt->parser_tables_dparser_gram->nsymbols)
         {
             fprintf(stderr, "invalid start symbol: %s\n", start_symbol);
             i = 0;

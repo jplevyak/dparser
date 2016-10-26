@@ -66,7 +66,7 @@ BinaryTables* read_binary_tables_internal(FILE* fp,
     if (fp)
         fclose(fp);
 
-    binary_tables->parser_tables_gram =
+    binary_tables->parser_tables_dparser_gram =
         (D_ParserTables*) (tables_buf + tables.d_parser_tables_loc);
     binary_tables->tables = tables_buf;
     return binary_tables;

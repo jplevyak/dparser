@@ -12,7 +12,7 @@ int make_tables(char* grammar_string, char* grammar_pathname)
     g->states_for_all_nterms = 1;
     g->tokenizer = 0;
     g->longest_match = 0;
-    strcpy(g->grammar_ident, "gram");
+    strcpy(g->grammar_ident, "dparser_gram");
     g->scanner_blocks = 4;
     g->scanner_block_size = 0;
     g->write_line_directives = 1;

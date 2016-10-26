@@ -6,7 +6,7 @@
 
 #define SIZEOF_MY_PARSE_NODE 100 /* permit test cases up to this size */
 
-extern D_ParserTables parser_tables_gram;
+extern D_ParserTables parser_tables_dparser_gram;
 
 int save_parse_tree = 1;
 int partial_parses = 0;
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
     process_args(&arg_state, argv);
     if (!arg_state.nfile_arguments)
         help(&arg_state, NULL);
-    p = new_D_Parser(&parser_tables_gram, SIZEOF_MY_PARSE_NODE);
+    p = new_D_Parser(&parser_tables_dparser_gram, SIZEOF_MY_PARSE_NODE);
     p->save_parse_tree = save_parse_tree;
     p->ambiguity_fn = ambiguity_count_fn;
     p->partial_parses = partial_parses;

@@ -14,7 +14,7 @@
 #include "vparse.h"
 #include "dparse.h"
 
-extern D_ParserTables parser_tables_gram;
+extern D_ParserTables parser_tables_dparser_gram;
 extern int d_verbose_level;
 extern struct D_ParseNode*
 my_ambiguity_fn(struct D_Parser* pp, int n, struct D_ParseNode** v);
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 
     int dump_pp = 0;
 
-    D_Parser* p = new_D_Parser(&parser_tables_gram, sizeof(D_ParseNode_User));
+    D_Parser* p = new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     p->ambiguity_fn = my_ambiguity_fn;
 
     while ((ch = getopt(argc, argv, "vphI:")) != -1)
