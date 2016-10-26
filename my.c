@@ -4,7 +4,8 @@ extern D_ParserTables parser_tables_dparser_gram;
 int main(int argc, char* argv[])
 {
     char s[256], *ss;
-    D_Parser* p = new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
+    D_Parser* p =
+        new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     if (fgets(s, 255, stdin) && dparse(p, s, strlen(s)) && !p->syntax_errors)
         printf("success\n");
     else

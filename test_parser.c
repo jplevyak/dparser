@@ -245,7 +245,8 @@ int main(int argc, char* argv[])
     binary_tables =
         read_binary_tables_from_string(str, spec_code, final_code);
     d_free(str);
-    p = new_D_Parser(binary_tables->parser_tables_dparser_gram, SIZEOF_MY_PARSE_NODE);
+    p = new_D_Parser(binary_tables->parser_tables_dparser_gram,
+                     SIZEOF_MY_PARSE_NODE);
     p->save_parse_tree = save_parse_tree;
     p->ambiguity_fn = ambiguity_count_fn;
     p->partial_parses = partial_parses;

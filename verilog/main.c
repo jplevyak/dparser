@@ -31,7 +31,8 @@ int main(int argc, char* argv[])
 
     int dump_pp = 0;
 
-    D_Parser* p = new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
+    D_Parser* p =
+        new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     p->ambiguity_fn = my_ambiguity_fn;
 
     while ((ch = getopt(argc, argv, "vphI:")) != -1)
