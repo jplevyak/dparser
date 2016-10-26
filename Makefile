@@ -11,7 +11,7 @@ MAJOR=1
 MINOR=30
 RELEASE=$(MAJOR).$(MINOR)
 
-CC = gcc
+CC = clang
 
 ifndef PREFIX
 PREFIX=/usr/local
