@@ -1,3 +1,10 @@
+#ifndef PYDPARSER_H
+#define PYDPARSER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct user_pyobjects
 {
     PyObject* t;
@@ -49,3 +56,9 @@ PyObject* run_parser(D_Parser* dp, PyObject* string, int buf_idx);
 int make_tables(char* grammar_string, char* grammar_pathname);
 long int load_parser_tables(char* tables_name);
 void unload_parser_tables(long int binary_table);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // PYDPARSER_H

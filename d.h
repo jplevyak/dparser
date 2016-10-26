@@ -1,8 +1,12 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _d_H_
-#define _d_H_
+#ifndef D_H
+#define D_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef MEMWATCH
 #define MEMWATCH_STDIO 1
@@ -113,4 +117,8 @@ void d_version(char*);
 
 #define USE_SCANNER 1
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // D_H

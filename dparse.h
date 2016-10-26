@@ -1,13 +1,16 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _dparse_H_
-#define _dparse_H_
 
-#include <stdlib.h>
+#ifndef DPARSE_H
+#define DPARSE_H
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdlib.h>
+
 #include "dparse_tables.h"
 #include "dsymtab.h"
 
@@ -93,4 +96,4 @@ char* d_dup_pathname_str(const char* str);
 }
 #endif
 
-#endif
+#endif  // DPARSE_H

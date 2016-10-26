@@ -4,8 +4,21 @@
  *
  */
 
+#ifndef VPARSE_H
+#define VPARSE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int v_iskeyword(const char*, const char*);
 extern void v_parse_init(void);
 extern int v_getfile(const char*, char**, int*);
 
 extern char* v_incdirs;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // VPARSE_H

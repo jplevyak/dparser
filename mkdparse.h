@@ -1,13 +1,14 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _mkdparse_H_
-#define _mkdparse_H_
+#ifndef MKDPARSE_H
+#define MKDPARSE_H
 
-#include <stdlib.h>
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdlib.h>
 
 struct Grammar;
 
@@ -18,4 +19,4 @@ void mkdparse_from_string(struct Grammar* g, char* str);
 }
 #endif
 
-#endif
+#endif  // MKDPARSE_H

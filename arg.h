@@ -1,6 +1,14 @@
 /*
  Copyright 1994-2004 John Plevyak, All Rights Reserved
 */
+
+#ifndef ARG_H
+#define ARG_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,3 +45,9 @@ typedef struct ArgumentState
 void usage(ArgumentState* arg_state, char* arg_unused);
 void process_args(ArgumentState* arg_state, char** argv);
 void free_args(ArgumentState* arg_state);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // ARG_H

@@ -2,8 +2,12 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
-#ifndef _gram_H_
-#define _gram_H_
+#ifndef GRAM_H
+#define GRAM_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define EOF_SENTINAL "\377"
 #define NO_PROD 0xFFFFFFFF
@@ -318,4 +322,8 @@ void initialize_productions(Grammar* g);
 void finalize_productions(Grammar* g);
 int state_for_declaration(Grammar* g, int iproduction);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // GRAM_H

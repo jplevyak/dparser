@@ -1,8 +1,12 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _parse_H_
-#define _parse_H_
+#ifndef PARSE_H
+#define PARSE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define NO_DPN ((D_ParseNode*) 0x1)
 #define DPN_TO_PN(_dpn)                                                      \
@@ -159,4 +163,8 @@ typedef struct ZNode
 
 D_ParseNode* ambiguity_count_fn(D_Parser* pp, int n, D_ParseNode** v);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // PARSE_H

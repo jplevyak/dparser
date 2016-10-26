@@ -1,8 +1,13 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _dsymtab_H_
-#define _dsymtab_H_
+
+#ifndef DSYMTAB_H
+#define DSYMTAB_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef D_UserSym
 #define D_UserSym unsigned int
@@ -67,4 +72,8 @@ D_Sym* find_D_Sym_in_Scope(D_Scope* st, D_Scope* cur, char* name, char* end);
 D_Sym* next_D_Sym_in_Scope(D_Scope** st, D_Sym** sym);
 void print_scope(D_Scope* st);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // DSYMTAB_H

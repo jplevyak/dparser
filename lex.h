@@ -2,8 +2,12 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
-#ifndef _lex_H_
-#define _lex_H_
+#ifndef LEX_H
+#define LEX_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* #define LIVE_DIFF_IN_TRANSITIONS */
 
@@ -27,4 +31,8 @@ typedef struct ScanState
 
 void build_scanners(struct Grammar* g);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // LEX_H

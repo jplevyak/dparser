@@ -2,8 +2,12 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
-#ifndef _scan_H_
-#define _scan_H_
+#ifndef SCAN_H
+#define SCAN_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "d.h"
 
@@ -16,4 +20,8 @@ typedef struct ShiftResult
 
 int scan_buffer(d_loc_t* loc, D_State* st, ShiftResult* result);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // SCAN_H

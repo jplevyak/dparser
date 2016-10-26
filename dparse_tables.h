@@ -1,8 +1,13 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _dparse_tables_H_
-#define _dparse_tables_H_
+
+#ifndef DPARSE_TABLES_H
+#define DPARSE_TABLES_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SCANNER_BLOCKS_POW2 2
 #define SCANNER_BLOCKS (1 << SCANNER_BLOCKS_POW2)
@@ -191,4 +196,8 @@ typedef struct D_ParserTables
 
 void parse_whitespace(struct D_Parser* p, d_loc_t* loc, void** p_globals);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // DPARSE_TABLES_H

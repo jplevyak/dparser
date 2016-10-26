@@ -1,8 +1,13 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#ifndef _read_binary_H_
-#define _read_binary_H_
+
+#ifndef READ_BINARY_H
+#define READ_BINARY_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct BinaryTablesHead
 {
@@ -30,4 +35,8 @@ BinaryTables* read_binary_tables_from_string(unsigned char* buf,
                                              D_ReductionCode final_code);
 void free_BinaryTables(BinaryTables* binary_tables);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // READ_BINARY_H

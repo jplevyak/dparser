@@ -21,8 +21,12 @@
       ./4calc 4calc.in
 */
 
-#ifndef _parsetree_H_
-#define _parsetree_H_
+#ifndef DPARSE_TREE_H
+#define DPARSE_TREE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "dparse.h"
 
@@ -54,4 +58,8 @@ void print_node_parenthesised(int depth,
                               char* token_value,
                               void* client_data);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // DPARSE_TREE_H

@@ -2,6 +2,13 @@
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
 
+#ifndef UTIL_H
+#define UTIL_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define INITIAL_SET_SIZE_INDEX 2
 
 #define INITIAL_VEC_SHIFT 3
@@ -170,3 +177,9 @@ extern int d_verbose_level;
 extern int d_debug_level;
 extern int test_level;
 extern int d_rdebug_grammar_level;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // UTIL_H
