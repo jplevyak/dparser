@@ -138,7 +138,7 @@ static ArgumentDescription arg_desc[] = {
      "D_MAKE_RDEBUG_GRAMMAR",
      NULL},
     {"help", 'h', "Help", NULL, NULL, NULL, help},
-    {0}};
+    {0, 0, 0, 0, 0, 0, 0}};
 
 static ArgumentState arg_state = {0, 0, "program", arg_desc};
 

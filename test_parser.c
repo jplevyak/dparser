@@ -156,7 +156,7 @@ ArgumentDescription arg_desc[] = {
     {"test", 't', "Test", "+", &test_level, "D_PARSE_TEST", NULL},
     {"debug", 'd', "Debug", "+", &d_debug_level, "D_PARSE_DEBUG", NULL},
     {"help", 'h', "Help", NULL, NULL, NULL, help},
-    {0}};
+    {0, 0, 0, 0, 0, 0, 0}};
 
 ArgumentState arg_state = {0, 0, "program", arg_desc};
 

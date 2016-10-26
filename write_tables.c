@@ -2073,6 +2073,7 @@ write_symbol_data(File *fp, Grammar *g, char *tag) {
     add_struct_const_member(fp, D_Symbol, d_symbol[symbol_index], d_symbol_values[symbol_index], kind);
     add_struct_str_member(fp, D_Symbol, name, name);
     add_struct_member(fp, D_Symbol, %d, (int) strlen(name), name_len);  /*BS strlen doesn't always works here, length can change when quoted string is compiled*/
+    add_struct_member(fp, D_Symbol, %d, 0, start_symbol);
     end_struct_in_array(fp, ",\n");
     g->write_line += 1;
     FREE(s);
