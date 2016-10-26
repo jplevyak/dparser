@@ -488,159 +488,205 @@ add_struct_ptr_member_fn(File* fp, void** dest, OffsetEntry* oe, char* format)
 }
 
 static void
-add_array_ptr_member_fn(File *fp, OffsetEntry *oe, char *format, int last) {
-  if (fp->binary) {
-    add_array_member_internal(fp);
-    *(void**)fp->tables.cur = (void*)(intptr_t)oe->offset;
-    vec_add(&fp->relocations, (void*)(fp->tables.cur - fp->tables.start));
-    fp->tables.cur += fp->elem_size;
-  } else {
-    if (*format == '&' && strcmp(oe->name, "NULL") == 0)
-      format++;
-    fprintf(fp->fp, format, oe->name, last ? "" : ",");
-  }
-}
-
-typedef void (*CopyFuncType)(void*,int);
-static void
-add_array_member_fn(File *file, CopyFuncType copy, char *format, unsigned int data, int last) {
-  if (file->binary) {
-    add_array_member_internal(file);
-    copy((void*)(file->tables.cur), data);
-    file->tables.cur += file->elem_size;
-  } else {
-    fprintf((file)->fp, format, data);
-    if(!last)
-      fprintf(file->fp, ", ");
-  }
-}
-
-static void
-end_struct_fn(File *fp, int size, char *whitespace) {
-  if (fp->binary) {
-    fp->tables.cur += size;
-  } else {
-    fprintf(fp->fp, "};%s", whitespace);
-  }
-}
-
-static void
-end_struct_in_array(File *fp, char *last) {
-  if (fp->binary) {
-    fp->tables.cur += fp->elem_size;
-  } else {
-    fprintf(fp->fp,"}%s", last);
-  }
-}
-
-static void
-end_array(File *fp, char *whitespace) {
-  if (fp->binary) {
-    if (fp->array_length != 0) {
-      int remaining = (fp->array_length - fp->n_elems)*fp->elem_size;
-      if (remaining) {
-        make_room_in_buf(&fp->tables, remaining);
-        memset(fp->tables.cur, 0, remaining);
-        fp->tables.cur += remaining;
-      }
+add_array_ptr_member_fn(File* fp, OffsetEntry* oe, char* format, int last)
+{
+    if (fp->binary)
+    {
+        add_array_member_internal(fp);
+        *(void**) fp->tables.cur = (void*) (intptr_t) oe->offset;
+        vec_add(&fp->relocations,
+                (void*) (fp->tables.cur - fp->tables.start));
+        fp->tables.cur += fp->elem_size;
     }
-  } else {
-    fprintf(fp->fp, "};%s", whitespace);
-  }
+    else
+    {
+        if (*format == '&' && strcmp(oe->name, "NULL") == 0)
+            format++;
+        fprintf(fp->fp, format, oe->name, last ? "" : ",");
+    }
 }
 
-typedef struct ScannerBlock {
-  int state_index;
-  int scanner_index;
-  int block_index;
-  ScanState **chars;
-  ScanStateTransition **transitions;
+typedef void (*CopyFuncType)(void*, int);
+static void add_array_member_fn(
+    File* file, CopyFuncType copy, char* format, unsigned int data, int last)
+{
+    if (file->binary)
+    {
+        add_array_member_internal(file);
+        copy((void*) (file->tables.cur), data);
+        file->tables.cur += file->elem_size;
+    }
+    else
+    {
+        fprintf((file)->fp, format, data);
+        if (!last)
+            fprintf(file->fp, ", ");
+    }
+}
+
+static void end_struct_fn(File* fp, int size, char* whitespace)
+{
+    if (fp->binary)
+    {
+        fp->tables.cur += size;
+    }
+    else
+    {
+        fprintf(fp->fp, "};%s", whitespace);
+    }
+}
+
+static void end_struct_in_array(File* fp, char* last)
+{
+    if (fp->binary)
+    {
+        fp->tables.cur += fp->elem_size;
+    }
+    else
+    {
+        fprintf(fp->fp, "}%s", last);
+    }
+}
+
+static void end_array(File* fp, char* whitespace)
+{
+    if (fp->binary)
+    {
+        if (fp->array_length != 0)
+        {
+            int remaining = (fp->array_length - fp->n_elems) * fp->elem_size;
+            if (remaining)
+            {
+                make_room_in_buf(&fp->tables, remaining);
+                memset(fp->tables.cur, 0, remaining);
+                fp->tables.cur += remaining;
+            }
+        }
+    }
+    else
+    {
+        fprintf(fp->fp, "};%s", whitespace);
+    }
+}
+
+typedef struct ScannerBlock
+{
+    int state_index;
+    int scanner_index;
+    int block_index;
+    ScanState** chars;
+    ScanStateTransition** transitions;
 } ScannerBlock;
 typedef Vec(ScannerBlock*) VecScannerBlock;
-typedef Vec(State *) VecState;
+typedef Vec(State*) VecState;
 
-static int
-scanner_size(State *s) {
-  if (s->scanner.states.n < 255 && s->scanner.transitions.n < 255)
-    return 1;
-  if (s->scanner.states.n < 32384 && s->scanner.transitions.n < 32384)
-    return 2;
-  return 4;
+static int scanner_size(State* s)
+{
+    if (s->scanner.states.n < 255 && s->scanner.transitions.n < 255)
+        return 1;
+    if (s->scanner.states.n < 32384 && s->scanner.transitions.n < 32384)
+        return 2;
+    return 4;
 }
 
-#define copy_func(name, type) static void name(void *dest, int data) { (*(type*)(dest)) = (data); }
+#define copy_func(name, type)                                                \
+    static void name(void* dest, int data)                                   \
+    {                                                                        \
+        (*(type*) (dest)) = (data);                                          \
+    }
 copy_func(unsigned_char_copy, unsigned char);
 copy_func(unsigned_short_copy, unsigned short);
 copy_func(unsigned_int_copy, unsigned int);
 
-static CopyFuncType
-get_copy_func(int i) {
-  switch (i) {
-  case 1: return unsigned_char_copy;
-  case 2: return unsigned_short_copy;
-  case 4: return unsigned_int_copy;
-  default: d_fail("bad case"); return 0;
-  }
+static CopyFuncType get_copy_func(int i)
+{
+    switch (i)
+    {
+        case 1:
+            return unsigned_char_copy;
+        case 2:
+            return unsigned_short_copy;
+        case 4:
+            return unsigned_int_copy;
+        default:
+            d_fail("bad case");
+            return 0;
+    }
 }
 
-static char *
-make_type(int i) {
-  switch (i) {
-    case 1: return "unsigned char";
-    case 2: return "unsigned short";
-    case 4: return "unsigned int";
-    default: d_fail("bad case"); return "";
-  }
+static char* make_type(int i)
+{
+    switch (i)
+    {
+        case 1:
+            return "unsigned char";
+        case 2:
+            return "unsigned short";
+        case 4:
+            return "unsigned int";
+        default:
+            d_fail("bad case");
+            return "";
+    }
 }
 
-static char *
-scanner_type(State *s) {
-  return make_type(scanner_size(s));
+static char* scanner_type(State* s)
+{
+    return make_type(scanner_size(s));
 }
 
-static char *
-make_u_type(int i) {
-  switch (i) {
-    case 1: return "uint8";
-    case 2: return "uint16";
-    case 4: return "uint32";
-    default: d_fail("bad case"); return "";
-  }
+static char* make_u_type(int i)
+{
+    switch (i)
+    {
+        case 1:
+            return "uint8";
+        case 2:
+            return "uint16";
+        case 4:
+            return "uint32";
+        default:
+            d_fail("bad case");
+            return "";
+    }
 }
 
-static char *
-scanner_u_type(State *s) {
-  return make_u_type(scanner_size(s));
+static char* scanner_u_type(State* s)
+{
+    return make_u_type(scanner_size(s));
 }
 
-static uint32
-scanner_block_hash_fn(ScannerBlock *b, hash_fns_t *fns) {
-  uint32 hash = 0;
-  intptr_t i, block_size = (intptr_t)fns->data[0];
-  ScanState **sb = b->chars;
+static uint32 scanner_block_hash_fn(ScannerBlock* b, hash_fns_t* fns)
+{
+    uint32 hash = 0;
+    intptr_t i, block_size = (intptr_t) fns->data[0];
+    ScanState** sb = b->chars;
 
-  for (i = 0; i < block_size; i++) {
-    hash *= 17;
-    hash += sb[i] ? sb[i]->index + 2 : 1;
-  }
-  return hash;
+    for (i = 0; i < block_size; i++)
+    {
+        hash *= 17;
+        hash += sb[i] ? sb[i]->index + 2 : 1;
+    }
+    return hash;
 }
 
 static int
-scanner_block_cmp_fn(ScannerBlock *a, ScannerBlock *b, hash_fns_t *fns) {
-  intptr_t i, block_size = (intptr_t)fns->data[0];
-  ScanState **sa = a->chars;
-  ScanState **sb = b->chars;
+scanner_block_cmp_fn(ScannerBlock* a, ScannerBlock* b, hash_fns_t* fns)
+{
+    intptr_t i, block_size = (intptr_t) fns->data[0];
+    ScanState** sa = a->chars;
+    ScanState** sb = b->chars;
 
-  for (i = 0; i < block_size; i++) {
-    if (sa[i] == sb[i])
-      continue;
-    if (!sa[i] || !sb[i])
-      return 1;
-    if (sa[i]->index != sb[i]->index)
-      return 1;
-  }
-  return 0;
+    for (i = 0; i < block_size; i++)
+    {
+        if (sa[i] == sb[i])
+            continue;
+        if (!sa[i] || !sb[i])
+            return 1;
+        if (sa[i]->index != sb[i]->index)
+            return 1;
+    }
+    return 0;
 }
 
 hash_fns_t
