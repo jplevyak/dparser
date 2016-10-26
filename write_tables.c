@@ -689,349 +689,565 @@ scanner_block_cmp_fn(ScannerBlock* a, ScannerBlock* b, hash_fns_t* fns)
     return 0;
 }
 
-hash_fns_t
-scanner_block_fns = {
-  (hash_fn_t)scanner_block_hash_fn,
-  (cmp_fn_t)scanner_block_cmp_fn,
-  {0, 0}
-};
+hash_fns_t scanner_block_fns = {(hash_fn_t) scanner_block_hash_fn,
+                                (cmp_fn_t) scanner_block_cmp_fn,
+                                {0, 0}};
 
-static uint32
-trans_scanner_block_hash_fn(ScannerBlock *b, hash_fns_t *fns) {
-  uint32 hash = 0;
-  intptr_t i, block_size = (intptr_t)fns->data[0];
-  ScanStateTransition **sb = b->transitions;
+static uint32 trans_scanner_block_hash_fn(ScannerBlock* b, hash_fns_t* fns)
+{
+    uint32 hash = 0;
+    intptr_t i, block_size = (intptr_t) fns->data[0];
+    ScanStateTransition** sb = b->transitions;
 
-  for (i = 0; i < block_size; i++) {
-    hash *= 3;
-    hash += sb[i] ? sb[i]->index + 1 : 0;
-  }
-  return hash;
+    for (i = 0; i < block_size; i++)
+    {
+        hash *= 3;
+        hash += sb[i] ? sb[i]->index + 1 : 0;
+    }
+    return hash;
 }
 
 static int
-trans_scanner_block_cmp_fn(ScannerBlock *a, ScannerBlock *b, hash_fns_t *fns) {
-  intptr_t i, block_size = (intptr_t)fns->data[0];
-  ScanStateTransition **sa = a->transitions;
-  ScanStateTransition **sb = b->transitions;
+trans_scanner_block_cmp_fn(ScannerBlock* a, ScannerBlock* b, hash_fns_t* fns)
+{
+    intptr_t i, block_size = (intptr_t) fns->data[0];
+    ScanStateTransition** sa = a->transitions;
+    ScanStateTransition** sb = b->transitions;
 
-  for (i = 0; i < block_size; i++) {
-    if (sa[i] == sb[i])
-      continue;
-    if (!sa[i] || !sb[i])
-      return 1;
-    if (sa[i]->index != sb[i]->index)
-      return 1;
-  }
-  return 0;
+    for (i = 0; i < block_size; i++)
+    {
+        if (sa[i] == sb[i])
+            continue;
+        if (!sa[i] || !sb[i])
+            return 1;
+        if (sa[i]->index != sb[i]->index)
+            return 1;
+    }
+    return 0;
 }
 
-hash_fns_t
-trans_scanner_block_fns = {
-  (hash_fn_t)trans_scanner_block_hash_fn,
-  (cmp_fn_t)trans_scanner_block_cmp_fn,
-  {0, 0}
-};
+hash_fns_t trans_scanner_block_fns = {(hash_fn_t) trans_scanner_block_hash_fn,
+                                      (cmp_fn_t) trans_scanner_block_cmp_fn,
+                                      {0, 0}};
 
-static uint32
-shift_hash_fn(Action *sa, hash_fns_t *fns) {
-  return sa->term->index + (sa->kind == ACTION_SHIFT_TRAILING ? 1000000 : 0);
+static uint32 shift_hash_fn(Action* sa, hash_fns_t* fns)
+{
+    return sa->term->index +
+           (sa->kind == ACTION_SHIFT_TRAILING ? 1000000 : 0);
 }
 
-static int
-shift_cmp_fn(Action *sa, Action *sb, hash_fns_t *fns) {
-  return (sa->term->index != sb->term->index) || (sa->kind != sb->kind);
+static int shift_cmp_fn(Action* sa, Action* sb, hash_fns_t* fns)
+{
+    return (sa->term->index != sb->term->index) || (sa->kind != sb->kind);
 }
 
-hash_fns_t
-shift_fns = {
-  (hash_fn_t)shift_hash_fn,
-  (cmp_fn_t)shift_cmp_fn,
-  {0, 0}
-};
+hash_fns_t shift_fns = {
+    (hash_fn_t) shift_hash_fn, (cmp_fn_t) shift_cmp_fn, {0, 0}};
 
-static void
-write_scanner_data(File *fp, Grammar *g, char *tag) {
-  State *s;
-  ScannerBlock *vsblock, *xv, *yv;
-  VecScannerBlock scanner_block_hash[4], *pscanner_block_hash;
-  VecScannerBlock trans_scanner_block_hash[4], *ptrans_scanner_block_hash;
-  VecAction shift_hash;
-  int nvsblocks, ivsblock, i, j, k, x, xx;
-  VecScanState *ss;
-  char speculative_code[256];
-  Term *t;
+static void write_scanner_data(File* fp, Grammar* g, char* tag)
+{
+    State* s;
+    ScannerBlock *vsblock, *xv, *yv;
+    VecScannerBlock scanner_block_hash[4], *pscanner_block_hash;
+    VecScannerBlock trans_scanner_block_hash[4], *ptrans_scanner_block_hash;
+    VecAction shift_hash;
+    int nvsblocks, ivsblock, i, j, k, x, xx;
+    VecScanState* ss;
+    char speculative_code[256];
+    Term* t;
 
-  /* shift_actions */
-  for (i = 0; i < g->terminals.n; i++) {
-    int action_index = -1;
-    t = g->terminals.v[i];
-    if (t->regex_production && t->regex_production->rules.v[0]->speculative_code.code) {
-      assert(!fp->binary);
-      sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s",
-              t->regex_production->index, t->regex_production->rules.v[0]->index, tag);
-    } else {
-      strcpy(speculative_code, "NULL");
-    }
-    if (t->regex_production) {
-      action_index = t->regex_production->rules.v[0]->action_index;
-    }
-    start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
-    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->index + g->productions.n, symbol);
-    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->scan_kind, shift_kind);
-    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_assoc, op_assoc);
-    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_priority, op_priority);
-    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->term_priority, term_priority);
-    if (fp->binary) {
-      add_struct_member(fp, D_Shift, %d, action_index, action_index);
-      add_struct_ptr_member(fp, D_Shift, "", &spec_code_entry, speculative_code);
-    } else {
-      add_struct_member(fp, D_Shift, %d, 0, action_index);
-      fprintf(fp->fp, ", %s", speculative_code);
-    }
-    end_struct(fp, D_Shift, "\n");
-    g->write_line++;
-    if (g->terminals.v[i]->trailing_context) {
-      start_struct(fp, D_Shift, make_name("d_tshift_%d_%s", i, tag), "");
-      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->index + g->productions.n, symbol);
-      add_struct_member(fp, D_Shift, %d, D_SCAN_TRAILING, shift_kind);
-      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_assoc, op_assoc);
-      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_priority, op_priority);
-      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->term_priority, term_priority);
-      if (fp->binary) {
-        add_struct_member(fp, D_Shift, %d, action_index, action_index);
-        add_struct_ptr_member(fp, D_Shift, "", &spec_code_entry, speculative_code);
-      } else {
-        add_struct_member(fp, D_Shift, %d, 0, action_index);
-        fprintf(fp->fp, ", %s", speculative_code);
-      }
-      end_struct(fp, D_Shift, "\n");
-      g->write_line++;
-    }
-  }
-  print(fp, "\n");
-  g->write_line++;
-  /* scanners */
-  nvsblocks = 0;
-  for (i = 0; i < g->states.n; i++)
-    nvsblocks += g->states.v[i]->scanner.states.n * g->scanner_blocks;
-  vsblock = MALLOC((nvsblocks ? nvsblocks : 1) * sizeof(ScannerBlock));
-  for (i = 0; i < 4; i++) {
-    vec_clear(&scanner_block_hash[i]);
-    vec_clear(&trans_scanner_block_hash[i]);
-  }
-  scanner_block_fns.data[0] = (void*)(uintptr_t)g->scanner_block_size;
-  scanner_block_fns.data[1] = (void*)g;
-  trans_scanner_block_fns.data[0] = (void*)(uintptr_t)g->scanner_block_size;
-  trans_scanner_block_fns.data[1] = (void*)g;
-  /* shift */
-  vec_clear(&shift_hash);
-  ivsblock = 0;
-  for (i = 0; i < g->states.n; i++) {
-    s = g->states.v[i];
-    if (s->same_shifts)
-      continue;
-    ss = &s->scanner.states;
-    /* build accepts differences */
-    for (j = 0; j < s->scanner.transitions.n; j++) {
-      VecAction *va = &s->scanner.transitions.v[j]->accepts_diff;
-      start_array(fp, D_Shift *, make_name("d_accepts_diff_%d_%d_%s", i, j, tag), "", 0, "");
-      for (k = 0; k < va->n; k++) {
-        if (va->v[k]->kind != ACTION_SHIFT_TRAILING)
-          add_array_ptr_member(fp, D_Shift*, "&", get_offset(fp, "d_shift_%d_%s", va->v[k]->term->index, tag), 0);
+    /* shift_actions */
+    for (i = 0; i < g->terminals.n; i++)
+    {
+        int action_index = -1;
+        t = g->terminals.v[i];
+        if (t->regex_production &&
+            t->regex_production->rules.v[0]->speculative_code.code)
+        {
+            assert(!fp->binary);
+            sprintf(speculative_code,
+                    "d_speculative_reduction_code_%d_%d_%s",
+                    t->regex_production->index,
+                    t->regex_production->rules.v[0]->index,
+                    tag);
+        }
         else
-          add_array_ptr_member(fp, D_Shift*, "&", get_offset(fp, "d_tshift_%d_%s", va->v[k]->term->index, tag), 0);
-      }
-      add_array_member(fp, D_Shift*, %d, 0, 1);
-      end_array(fp, "\n");
-      g->write_line += 2;
+        {
+            strcpy(speculative_code, "NULL");
+        }
+        if (t->regex_production)
+        {
+            action_index = t->regex_production->rules.v[0]->action_index;
+        }
+        start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
+        add_struct_member(fp,
+                          D_Shift,
+                          % d,
+                          g->terminals.v[i]->index + g->productions.n,
+                          symbol);
+        add_struct_member(
+            fp, D_Shift, % d, g->terminals.v[i]->scan_kind, shift_kind);
+        add_struct_member(
+            fp, D_Shift, % d, g->terminals.v[i]->op_assoc, op_assoc);
+        add_struct_member(
+            fp, D_Shift, % d, g->terminals.v[i]->op_priority, op_priority);
+        add_struct_member(fp,
+                          D_Shift,
+                          % d,
+                          g->terminals.v[i]->term_priority,
+                          term_priority);
+        if (fp->binary)
+        {
+            add_struct_member(fp, D_Shift, % d, action_index, action_index);
+            add_struct_ptr_member(
+                fp, D_Shift, "", &spec_code_entry, speculative_code);
+        }
+        else
+        {
+            add_struct_member(fp, D_Shift, % d, 0, action_index);
+            fprintf(fp->fp, ", %s", speculative_code);
+        }
+        end_struct(fp, D_Shift, "\n");
+        g->write_line++;
+        if (g->terminals.v[i]->trailing_context)
+        {
+            start_struct(
+                fp, D_Shift, make_name("d_tshift_%d_%s", i, tag), "");
+            add_struct_member(fp,
+                              D_Shift,
+                              % d,
+                              g->terminals.v[i]->index + g->productions.n,
+                              symbol);
+            add_struct_member(fp, D_Shift, % d, D_SCAN_TRAILING, shift_kind);
+            add_struct_member(
+                fp, D_Shift, % d, g->terminals.v[i]->op_assoc, op_assoc);
+            add_struct_member(fp,
+                              D_Shift,
+                              % d,
+                              g->terminals.v[i]->op_priority,
+                              op_priority);
+            add_struct_member(fp,
+                              D_Shift,
+                              % d,
+                              g->terminals.v[i]->term_priority,
+                              term_priority);
+            if (fp->binary)
+            {
+                add_struct_member(
+                    fp, D_Shift, % d, action_index, action_index);
+                add_struct_ptr_member(
+                    fp, D_Shift, "", &spec_code_entry, speculative_code);
+            }
+            else
+            {
+                add_struct_member(fp, D_Shift, % d, 0, action_index);
+                fprintf(fp->fp, ", %s", speculative_code);
+            }
+            end_struct(fp, D_Shift, "\n");
+            g->write_line++;
+        }
     }
-    if (s->scanner.transitions.n) {
-      start_array(fp, D_Shift **, make_name("d_accepts_diff_%d_%s", i, tag), "", 0, "\n");
-      for (j = 0; j < s->scanner.transitions.n; j++) {
-        add_array_ptr_member(fp, D_Shift **, "", get_offset(fp, "d_accepts_diff_%d_%d_%s", i, j, tag), j == s->scanner.transitions.n - 1);
-        print(fp, "\n");
-        if (j != s->scanner.transitions.n - 1)
-          g->write_line++;
-      }
-      end_array(fp, "\n\n");
-      g->write_line += 3;
+    print(fp, "\n");
+    g->write_line++;
+    /* scanners */
+    nvsblocks = 0;
+    for (i = 0; i < g->states.n; i++)
+        nvsblocks += g->states.v[i]->scanner.states.n * g->scanner_blocks;
+    vsblock = MALLOC((nvsblocks ? nvsblocks : 1) * sizeof(ScannerBlock));
+    for (i = 0; i < 4; i++)
+    {
+        vec_clear(&scanner_block_hash[i]);
+        vec_clear(&trans_scanner_block_hash[i]);
     }
-    /* build scanner_block_hash */
-    pscanner_block_hash = &scanner_block_hash[scanner_size(s)-1];
-    ptrans_scanner_block_hash = &trans_scanner_block_hash[scanner_size(s)-1];
-    for (j = 0; j < ss->n; j++) {
-      if (!s->same_shifts) {
-        for (k = 0; k < g->scanner_blocks; k++) {
-          vsblock[ivsblock].state_index = s->index;
-          vsblock[ivsblock].scanner_index = j;
-          vsblock[ivsblock].block_index = k;
-          vsblock[ivsblock].chars =
-              (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-          vsblock[ivsblock].transitions =
-              (void*)&ss->v[j]->transition[k * g->scanner_block_size];
-          xv = &vsblock[ivsblock];
-          ivsblock++;
-          assert(ivsblock <= nvsblocks);
-          /* output state scanner blocks */
-          yv = set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
-          if (xv == yv) {
-            int size = scanner_size(s);
-            start_array_fn(fp, size, "", make_type(size), make_name("d_scanner_%d_%d_%d_%s", i, j, k, tag), "SCANNER_BLOCK_SIZE", SCANNER_BLOCK_SIZE, "\n");
-            for (x = 0; x < g->scanner_block_size; x++) {
-              xx = x + k * g->scanner_block_size;
-              add_array_member_fn(fp, get_copy_func(size), "%d", ss->v[j]->chars[xx] ? ss->v[j]->chars[xx]->index + 1 : 0, x == g->scanner_block_size);
-              if (x % 16 == 15) { print(fp, "\n"); /*fprintf(fp, "\n");*/ g->write_line++; }
+    scanner_block_fns.data[0] = (void*) (uintptr_t) g->scanner_block_size;
+    scanner_block_fns.data[1] = (void*) g;
+    trans_scanner_block_fns.data[0] =
+        (void*) (uintptr_t) g->scanner_block_size;
+    trans_scanner_block_fns.data[1] = (void*) g;
+    /* shift */
+    vec_clear(&shift_hash);
+    ivsblock = 0;
+    for (i = 0; i < g->states.n; i++)
+    {
+        s = g->states.v[i];
+        if (s->same_shifts)
+            continue;
+        ss = &s->scanner.states;
+        /* build accepts differences */
+        for (j = 0; j < s->scanner.transitions.n; j++)
+        {
+            VecAction* va = &s->scanner.transitions.v[j]->accepts_diff;
+            start_array(fp,
+                        D_Shift*,
+                        make_name("d_accepts_diff_%d_%d_%s", i, j, tag),
+                        "",
+                        0,
+                        "");
+            for (k = 0; k < va->n; k++)
+            {
+                if (va->v[k]->kind != ACTION_SHIFT_TRAILING)
+                    add_array_ptr_member(
+                        fp,
+                        D_Shift*,
+                        "&",
+                        get_offset(
+                            fp, "d_shift_%d_%s", va->v[k]->term->index, tag),
+                        0);
+                else
+                    add_array_ptr_member(
+                        fp,
+                        D_Shift*,
+                        "&",
+                        get_offset(
+                            fp, "d_tshift_%d_%s", va->v[k]->term->index, tag),
+                        0);
+            }
+            add_array_member(fp, D_Shift*, % d, 0, 1);
+            end_array(fp, "\n");
+            g->write_line += 2;
+        }
+        if (s->scanner.transitions.n)
+        {
+            start_array(fp,
+                        D_Shift**,
+                        make_name("d_accepts_diff_%d_%s", i, tag),
+                        "",
+                        0,
+                        "\n");
+            for (j = 0; j < s->scanner.transitions.n; j++)
+            {
+                add_array_ptr_member(
+                    fp,
+                    D_Shift**,
+                    "",
+                    get_offset(fp, "d_accepts_diff_%d_%d_%s", i, j, tag),
+                    j == s->scanner.transitions.n - 1);
+                print(fp, "\n");
+                if (j != s->scanner.transitions.n - 1)
+                    g->write_line++;
             }
             end_array(fp, "\n\n");
             g->write_line += 3;
-          }
-          if (s->scan_kind != D_SCAN_LONGEST || s->trailing_context) {
-            /* output accept_diff scanner blocks */
-            yv = set_add_fn(ptrans_scanner_block_hash, xv,
-                            &trans_scanner_block_fns);
-            if (xv == yv) {
-              int size = scanner_size(s);
-              start_array_fn(fp, size, "", make_type(size), make_name("d_accepts_diff_%d_%d_%d_%s", i, j, k, tag), "SCANNER_BLOCK_SIZE", SCANNER_BLOCK_SIZE, "\n");
-              for (x = 0; x < g->scanner_block_size; x++) {
-                xx = x + k * g->scanner_block_size;
-                add_array_member_fn(fp, get_copy_func(size), "%d", ss->v[j]->transition[xx]->index, x == g->scanner_block_size);
-                if (x % 16 == 15) { print(fp, "\n"); g->write_line++; }
-              }
-              end_array(fp, "\n\n");
-              g->write_line += 3;
-            }
-          }
         }
-        /* output shifts */
-        if (ss->v[j]->accepts.n) {
-          char tmp[256];
-          sprintf(tmp, "d_shift_%d_%d_%s", i, j, tag);
-          for (k = 0; k < ss->v[j]->accepts.n; k++) {
-            Action *a = ss->v[j]->accepts.v[k], *aa;
-            if (ss->v[j]->accepts.n == 1) {
-              if (a->temp_string)
-                continue;
-              a->temp_string = dup_str(tmp, 0);
-              aa = set_add_fn(&shift_hash, a, &shift_fns);
-              if (aa != a)
-                continue;
-            }
-            /* output shifts */
-            if (!k)
-              start_array(fp, D_Shift *, make_name(tmp), "", 0, "");
-            if (a->kind != ACTION_SHIFT_TRAILING) {
-              add_array_ptr_member(fp, D_Shift *, "&", get_offset(fp, "d_shift_%d_%s", a->term->index, tag), 0);
-              if (k == ss->v[j]->accepts.n - 1) {
-                add_array_ptr_member(fp, D_Shift *, "&", &null_entry, 1);
-                end_array(fp, "\n\n");
-              }
-            } else {
-              add_array_ptr_member(fp, D_Shift *, "&", get_offset(fp, "d_tshift_%d_%s", a->term->index, tag), 0);
-              if (k == ss->v[j]->accepts.n - 1) {
-                add_array_ptr_member(fp, D_Shift *, "&", &null_entry, 1);
-                end_array(fp, "\n\n");
-              }
-            }
-            if (k == ss->v[j]->accepts.n - 1)
-              g->write_line += 2;
-          }
-        }
-      }
-    }
-  }
-  for (i = 0; i < g->states.n; i++) {
-    s = g->states.v[i];
-    ss = &s->scanner.states;
-    ivsblock = 0;
-    if (ss->n && !s->same_shifts) {
-      /* output scanner state transition tables */
-      /* assume SB_uint8, 16, and 32 have same member offsets */
-      assert(sizeof(SB_uint8) == sizeof(SB_uint16) && sizeof(SB_uint16) == sizeof(SB_uint32));
-      start_array_fn(fp, sizeof(SB_uint8), "SB_", scanner_u_type(s), make_name("d_scanner_%d_%s", i, tag),
-                     "", ss->n, "\n");
-      g->write_line += 1;
-      pscanner_block_hash = &scanner_block_hash[scanner_size(s)-1];
-      for (j = 0; j < ss->n; j++) {
-        Action *a;
-        start_struct_in_array(fp);
-        if (ss->v[j]->accepts.n) {
-          a = ss->v[j]->accepts.v[0];
-          if (ss->v[j]->accepts.n == 1) {
-            a = set_add_fn(&shift_hash, a, &shift_fns);
-            add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "%s", a->temp_string), shift);
-          } else
-            add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "d_shift_%d_%d_%s", i, j, tag), shift);
-        } else
-          add_struct_ptr_member(fp, SB_uint8, "", &null_entry, shift);
-        print_no_comma(fp, ", {");
-        for (k = 0; k < g->scanner_blocks; k++) {
-          ScannerBlock vs;
-          vs.state_index = s->index;
-          vs.scanner_index = j;
-          vs.block_index = k;
-          vs.chars = (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-          vs.transitions =
-              (void*)&ss->v[j]->transition[k * g->scanner_block_size];
-          xv = &vs;
-          yv = set_add_fn(pscanner_block_hash, xv, &scanner_block_fns);
-          assert(yv != xv);
-          add_struct_ptr_member(fp, SB_uint8, "", get_offset(fp, "d_scanner_%d_%d_%d_%s", yv->state_index, yv->scanner_index, yv->block_index, tag), scanner_block[k]);
-          if (k != g->scanner_blocks-1) {
-            if ((k % 2) == 1) { print(fp, "\n "); g->write_line += 1; }
-          }
-        }
-        print(fp, "}");
-        end_struct_in_array(fp, j != ss->n-1 ? ",\n" : "\n");
-        g->write_line += 1;
-      }
-      end_array(fp, "\n\n");
-      g->write_line += 2;
-      if (s->scan_kind != D_SCAN_LONGEST || s->trailing_context) {
-        /* output scanner accepts diffs tables */
-        start_array_fn(fp, sizeof(SB_trans_uint8), "SB_trans_", scanner_u_type(s),
-                       make_name("d_transition_%d_%s", i, tag), "", ss->n, "\n");
-        g->write_line += 1;
+        /* build scanner_block_hash */
+        pscanner_block_hash = &scanner_block_hash[scanner_size(s) - 1];
         ptrans_scanner_block_hash =
-            &trans_scanner_block_hash[scanner_size(s)-1];
-        for (j = 0; j < ss->n; j++) {
-          start_struct_in_array(fp);
-          print(fp, "{");
-          for (k = 0; k < g->scanner_blocks; k++) {
-            ScannerBlock vs;
-            vs.state_index = s->index;
-            vs.scanner_index = j;
-            vs.block_index = k;
-            vs.chars = (void*)&ss->v[j]->chars[k * g->scanner_block_size];
-            vs.transitions =
-                (void*)&ss->v[j]->transition[k * g->scanner_block_size];
-            xv = &vs;
-            yv = set_add_fn(ptrans_scanner_block_hash, xv,
-                            &trans_scanner_block_fns);
-            assert(yv != xv);
-            add_struct_ptr_member(fp, SB_trans_uint8, "",
-                                  get_offset(fp, "d_accepts_diff_%d_%d_%d_%s",
-                                             yv->state_index, yv->scanner_index,
-                                             yv->block_index, tag), scanner_block[k]);
-            if (k != g->scanner_blocks-1) {
-              if ((k % 2) == 1) { print(fp, "\n "); g->write_line += 1; }
+            &trans_scanner_block_hash[scanner_size(s) - 1];
+        for (j = 0; j < ss->n; j++)
+        {
+            if (!s->same_shifts)
+            {
+                for (k = 0; k < g->scanner_blocks; k++)
+                {
+                    vsblock[ivsblock].state_index = s->index;
+                    vsblock[ivsblock].scanner_index = j;
+                    vsblock[ivsblock].block_index = k;
+                    vsblock[ivsblock].chars =
+                        (void*) &ss->v[j]->chars[k * g->scanner_block_size];
+                    vsblock[ivsblock].transitions =
+                        (void*) &ss->v[j]
+                            ->transition[k * g->scanner_block_size];
+                    xv = &vsblock[ivsblock];
+                    ivsblock++;
+                    assert(ivsblock <= nvsblocks);
+                    /* output state scanner blocks */
+                    yv = set_add_fn(
+                        pscanner_block_hash, xv, &scanner_block_fns);
+                    if (xv == yv)
+                    {
+                        int size = scanner_size(s);
+                        start_array_fn(
+                            fp,
+                            size,
+                            "",
+                            make_type(size),
+                            make_name("d_scanner_%d_%d_%d_%s", i, j, k, tag),
+                            "SCANNER_BLOCK_SIZE",
+                            SCANNER_BLOCK_SIZE,
+                            "\n");
+                        for (x = 0; x < g->scanner_block_size; x++)
+                        {
+                            xx = x + k * g->scanner_block_size;
+                            add_array_member_fn(
+                                fp,
+                                get_copy_func(size),
+                                "%d",
+                                ss->v[j]->chars[xx]
+                                    ? ss->v[j]->chars[xx]->index + 1
+                                    : 0,
+                                x == g->scanner_block_size);
+                            if (x % 16 == 15)
+                            {
+                                print(fp, "\n"); /*fprintf(fp, "\n");*/
+                                g->write_line++;
+                            }
+                        }
+                        end_array(fp, "\n\n");
+                        g->write_line += 3;
+                    }
+                    if (s->scan_kind != D_SCAN_LONGEST || s->trailing_context)
+                    {
+                        /* output accept_diff scanner blocks */
+                        yv = set_add_fn(ptrans_scanner_block_hash,
+                                        xv,
+                                        &trans_scanner_block_fns);
+                        if (xv == yv)
+                        {
+                            int size = scanner_size(s);
+                            start_array_fn(
+                                fp,
+                                size,
+                                "",
+                                make_type(size),
+                                make_name("d_accepts_diff_%d_%d_%d_%s",
+                                          i,
+                                          j,
+                                          k,
+                                          tag),
+                                "SCANNER_BLOCK_SIZE",
+                                SCANNER_BLOCK_SIZE,
+                                "\n");
+                            for (x = 0; x < g->scanner_block_size; x++)
+                            {
+                                xx = x + k * g->scanner_block_size;
+                                add_array_member_fn(
+                                    fp,
+                                    get_copy_func(size),
+                                    "%d",
+                                    ss->v[j]->transition[xx]->index,
+                                    x == g->scanner_block_size);
+                                if (x % 16 == 15)
+                                {
+                                    print(fp, "\n");
+                                    g->write_line++;
+                                }
+                            }
+                            end_array(fp, "\n\n");
+                            g->write_line += 3;
+                        }
+                    }
+                }
+                /* output shifts */
+                if (ss->v[j]->accepts.n)
+                {
+                    char tmp[256];
+                    sprintf(tmp, "d_shift_%d_%d_%s", i, j, tag);
+                    for (k = 0; k < ss->v[j]->accepts.n; k++)
+                    {
+                        Action *a = ss->v[j]->accepts.v[k], *aa;
+                        if (ss->v[j]->accepts.n == 1)
+                        {
+                            if (a->temp_string)
+                                continue;
+                            a->temp_string = dup_str(tmp, 0);
+                            aa = set_add_fn(&shift_hash, a, &shift_fns);
+                            if (aa != a)
+                                continue;
+                        }
+                        /* output shifts */
+                        if (!k)
+                            start_array(
+                                fp, D_Shift*, make_name(tmp), "", 0, "");
+                        if (a->kind != ACTION_SHIFT_TRAILING)
+                        {
+                            add_array_ptr_member(
+                                fp,
+                                D_Shift*,
+                                "&",
+                                get_offset(
+                                    fp, "d_shift_%d_%s", a->term->index, tag),
+                                0);
+                            if (k == ss->v[j]->accepts.n - 1)
+                            {
+                                add_array_ptr_member(
+                                    fp, D_Shift*, "&", &null_entry, 1);
+                                end_array(fp, "\n\n");
+                            }
+                        }
+                        else
+                        {
+                            add_array_ptr_member(fp,
+                                                 D_Shift*,
+                                                 "&",
+                                                 get_offset(fp,
+                                                            "d_tshift_%d_%s",
+                                                            a->term->index,
+                                                            tag),
+                                                 0);
+                            if (k == ss->v[j]->accepts.n - 1)
+                            {
+                                add_array_ptr_member(
+                                    fp, D_Shift*, "&", &null_entry, 1);
+                                end_array(fp, "\n\n");
+                            }
+                        }
+                        if (k == ss->v[j]->accepts.n - 1)
+                            g->write_line += 2;
+                    }
+                }
             }
-          }
-          print(fp, "}");
-          end_struct_in_array(fp, j != ss->n-1 ? ",\n" : "\n");
-          g->write_line += 1;
         }
-        end_array(fp, "\n\n");
-        g->write_line += 2;
-      }
     }
-  }
-  for (i = 0; i < 4; i++) {
-    vec_free(&scanner_block_hash[i]);
-    vec_free(&trans_scanner_block_hash[i]);
-  }
-  vec_free(&shift_hash);
-  FREE(vsblock);
+    for (i = 0; i < g->states.n; i++)
+    {
+        s = g->states.v[i];
+        ss = &s->scanner.states;
+        ivsblock = 0;
+        if (ss->n && !s->same_shifts)
+        {
+            /* output scanner state transition tables */
+            /* assume SB_uint8, 16, and 32 have same member offsets */
+            assert(sizeof(SB_uint8) == sizeof(SB_uint16) &&
+                   sizeof(SB_uint16) == sizeof(SB_uint32));
+            start_array_fn(fp,
+                           sizeof(SB_uint8),
+                           "SB_",
+                           scanner_u_type(s),
+                           make_name("d_scanner_%d_%s", i, tag),
+                           "",
+                           ss->n,
+                           "\n");
+            g->write_line += 1;
+            pscanner_block_hash = &scanner_block_hash[scanner_size(s) - 1];
+            for (j = 0; j < ss->n; j++)
+            {
+                Action* a;
+                start_struct_in_array(fp);
+                if (ss->v[j]->accepts.n)
+                {
+                    a = ss->v[j]->accepts.v[0];
+                    if (ss->v[j]->accepts.n == 1)
+                    {
+                        a = set_add_fn(&shift_hash, a, &shift_fns);
+                        add_struct_ptr_member(
+                            fp,
+                            SB_uint8,
+                            "",
+                            get_offset(fp, "%s", a->temp_string),
+                            shift);
+                    }
+                    else
+                        add_struct_ptr_member(
+                            fp,
+                            SB_uint8,
+                            "",
+                            get_offset(fp, "d_shift_%d_%d_%s", i, j, tag),
+                            shift);
+                }
+                else
+                    add_struct_ptr_member(
+                        fp, SB_uint8, "", &null_entry, shift);
+                print_no_comma(fp, ", {");
+                for (k = 0; k < g->scanner_blocks; k++)
+                {
+                    ScannerBlock vs;
+                    vs.state_index = s->index;
+                    vs.scanner_index = j;
+                    vs.block_index = k;
+                    vs.chars =
+                        (void*) &ss->v[j]->chars[k * g->scanner_block_size];
+                    vs.transitions =
+                        (void*) &ss->v[j]
+                            ->transition[k * g->scanner_block_size];
+                    xv = &vs;
+                    yv = set_add_fn(
+                        pscanner_block_hash, xv, &scanner_block_fns);
+                    assert(yv != xv);
+                    add_struct_ptr_member(fp,
+                                          SB_uint8,
+                                          "",
+                                          get_offset(fp,
+                                                     "d_scanner_%d_%d_%d_%s",
+                                                     yv->state_index,
+                                                     yv->scanner_index,
+                                                     yv->block_index,
+                                                     tag),
+                                          scanner_block[k]);
+                    if (k != g->scanner_blocks - 1)
+                    {
+                        if ((k % 2) == 1)
+                        {
+                            print(fp, "\n ");
+                            g->write_line += 1;
+                        }
+                    }
+                }
+                print(fp, "}");
+                end_struct_in_array(fp, j != ss->n - 1 ? ",\n" : "\n");
+                g->write_line += 1;
+            }
+            end_array(fp, "\n\n");
+            g->write_line += 2;
+            if (s->scan_kind != D_SCAN_LONGEST || s->trailing_context)
+            {
+                /* output scanner accepts diffs tables */
+                start_array_fn(fp,
+                               sizeof(SB_trans_uint8),
+                               "SB_trans_",
+                               scanner_u_type(s),
+                               make_name("d_transition_%d_%s", i, tag),
+                               "",
+                               ss->n,
+                               "\n");
+                g->write_line += 1;
+                ptrans_scanner_block_hash =
+                    &trans_scanner_block_hash[scanner_size(s) - 1];
+                for (j = 0; j < ss->n; j++)
+                {
+                    start_struct_in_array(fp);
+                    print(fp, "{");
+                    for (k = 0; k < g->scanner_blocks; k++)
+                    {
+                        ScannerBlock vs;
+                        vs.state_index = s->index;
+                        vs.scanner_index = j;
+                        vs.block_index = k;
+                        vs.chars = (void*) &ss->v[j]
+                                       ->chars[k * g->scanner_block_size];
+                        vs.transitions =
+                            (void*) &ss->v[j]
+                                ->transition[k * g->scanner_block_size];
+                        xv = &vs;
+                        yv = set_add_fn(ptrans_scanner_block_hash,
+                                        xv,
+                                        &trans_scanner_block_fns);
+                        assert(yv != xv);
+                        add_struct_ptr_member(
+                            fp,
+                            SB_trans_uint8,
+                            "",
+                            get_offset(fp,
+                                       "d_accepts_diff_%d_%d_%d_%s",
+                                       yv->state_index,
+                                       yv->scanner_index,
+                                       yv->block_index,
+                                       tag),
+                            scanner_block[k]);
+                        if (k != g->scanner_blocks - 1)
+                        {
+                            if ((k % 2) == 1)
+                            {
+                                print(fp, "\n ");
+                                g->write_line += 1;
+                            }
+                        }
+                    }
+                    print(fp, "}");
+                    end_struct_in_array(fp, j != ss->n - 1 ? ",\n" : "\n");
+                    g->write_line += 1;
+                }
+                end_array(fp, "\n\n");
+                g->write_line += 2;
+            }
+        }
+    }
+    for (i = 0; i < 4; i++)
+    {
+        vec_free(&scanner_block_hash[i]);
+        vec_free(&trans_scanner_block_hash[i]);
+    }
+    vec_free(&shift_hash);
+    FREE(vsblock);
 }
 
 #define reduction_index(_r) \
