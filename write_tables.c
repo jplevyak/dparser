@@ -4,256 +4,272 @@
 #include "d.h"
 #include "dparse_tables.h"
 
-void myfprintf(FILE *f, const char *format, ...) {
-  va_list ap;
-  va_start(ap, format);
+void myfprintf(FILE* f, const char* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
 
-  if(!f)
-    d_warn("trying to write code to binary file");
-  else
-    vfprintf(f, format, ap);
-  va_end(ap);
+    if (!f)
+        d_warn("trying to write code to binary file");
+    else
+        vfprintf(f, format, ap);
+    va_end(ap);
 }
 #define fprintf myfprintf
 
-typedef struct OffsetEntry {
-  char *name;
-  int len;
-  int offset;
+typedef struct OffsetEntry
+{
+    char* name;
+    int len;
+    int offset;
 } OffsetEntry;
 
 typedef Vec(OffsetEntry*) OffsetEntrySet;
 typedef Vec(char*) CharPtrVec;
 
-typedef struct Buf {
-  char *start;
-  char *cur;
-  int len;
+typedef struct Buf
+{
+    char* start;
+    char* cur;
+    int len;
 } Buf;
 
-typedef struct File {
-  int binary;
-  FILE *fp;
-  unsigned char *cur_str;
-  unsigned char **str;
-  unsigned int *str_len;
-  Buf tables;
-  Buf strings;
-  OffsetEntrySet entries;
-  CharPtrVec relocations;
-  CharPtrVec str_relocations;
-  int first_member;
-  int array_length;
-  int n_elems;
-  int elem_size;
-  int d_parser_tables_loc;
+typedef struct File
+{
+    int binary;
+    FILE* fp;
+    unsigned char* cur_str;
+    unsigned char** str;
+    unsigned int* str_len;
+    Buf tables;
+    Buf strings;
+    OffsetEntrySet entries;
+    CharPtrVec relocations;
+    CharPtrVec str_relocations;
+    int first_member;
+    int array_length;
+    int n_elems;
+    int elem_size;
+    int d_parser_tables_loc;
 } File;
 
-OffsetEntry null_entry = {"NULL", sizeof("NULL")-1, -1};
-OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code")-1, -2};
-OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code")-1, -3};
+OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
+OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code") - 1, -2};
+OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code") - 1, -3};
 
-uint32
-offset_hash_fn(OffsetEntry *entry, struct hash_fns_t* fn) {
-  (void)fn;
-  return strhashl(entry->name, entry->len);
+uint32 offset_hash_fn(OffsetEntry* entry, struct hash_fns_t* fn)
+{
+    (void) fn;
+    return strhashl(entry->name, entry->len);
 }
 
-int
-offset_cmp_fn(OffsetEntry *a, OffsetEntry *b, struct hash_fns_t* fn) {
-  (void)fn;
-  return strcmp(a->name, b->name);
+int offset_cmp_fn(OffsetEntry* a, OffsetEntry* b, struct hash_fns_t* fn)
+{
+    (void) fn;
+    return strcmp(a->name, b->name);
 }
 
-hash_fns_t
-offset_fns = {
-  (hash_fn_t)offset_hash_fn,
-  (cmp_fn_t)offset_cmp_fn,
-  {0, 0}
-};
+hash_fns_t offset_fns = {
+    (hash_fn_t) offset_hash_fn, (cmp_fn_t) offset_cmp_fn, {0, 0}};
 
-static void
-write_chk(const void* ptr, size_t size, size_t nmemb, File *file) {
-  if (file->fp) {
-    if (fwrite(ptr, size, nmemb, file->fp) != nmemb)
-      d_fail("error writing binary file\n");
-  } else {
-    memcpy(file->cur_str, ptr, size * nmemb);
-    file->cur_str += size * nmemb;
-  }
-}
-
-static void
-save_binary_tables(File *file) {
-  int i;
-  BinaryTablesHead tables;
-  unsigned int len;
-
-  tables.n_relocs = file->relocations.n;
-  tables.n_strings = file->str_relocations.n;
-  tables.d_parser_tables_loc = file->d_parser_tables_loc;
-  tables.tables_size = file->tables.cur - file->tables.start;
-  tables.strings_size = file->strings.cur - file->strings.start;
-
-  len = sizeof(BinaryTablesHead) +
-    tables.tables_size + tables.strings_size +
-    (file->relocations.n * sizeof(void*)) +
-    (file->str_relocations.n * sizeof(void*));
-
-  if (file->str) {
-    file->cur_str = *file->str = (unsigned char*)MALLOC(len);
-    *file->str_len = len;
-  }
-
-  write_chk(&tables, sizeof(BinaryTablesHead), 1, file);
-  write_chk(file->tables.start, sizeof(char), tables.tables_size, file);
-  write_chk(file->strings.start, sizeof(char), tables.strings_size, file);
-  for (i=0; i < file->relocations.n; i++)
-    write_chk(&file->relocations.v[i], sizeof(void*), 1, file);
-  for (i=0; i < file->str_relocations.n; i++)
-    write_chk(&file->str_relocations.v[i], sizeof(void*), 1, file);
-}
-
-static void
-free_tables(File *f) {
-  int i;
-  if (f->tables.start)
-    FREE(f->tables.start);
-  if (f->strings.start)
-    FREE(f->strings.start);
-  vec_free(&f->str_relocations);
-  vec_free(&f->relocations);
-  for (i=0; i<f->entries.n; i++) {
-    if (f->entries.v[i]) {
-      FREE(f->entries.v[i]->name);
-      FREE(f->entries.v[i]);
-      f->entries.v[i] = 0;
-    }
-  }
-  vec_free(&f->entries);
-}
-
-static void
-init_buf(Buf *buf, int initial_size) {
-  buf->len = initial_size;
-  buf->start = MALLOC(buf->len);
-  memset(buf->start, 0, buf->len);
-  buf->cur = buf->start;
-}
-
-static void
-file_init(File *file, int binary, FILE* fp, unsigned char **str, unsigned int *str_len) {
-  memset(file, 0, sizeof(File));
-  file->binary = binary;
-  file->fp = fp;
-  file->str = str;
-  file->str_len = str_len;
-  if (binary) {
-    init_buf(&file->tables, 1024);
-    init_buf(&file->strings, 1024);
-  }
-  vec_clear(&file->relocations);
-  vec_clear(&file->entries);
-  vec_clear(&file->str_relocations);
-}
-
-static void
-make_room_in_buf(Buf *buf, size_t size) {
-  while (buf->cur + size > buf->start + buf->len) {
-    int cur = buf->cur - buf->start;
-    buf->len = buf->len*2 + 1;
-    buf->start = REALLOC(buf->start, buf->len);
-    buf->cur = buf->start + cur;
-    memset(buf->cur, 0, buf->len - (buf->cur - buf->start));
-  }
-}
-
-static void
-new_offset(File *fp, char *name) {
-  OffsetEntry *entry = MALLOC(sizeof(OffsetEntry));
-  memset(entry, 0, sizeof(OffsetEntry));
-  entry->name = name;
-  entry->offset = fp->tables.cur - fp->tables.start;
-  entry->len = strlen(name);
-  set_add_fn(&fp->entries, entry, &offset_fns);
-}
-
-static uintptr_t
-make_string(File *fp, const char *name) {
-  intptr_t size = strlen(name)+1;
-  Buf *buf = &fp->strings;
-  char *dest;
-  make_room_in_buf(buf, size);
-  dest = buf->cur;
-  strcpy(dest, name);
-  buf->cur += size;
-  return dest - buf->start;
-}
-
-static OffsetEntry *
-search_for_offset(File *fp, char *name) {
-  uint32 tt = strhashl(name, strlen(name));
-  OffsetEntrySet *v = &fp->entries;
-  int j, n = v->n;
-  uint i;
-  if (n) {
-    uint h = tt % n;
-    for (i = h, j = 0;
-         i < v->n && j < SET_MAX_SEQUENTIAL;
-         i = ((i + 1) % n), j++)
+static void write_chk(const void* ptr, size_t size, size_t nmemb, File* file)
+{
+    if (file->fp)
     {
-      if (!v->v[i]) {
-        assert(0);
-        return 0;
-      } else {
-        if (!strcmp(v->v[i]->name, name))
-          return v->v[i];
-      }
+        if (fwrite(ptr, size, nmemb, file->fp) != nmemb)
+            d_fail("error writing binary file\n");
     }
-  }
-  assert(0);
-  return 0;
+    else
+    {
+        memcpy(file->cur_str, ptr, size * nmemb);
+        file->cur_str += size * nmemb;
+    }
 }
 
-static OffsetEntry *
-get_offset(File *fp, char* name, ...) {
-  int n;
-  char buf[256];
-  va_list ap;
-  va_start(ap, name);
-  n = vsnprintf(buf, sizeof(buf), name, ap);
-  va_end(ap);
-  assert(n < 256 && n >= 0);
-  return search_for_offset(fp, buf);
+static void save_binary_tables(File* file)
+{
+    int i;
+    BinaryTablesHead tables;
+    unsigned int len;
+
+    tables.n_relocs = file->relocations.n;
+    tables.n_strings = file->str_relocations.n;
+    tables.d_parser_tables_loc = file->d_parser_tables_loc;
+    tables.tables_size = file->tables.cur - file->tables.start;
+    tables.strings_size = file->strings.cur - file->strings.start;
+
+    len = sizeof(BinaryTablesHead) + tables.tables_size +
+          tables.strings_size + (file->relocations.n * sizeof(void*)) +
+          (file->str_relocations.n * sizeof(void*));
+
+    if (file->str)
+    {
+        file->cur_str = *file->str = (unsigned char*) MALLOC(len);
+        *file->str_len = len;
+    }
+
+    write_chk(&tables, sizeof(BinaryTablesHead), 1, file);
+    write_chk(file->tables.start, sizeof(char), tables.tables_size, file);
+    write_chk(file->strings.start, sizeof(char), tables.strings_size, file);
+    for (i = 0; i < file->relocations.n; i++)
+        write_chk(&file->relocations.v[i], sizeof(void*), 1, file);
+    for (i = 0; i < file->str_relocations.n; i++)
+        write_chk(&file->str_relocations.v[i], sizeof(void*), 1, file);
 }
 
-static char*
-make_name(char* fmt, ...) {
-  int n;
-  char *h_buf, buf[256];
-  va_list ap;
-  va_start(ap, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, ap);
-  va_end(ap);
-  assert(n < 256 && n >= 0);
-  h_buf = MALLOC(n+1);
-  strcpy(h_buf, buf);
-  return h_buf;
+static void free_tables(File* f)
+{
+    int i;
+    if (f->tables.start)
+        FREE(f->tables.start);
+    if (f->strings.start)
+        FREE(f->strings.start);
+    vec_free(&f->str_relocations);
+    vec_free(&f->relocations);
+    for (i = 0; i < f->entries.n; i++)
+    {
+        if (f->entries.v[i])
+        {
+            FREE(f->entries.v[i]->name);
+            FREE(f->entries.v[i]);
+            f->entries.v[i] = 0;
+        }
+    }
+    vec_free(&f->entries);
 }
 
-static void
-print_no_comma(File *fp, char *str) {
-  if (!fp->binary) {
-    fprintf(fp->fp, "%s", str);
-    fp->first_member = 1;
-  }
+static void init_buf(Buf* buf, int initial_size)
+{
+    buf->len = initial_size;
+    buf->start = MALLOC(buf->len);
+    memset(buf->start, 0, buf->len);
+    buf->cur = buf->start;
 }
 
-static void
-print(File *fp, char *str) {
-  if (!fp->binary) {
-    fprintf(fp->fp, "%s", str);
-  }
+static void file_init(File* file,
+                      int binary,
+                      FILE* fp,
+                      unsigned char** str,
+                      unsigned int* str_len)
+{
+    memset(file, 0, sizeof(File));
+    file->binary = binary;
+    file->fp = fp;
+    file->str = str;
+    file->str_len = str_len;
+    if (binary)
+    {
+        init_buf(&file->tables, 1024);
+        init_buf(&file->strings, 1024);
+    }
+    vec_clear(&file->relocations);
+    vec_clear(&file->entries);
+    vec_clear(&file->str_relocations);
+}
+
+static void make_room_in_buf(Buf* buf, size_t size)
+{
+    while (buf->cur + size > buf->start + buf->len)
+    {
+        int cur = buf->cur - buf->start;
+        buf->len = buf->len * 2 + 1;
+        buf->start = REALLOC(buf->start, buf->len);
+        buf->cur = buf->start + cur;
+        memset(buf->cur, 0, buf->len - (buf->cur - buf->start));
+    }
+}
+
+static void new_offset(File* fp, char* name)
+{
+    OffsetEntry* entry = MALLOC(sizeof(OffsetEntry));
+    memset(entry, 0, sizeof(OffsetEntry));
+    entry->name = name;
+    entry->offset = fp->tables.cur - fp->tables.start;
+    entry->len = strlen(name);
+    set_add_fn(&fp->entries, entry, &offset_fns);
+}
+
+static uintptr_t make_string(File* fp, const char* name)
+{
+    intptr_t size = strlen(name) + 1;
+    Buf* buf = &fp->strings;
+    char* dest;
+    make_room_in_buf(buf, size);
+    dest = buf->cur;
+    strcpy(dest, name);
+    buf->cur += size;
+    return dest - buf->start;
+}
+
+static OffsetEntry* search_for_offset(File* fp, char* name)
+{
+    uint32 tt = strhashl(name, strlen(name));
+    OffsetEntrySet* v = &fp->entries;
+    int j, n = v->n;
+    uint i;
+    if (n)
+    {
+        uint h = tt % n;
+        for (i = h, j = 0; i < v->n && j < SET_MAX_SEQUENTIAL;
+             i = ((i + 1) % n), j++)
+        {
+            if (!v->v[i])
+            {
+                assert(0);
+                return 0;
+            }
+            else
+            {
+                if (!strcmp(v->v[i]->name, name))
+                    return v->v[i];
+            }
+        }
+    }
+    assert(0);
+    return 0;
+}
+
+static OffsetEntry* get_offset(File* fp, char* name, ...)
+{
+    int n;
+    char buf[256];
+    va_list ap;
+    va_start(ap, name);
+    n = vsnprintf(buf, sizeof(buf), name, ap);
+    va_end(ap);
+    assert(n < 256 && n >= 0);
+    return search_for_offset(fp, buf);
+}
+
+static char* make_name(char* fmt, ...)
+{
+    int n;
+    char *h_buf, buf[256];
+    va_list ap;
+    va_start(ap, fmt);
+    n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    assert(n < 256 && n >= 0);
+    h_buf = MALLOC(n + 1);
+    strcpy(h_buf, buf);
+    return h_buf;
+}
+
+static void print_no_comma(File* fp, char* str)
+{
+    if (!fp->binary)
+    {
+        fprintf(fp->fp, "%s", str);
+        fp->first_member = 1;
+    }
+}
+
+static void print(File* fp, char* str)
+{
+    if (!fp->binary)
+    {
+        fprintf(fp->fp, "%s", str);
+    }
 }
 
 /*
