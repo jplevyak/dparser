@@ -1,5 +1,5 @@
 ---
-Checks:          '*,clang-diagnostic-*,clang-analyzer-*,-clang-analyzer-alpha*'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-clang-analyzer-alpha*,readability-braces-around-statements'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
