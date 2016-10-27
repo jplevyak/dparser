@@ -29,4 +29,4 @@ typedef struct ParseNode_User
 }
 #endif
 
-#endif  // GRAMGRAM_H
+#endif // GRAMGRAM_H

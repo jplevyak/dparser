@@ -121,4 +121,4 @@ void d_version(char*);
 }
 #endif
 
-#endif  // D_H
+#endif // D_H

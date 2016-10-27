@@ -35,4 +35,4 @@ void build_scanners(struct Grammar* g);
 }
 #endif
 
-#endif  // LEX_H
+#endif // LEX_H

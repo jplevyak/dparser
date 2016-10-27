@@ -62,4 +62,4 @@ void print_node_parenthesised(int depth,
 }
 #endif
 
-#endif  // DPARSE_TREE_H
+#endif // DPARSE_TREE_H

@@ -96,4 +96,4 @@ char* d_dup_pathname_str(const char* str);
 }
 #endif
 
-#endif  // DPARSE_H
+#endif // DPARSE_H

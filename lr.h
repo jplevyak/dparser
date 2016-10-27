@@ -19,4 +19,4 @@ void free_Action(Action* a);
 }
 #endif
 
-#endif  // LR_H
+#endif // LR_H

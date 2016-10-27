@@ -24,4 +24,4 @@ int scan_buffer(d_loc_t* loc, D_State* st, ShiftResult* result);
 }
 #endif
 
-#endif  // SCAN_H
+#endif // SCAN_H

@@ -76,4 +76,4 @@ void print_scope(D_Scope* st);
 }
 #endif
 
-#endif  // DSYMTAB_H
+#endif // DSYMTAB_H

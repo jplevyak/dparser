@@ -182,4 +182,4 @@ extern int d_rdebug_grammar_level;
 }
 #endif
 
-#endif  // UTIL_H
+#endif // UTIL_H

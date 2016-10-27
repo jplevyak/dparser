@@ -326,4 +326,4 @@ int state_for_declaration(Grammar* g, int iproduction);
 }
 #endif
 
-#endif  // GRAM_H
+#endif // GRAM_H

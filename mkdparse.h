@@ -19,4 +19,4 @@ void mkdparse_from_string(struct Grammar* g, char* str);
 }
 #endif
 
-#endif  // MKDPARSE_H
+#endif // MKDPARSE_H

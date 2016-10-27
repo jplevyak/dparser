@@ -167,4 +167,4 @@ D_ParseNode* ambiguity_count_fn(D_Parser* pp, int n, D_ParseNode** v);
 }
 #endif
 
-#endif  // PARSE_H
+#endif // PARSE_H

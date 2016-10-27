@@ -39,4 +39,4 @@ void free_BinaryTables(BinaryTables* binary_tables);
 }
 #endif
 
-#endif  // READ_BINARY_H
+#endif // READ_BINARY_H

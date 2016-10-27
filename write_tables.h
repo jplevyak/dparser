@@ -20,4 +20,4 @@ int write_binary_tables_to_string(Grammar* g,
 }
 #endif
 
-#endif  // WRITE_TABLES_H
+#endif // WRITE_TABLES_H

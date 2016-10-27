@@ -61,4 +61,4 @@ void unload_parser_tables(long int binary_table);
 }
 #endif
 
-#endif  // PYDPARSER_H
+#endif // PYDPARSER_H

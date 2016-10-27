@@ -200,4 +200,4 @@ void parse_whitespace(struct D_Parser* p, d_loc_t* loc, void** p_globals);
 }
 #endif
 
-#endif  // DPARSE_TABLES_H
+#endif // DPARSE_TABLES_H

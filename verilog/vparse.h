@@ -21,4 +21,4 @@ extern char* v_incdirs;
 }
 #endif
 
-#endif  // VPARSE_H
+#endif // VPARSE_H
