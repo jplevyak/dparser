@@ -2103,67 +2103,95 @@ write_passes(File *fp, Grammar *g, char *tag) {
   }
 }
 
-void
-write_parser_tables(Grammar *g, char *tag, File *file) {
-  int whitespace_production = 0;
-  VecState er_hash;
-  Production *p;
-  vec_clear(&er_hash);
+void write_parser_tables(Grammar* g, char* tag, File* file)
+{
+    int whitespace_production = 0;
+    VecState er_hash;
+    Production* p;
+    vec_clear(&er_hash);
 
-  g->scanner_block_size = 256/g->scanner_blocks;
+    g->scanner_block_size = 256 / g->scanner_blocks;
 
-  write_reductions(file, g, tag);
-  write_scanner_data(file, g, tag);
-  if (!file->binary)
-    write_scanner_code(file, g, tag);
-  write_goto_data(file, g, tag);
-  write_error_data(file, g, &er_hash, tag);
-  write_state_data(file, g, &er_hash, tag);
-  write_symbol_data(file, g, tag);
-  write_passes(file, g, tag);
-  vec_free(&er_hash);
+    write_reductions(file, g, tag);
+    write_scanner_data(file, g, tag);
+    if (!file->binary)
+        write_scanner_code(file, g, tag);
+    write_goto_data(file, g, tag);
+    write_error_data(file, g, &er_hash, tag);
+    write_state_data(file, g, &er_hash, tag);
+    write_symbol_data(file, g, tag);
+    write_passes(file, g, tag);
+    vec_free(&er_hash);
 
-  if ((p = lookup_production(g, "whitespace", sizeof("whitespace")-1)))
-    whitespace_production = p->state->index;
+    if ((p = lookup_production(g, "whitespace", sizeof("whitespace") - 1)))
+        whitespace_production = p->state->index;
 
-  if (file->binary) {
-    file->d_parser_tables_loc = file->tables.cur - file->tables.start;
-  }
-
-  start_struct(file, D_ParserTables, make_name("parser_tables_%s", tag), "\n");
-  add_struct_member(file, D_ParserTables, %d, g->states.n, nstates);
-  add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_states_%s", tag), state);
-  add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_gotos_%s", tag), goto_table);
-  add_struct_member(file, D_ParserTables, %d, whitespace_production, whitespace_state);
-  add_struct_member(file, D_ParserTables, %d, g->productions.n + g->terminals.n, nsymbols);
-  add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_symbols_%s", tag), symbols);
-  if (g->default_white_space) {
-    assert(!file->binary);
-    fprintf(file->fp, ", %s", g->default_white_space);
-  } else
-    add_struct_ptr_member(file, D_ParserTables, "", &null_entry, default_white_space);
-  add_struct_member(file, D_ParserTables, %d, g->passes.n, npasses);
-  if (g->passes.n)
-    add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_passes_%s", tag), passes);
-  else
-    add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
-  if (g->save_parse_tree)
-    add_struct_member(file, D_ParserTables, %d, 1, save_parse_tree);
-  else
-    add_struct_member(file, D_ParserTables, %d, 0, save_parse_tree);
-  end_struct(file, D_ParserTables, "\n");
-
-  if (file->binary) {
-    if (!file->str) {
-      file->fp = fopen(g->write_pathname, "wb");
-      if (!file->fp)
-        d_fail("unable to open `%s` for write\n", g->pathname);
+    if (file->binary)
+    {
+        file->d_parser_tables_loc = file->tables.cur - file->tables.start;
     }
-    save_binary_tables(file);
-  }
-  free_tables(file);
-  if (file->fp)
-    fclose(file->fp);
+
+    start_struct(
+        file, D_ParserTables, make_name("parser_tables_%s", tag), "\n");
+    add_struct_member(file, D_ParserTables, % d, g->states.n, nstates);
+    add_struct_ptr_member(file,
+                          D_ParserTables,
+                          "",
+                          get_offset(file, "d_states_%s", tag),
+                          state);
+    add_struct_ptr_member(file,
+                          D_ParserTables,
+                          "",
+                          get_offset(file, "d_gotos_%s", tag),
+                          goto_table);
+    add_struct_member(
+        file, D_ParserTables, % d, whitespace_production, whitespace_state);
+    add_struct_member(file,
+                      D_ParserTables,
+                      % d,
+                      g->productions.n + g->terminals.n,
+                      nsymbols);
+    add_struct_ptr_member(file,
+                          D_ParserTables,
+                          "",
+                          get_offset(file, "d_symbols_%s", tag),
+                          symbols);
+    if (g->default_white_space)
+    {
+        assert(!file->binary);
+        fprintf(file->fp, ", %s", g->default_white_space);
+    }
+    else
+        add_struct_ptr_member(
+            file, D_ParserTables, "", &null_entry, default_white_space);
+    add_struct_member(file, D_ParserTables, % d, g->passes.n, npasses);
+    if (g->passes.n)
+        add_struct_ptr_member(file,
+                              D_ParserTables,
+                              "",
+                              get_offset(file, "d_passes_%s", tag),
+                              passes);
+    else
+        add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
+    if (g->save_parse_tree)
+        add_struct_member(file, D_ParserTables, % d, 1, save_parse_tree);
+    else
+        add_struct_member(file, D_ParserTables, % d, 0, save_parse_tree);
+    end_struct(file, D_ParserTables, "\n");
+
+    if (file->binary)
+    {
+        if (!file->str)
+        {
+            file->fp = fopen(g->write_pathname, "wb");
+            if (!file->fp)
+                d_fail("unable to open `%s` for write\n", g->pathname);
+        }
+        save_binary_tables(file);
+    }
+    free_tables(file);
+    if (file->fp)
+        fclose(file->fp);
 }
 
 void write_parser_tables_internal(Grammar* g,
