@@ -7,7 +7,11 @@ int main(int argc, char* argv[])
     D_Parser* p =
         new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     if (fgets(s, 255, stdin) && dparse(p, s, strlen(s)) && !p->syntax_errors)
+    {
         printf("success\n");
+    }
     else
+    {
         printf("failure\n");
+    }
 }

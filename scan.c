@@ -48,7 +48,9 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
                     col = 0;
                 }
                 else
+                {
                     col++;
+                }
                 loc.s = s;
                 loc.line = line;
                 loc.col = col;
@@ -104,7 +106,9 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
                     col = 0;
                 }
                 else
+                {
                     col++;
+                }
                 c = (uint8) *s++;
             }
             shift = st[last].shift;
@@ -152,7 +156,9 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
                     col = 0;
                 }
                 else
+                {
                     col++;
+                }
                 c = (uint8) *s++;
             }
             shift = st[last].shift;
@@ -172,15 +178,21 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
         int longest = 0;
         char* end = results[nresults - 1].loc.s;
         if (parse_state->scan_kind == D_SCAN_LONGEST)
+        {
             longest = 1;
+        }
         if (parse_state->scan_kind == D_SCAN_MIXED)
         {
             for (i = nresults - 1; i >= 0; i--)
             {
                 if (results[i].loc.s < end)
+                {
                     break;
+                }
                 if (results[i].shift->shift_kind == D_SCAN_LONGEST)
+                {
                     longest = 1;
+                }
             }
         }
         if (longest)
@@ -193,7 +205,9 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
                     results[j].shift->shift_kind == D_SCAN_TRAILING)
                 {
                     if (i != j)
+                    {
                         results[i] = results[j];
+                    }
                     i++;
                 }
             }
@@ -203,17 +217,23 @@ int scan_buffer(d_loc_t* aloc, D_State* parse_state, ShiftResult* results)
         {
             /* only keep non-longest */
             for (j = i; j >= 0; j--)
+            {
                 if (results[j].shift->shift_kind != D_SCAN_LONGEST)
                 {
                     if (i != j)
+                    {
                         results[i] = results[j];
+                    }
                     i--;
                 }
+            }
             nresults = nresults - i - 1;
             if (i != -1)
+            {
                 memmove(&results[0],
                         &results[i + 1],
                         nresults * sizeof(results[0]));
+            }
         }
     }
     return nresults;

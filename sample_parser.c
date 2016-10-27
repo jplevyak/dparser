@@ -134,7 +134,9 @@ int main(int argc, char* argv[])
 
     process_args(&arg_state, argv);
     if (!arg_state.nfile_arguments)
+    {
         help(&arg_state, NULL);
+    }
     p = new_D_Parser(&parser_tables_dparser_gram, SIZEOF_MY_PARSE_NODE);
     p->save_parse_tree = save_parse_tree;
     p->ambiguity_fn = ambiguity_count_fn;
@@ -154,9 +156,13 @@ int main(int argc, char* argv[])
         p->loc.line = 1;
         p->loc.col = 0;
         if (buf_read(arg_state.file_argument[i], &buf, &len) > 0)
+        {
             pn = dparse(p, buf, len);
+        }
         else
+        {
             d_fail("unable to read file '%s'", arg_state.file_argument[i]);
+        }
         if (pn)
         {
             free_D_ParseNode(p, pn);
@@ -169,7 +175,9 @@ int main(int argc, char* argv[])
             FREE(fn);
         }
         if (buf)
+        {
             FREE(buf);
+        }
     }
     free_D_Parser(p);
     free_args(&arg_state);

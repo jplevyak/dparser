@@ -32,7 +32,9 @@ int make_tables(char* grammar_string, char* grammar_pathname)
     mkdparse_from_string(g, grammar_string);
 
     if (write_binary_tables(g) < 0)
+    {
         d_fail("unable to write tables");
+    }
 
     free_D_Grammar(g);
     return 0;

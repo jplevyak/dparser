@@ -6,7 +6,9 @@ read_chk(void* ptr, size_t size, size_t nmemb, FILE* fp, unsigned char** str)
     if (fp)
     {
         if (fread(ptr, size, nmemb, fp) != nmemb)
+        {
             d_fail("error reading binary tables\n");
+        }
     }
     else
     {
@@ -64,7 +66,9 @@ BinaryTables* read_binary_tables_internal(FILE* fp,
         *(void**) (tables_buf + offset) += (intptr_t) strings_buf;
     }
     if (fp)
+    {
         fclose(fp);
+    }
 
     binary_tables->parser_tables_dparser_gram =
         (D_ParserTables*) (tables_buf + tables.d_parser_tables_loc);
@@ -78,7 +82,9 @@ BinaryTables* read_binary_tables(char* file_name,
 {
     FILE* fp = fopen(file_name, "rb");
     if (!fp)
+    {
         d_fail("error opening tables %s\n", file_name);
+    }
     return read_binary_tables_internal(fp, 0, spec_code, final_code);
 }
 

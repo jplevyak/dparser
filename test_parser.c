@@ -218,7 +218,9 @@ int main(int argc, char* argv[])
 
     process_args(&arg_state, argv);
     if (arg_state.nfile_arguments < 2)
+    {
         help(&arg_state, NULL);
+    }
 
     /* build grammar */
     grammar_pathname = arg_state.file_argument[0];
@@ -233,12 +235,16 @@ int main(int argc, char* argv[])
     g->scanner_block_size = scanner_block_size;
 
     if (!(str = (unsigned char*) sbuf_read(grammar_pathname)))
+    {
         d_fail("unable to read grammar file '%s'", grammar_pathname);
+    }
     mkdparse_from_string(g, (char*) str);
     d_free(str);
     str = 0;
     if (write_binary_tables_to_string(g, &str, &str_len) < 0)
+    {
         d_fail("unable to write tables to string '%s'", grammar_pathname);
+    }
     free_D_Grammar(g);
 
     /* execute parser */
@@ -263,9 +269,13 @@ int main(int argc, char* argv[])
         p->loc.line = 1;
         p->loc.col = 0;
         if (buf_read(arg_state.file_argument[i], &buf, &len) > 0)
+        {
             pn = dparse(p, buf, len);
+        }
         else
+        {
             d_fail("unable to read file '%s'", arg_state.file_argument[i]);
+        }
         if (pn)
         {
             free_D_ParseNode(p, pn);
@@ -278,7 +288,9 @@ int main(int argc, char* argv[])
             FREE(fn);
         }
         if (buf)
+        {
             FREE(buf);
+        }
     }
     free_BinaryTables(binary_tables);
     free_D_Parser(p);

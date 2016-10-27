@@ -52,8 +52,12 @@ static State* maybe_add_state(Grammar* g, State* s)
             s->items.n == g->states.v[i]->items.n)
         {
             for (j = 0; j < s->items.n; j++)
+            {
                 if (s->items.v[j] != g->states.v[i]->items.v[j])
+                {
                     goto Lcont;
+                }
+            }
             free_state(s);
             return g->states.v[i];
         Lcont:;
@@ -67,9 +71,13 @@ static State* maybe_add_state(Grammar* g, State* s)
 static Elem* next_elem(Item* i)
 {
     if (i->index + 1 >= i->rule->elems.n)
+    {
         return i->rule->end;
+    }
     else
+    {
         return i->rule->elems.v[i->index + 1];
+    }
 }
 
 static State* build_closure(Grammar* g, State* s)
@@ -84,16 +92,20 @@ static State* build_closure(Grammar* g, State* s)
         {
             Production* pp = e->e.nterm;
             for (k = 0; k < e->e.nterm->rules.n; k++)
+            {
                 insert_item(s,
                             pp->rules.v[k]->elems.v
                                 ? pp->rules.v[k]->elems.v[0]
                                 : pp->rules.v[k]->end);
+            }
         }
     }
     qsort(s->items.v, s->items.n, sizeof(Item*), itemcmp);
     s->hash = 0;
     for (j = 0; j < s->items.n; j++)
+    {
         s->hash += item_hash(s->items.v[j]);
+    }
     return maybe_add_state(g, s);
 }
 
@@ -125,12 +137,16 @@ static void build_state_for(Grammar* g, State* s, Elem* e)
             i->e.term_or_nterm == e->e.term_or_nterm)
         {
             if (!ss)
+            {
                 ss = new_state();
+            }
             insert_item(ss, next_elem(i));
         }
     }
     if (ss)
+    {
         add_goto(s, build_closure(g, ss), e);
+    }
 }
 
 static void build_new_states(Grammar* g)
@@ -161,20 +177,26 @@ static void build_states_for_each_production(Grammar* g)
 {
     int i;
     for (i = 0; i < g->productions.n; i++)
+    {
         if (!g->productions.v[i]->internal && g->productions.v[i]->elem)
         {
             State* s = new_state();
             insert_item(s, g->productions.v[i]->elem);
             g->productions.v[i]->state = build_closure(g, s);
         }
+    }
 }
 
 uint elem_symbol(Grammar* g, Elem* e)
 {
     if (e->kind == ELEM_NTERM)
+    {
         return e->e.nterm->index;
+    }
     else
+    {
         return g->productions.n + e->e.term->index;
+    }
 }
 
 static int gotocmp(const void* aa, const void* bb)
@@ -222,7 +244,9 @@ new_Action(Grammar* g, int akind, Term* aterm, Rule* arule, State* astate)
 void free_Action(Action* a)
 {
     if (a->temp_string)
+    {
         FREE(a->temp_string);
+    }
     FREE(a);
 }
 
@@ -236,8 +260,12 @@ static void add_action(
     {
         /* eliminate duplicates */
         for (i = 0; i < s->reduce_actions.n; i++)
+        {
             if (s->reduce_actions.v[i]->rule == arule)
+            {
                 return;
+            }
+        }
         a = new_Action(g, akind, aterm, arule, astate);
         vec_add(&s->reduce_actions, a);
     }
@@ -245,10 +273,14 @@ static void add_action(
     {
         /* eliminate duplicates */
         for (i = 0; i < s->shift_actions.n; i++)
+        {
             if (s->shift_actions.v[i]->term == aterm &&
                 s->shift_actions.v[i]->state == astate &&
                 s->shift_actions.v[i]->kind == akind)
+            {
                 return;
+            }
+        }
         a = new_Action(g, akind, aterm, arule, astate);
         vec_add(&s->shift_actions, a);
     }
@@ -264,17 +296,29 @@ static int actioncmp(const void* aa, const void* bb)
     Action *a = *(Action **) aa, *b = *(Action **) bb;
     int i, j;
     if (a->kind == ACTION_SHIFT_TRAILING)
+    {
         i = a->term->index + 11000000;
+    }
     else if (a->kind == ACTION_SHIFT)
+    {
         i = a->term->index + 1000000;
+    }
     else
+    {
         i = a->rule->index;
+    }
     if (b->kind == ACTION_SHIFT_TRAILING)
+    {
         j = b->term->index + 11000000;
+    }
     else if (b->kind == ACTION_SHIFT)
+    {
         j = b->term->index + 1000000;
+    }
     else
+    {
         j = b->rule->index;
+    }
     return ((i > j) ? 1 : ((i < j) ? -1 : 0));
 }
 
@@ -302,19 +346,25 @@ static void build_actions(Grammar* g)
                     for (z = 0; z < s->gotos.n; z++)
                     {
                         if (s->gotos.v[z]->elem->e.term == e->e.term)
+                        {
                             add_action(g,
                                        s,
                                        ACTION_SHIFT,
                                        e->e.term,
                                        0,
                                        s->gotos.v[z]->state);
+                        }
                     }
                 }
             }
             else if (e->rule->prod->index)
+            {
                 add_action(g, s, ACTION_REDUCE, NULL, e->rule, 0);
+            }
             else
+            {
                 s->accept = 1;
+            }
         }
         sort_VecAction(&s->shift_actions);
         sort_VecAction(&s->reduce_actions);
@@ -325,8 +375,12 @@ State* goto_State(State* s, Elem* e)
 {
     int i;
     for (i = 0; i < s->gotos.n; i++)
+    {
         if (s->gotos.v[i]->elem->e.term_or_nterm == e->e.term_or_nterm)
+        {
             return s->gotos.v[i]->state;
+        }
+    }
     return NULL;
 }
 
@@ -372,24 +426,34 @@ static void build_right_epsilon_hints(Grammar* g)
                 {
                     if ((r->elems.v[z]->kind != ELEM_NTERM ||
                          !r->elems.v[z]->e.nterm->nullable))
+                    {
                         goto Lnext;
+                    }
                 }
                 ss = s;
                 for (z = e->index; z < r->elems.n; z++)
+                {
                     ss = goto_State(ss, r->elems.v[z]);
+                }
                 if (ss && r->elems.n)
+                {
                     vec_add(&s->right_epsilon_hints,
                             new_Hint(r->elems.n - e->index - 1, ss, r));
-                else /* ignore for states_for_each_productions */
+                }
+                else
+                { /* ignore for states_for_each_productions */
                     ;
+                }
             }
         Lnext:;
         }
         if (s->right_epsilon_hints.n > 1)
+        {
             qsort(s->right_epsilon_hints.v,
                   s->right_epsilon_hints.n,
                   sizeof(Hint*),
                   hintcmp);
+        }
     }
 }
 
@@ -420,7 +484,9 @@ static void build_error_recovery(Grammar* g)
                         !strcmp(e->e.term->string, ee->e.term->string))
                     {
                         if (s->error_recovery_hints.v[k]->depth > depth)
+                        {
                             s->error_recovery_hints.v[k]->depth = depth;
+                        }
                         goto Ldone;
                     }
                 }

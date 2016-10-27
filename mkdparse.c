@@ -9,13 +9,21 @@
 static void mkdparse_internal(Grammar* g, char* grammar_pathname, char* str)
 {
     if (!grammar_pathname)
+    {
         grammar_pathname = "-";
+    }
     if (parse_grammar(g, grammar_pathname, str) < 0)
+    {
         d_fail("unable to parse grammar '%s'", grammar_pathname);
+    }
     if (g->productions.n < 2)
+    {
         d_fail("no productions in grammar '%s'", grammar_pathname);
+    }
     if (build_grammar(g) < 0)
+    {
         d_fail("unable to load grammar '%s'", grammar_pathname);
+    }
 }
 
 void mkdparse(Grammar* g, char* grammar_pathname)

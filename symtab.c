@@ -62,6 +62,7 @@ static void symhash_add(D_SymHash* sh, D_Sym* s)
         n = sh->syms.n;
         vec_clear(&tv);
         for (i = 0; i < vv.n; i++)
+        {
             /* use temporary to preserve order */
             while (vv.v[i])
             {
@@ -69,6 +70,7 @@ static void symhash_add(D_SymHash* sh, D_Sym* s)
                 vv.v[i] = x->next;
                 vec_add(&tv, x);
             }
+        }
         while (tv.v[i])
         {
             x = tv.v[i];
@@ -97,11 +99,13 @@ static void free_D_SymHash(D_SymHash* sh)
     int i;
     D_Sym* sym;
     for (i = 0; i < sh->syms.n; i++)
+    {
         for (; sh->syms.v[i]; sh->syms.v[i] = sym)
         {
             sym = sh->syms.v[i]->next;
             free_D_Sym(sh->syms.v[i]);
         }
+    }
     FREE(sh->syms.v);
     FREE(sh);
 }
@@ -121,7 +125,9 @@ D_Scope* new_D_Scope(D_Scope* parent)
         parent->down = st;
     }
     else
+    {
         st->hash = new_D_SymHash();
+    }
     return st;
 }
 
@@ -130,31 +136,47 @@ D_Scope* equiv_D_Scope(D_Scope* current)
     D_Scope *s = current, *last = current;
     D_Sym* sy;
     if (!s)
+    {
         return s;
+    }
     while (s->depth >= current->depth)
     {
         if (s->depth == last->depth)
         {
             if (current->up == s->up)
+            {
                 last = s;
+            }
             else
+            {
                 break;
+            }
         }
         if (s->ll || s->hash)
+        {
             break;
+        }
         if (s->dynamic)
+        {
             break;
+        }
         sy = s->updates;
         while (sy)
         {
             if (sy->scope->depth <= current->depth)
+            {
                 break;
+            }
             sy = sy->next;
         }
         if (sy)
+        {
             break;
+        }
         if (!s->up_updates)
+        {
             break;
+        }
         s = s->up_updates;
     }
     return last;
@@ -219,7 +241,9 @@ D_Scope* global_D_Scope(D_Scope* current)
 {
     D_Scope* g = current;
     while (g->up)
+    {
         g = g->search;
+    }
     return enter_D_Scope(current, g);
 }
 
@@ -248,15 +272,21 @@ void free_D_Scope(D_Scope* st, int force)
         free_D_Scope(st->down, 0);
     }
     if (st->owned_by_user && !force)
+    {
         return;
+    }
     if (st->hash)
+    {
         free_D_SymHash(st->hash);
+    }
     else
+    {
         for (; st->ll; st->ll = sym)
         {
             sym = st->ll->next;
             free_D_Sym(st->ll);
         }
+    }
     for (; st->updates; st->updates = sym)
     {
         sym = st->updates->next;
@@ -286,8 +316,12 @@ static void commit_update(D_Scope* st, D_SymHash* sh)
     D_Sym* s;
 
     for (i = 0; i < sh->syms.n; i++)
+    {
         for (s = sh->syms.v[i]; s; s = s->next)
+        {
             s->update_of = current_D_Sym(st, s);
+        }
+    }
 }
 
 /* currently only commit the top level scope */
@@ -295,9 +329,13 @@ D_Scope* commit_D_Scope(D_Scope* st)
 {
     D_Scope* x = st;
     if (st->up)
+    {
         return st;
+    }
     while (x->search)
+    {
         x = x->search;
+    }
     commit_ll(st, x->hash);
     commit_update(st, x->hash);
     return x;
@@ -338,13 +376,19 @@ D_Sym* current_D_Sym(D_Scope* st, D_Sym* sym)
     D_Sym* uu;
 
     if (sym->update_of)
+    {
         sym = sym->update_of;
+    }
     /* return the last update */
     for (sc = st; sc; sc = sc->up_updates)
     {
         for (uu = sc->updates; uu; uu = uu->next)
+        {
             if (uu->update_of == sym)
+            {
                 return uu;
+            }
+        }
     }
     return sym;
 }
@@ -356,22 +400,34 @@ find_D_Sym_in_Scope_internal(D_Scope* st, char* name, int len, uint h)
     for (; st; st = st->search)
     {
         if (st->hash)
+        {
             ll = st->hash->syms.v[h % st->hash->syms.n];
+        }
         else
+        {
             ll = st->ll;
+        }
         while (ll)
         {
             if (ll->hash == h && ll->len == len &&
                 !strncmp(ll->name, name, len))
+            {
                 return ll;
+            }
             ll = ll->next;
         }
         if (st->dynamic)
+        {
             if ((ll =
                      find_D_Sym_in_Scope_internal(st->dynamic, name, len, h)))
+            {
                 return ll;
+            }
+        }
         if (!st->search || st->search->up != st->up)
+        {
             break;
+        }
     }
     return NULL;
 }
@@ -380,25 +436,39 @@ static D_Sym* find_D_Sym_internal(D_Scope* cur, char* name, int len, uint h)
 {
     D_Sym* ll;
     if (!cur)
+    {
         return NULL;
+    }
     if (cur->hash)
+    {
         ll = cur->hash->syms.v[h % cur->hash->syms.n];
+    }
     else
+    {
         ll = cur->ll;
+    }
     while (ll)
     {
         if (ll->hash == h && ll->len == len && !strncmp(ll->name, name, len))
+        {
             break;
+        }
         ll = ll->next;
     }
     if (!ll)
     {
         if (cur->dynamic)
+        {
             if ((ll = find_D_Sym_in_Scope_internal(
                      cur->dynamic, name, len, h)))
+            {
                 return ll;
+            }
+        }
         if (cur->search)
+        {
             return find_D_Sym_internal(cur->search, name, len, h);
+        }
         return ll;
     }
     return ll;
@@ -410,7 +480,9 @@ D_Sym* find_D_Sym(D_Scope* st, char* name, char* end)
     uint h = strhashl(name, len);
     D_Sym* s = find_D_Sym_internal(st, name, len, h);
     if (s)
+    {
         return current_D_Sym(st, s);
+    }
     return NULL;
 }
 
@@ -421,10 +493,14 @@ D_Sym* find_global_D_Sym(D_Scope* st, char* name, char* end)
     uint h = strhashl(name, len);
     D_Scope* cur = st;
     while (cur->up)
+    {
         cur = cur->search;
+    }
     s = find_D_Sym_internal(cur, name, len, h);
     if (s)
+    {
         return current_D_Sym(st, s);
+    }
     return NULL;
 }
 
@@ -434,7 +510,9 @@ D_Sym* find_D_Sym_in_Scope(D_Scope* st, D_Scope* cur, char* name, char* end)
     uint h = strhashl(name, len);
     D_Sym* s = find_D_Sym_in_Scope_internal(cur, name, len, h);
     if (s)
+    {
         return current_D_Sym(st, s);
+    }
     return NULL;
 }
 
@@ -446,7 +524,9 @@ D_Sym* next_D_Sym_in_Scope(D_Scope** scope, D_Sym** sym)
     {
         ll = ll->next;
         if (ll)
+        {
             goto Lreturn;
+        }
     }
     for (; st; st = st->search)
     {
@@ -454,22 +534,32 @@ D_Sym* next_D_Sym_in_Scope(D_Scope** scope, D_Sym** sym)
         {
             int i = last_sym ? ((last_sym->hash + 1) % st->hash->syms.n) : 0;
             if (!last_sym || i)
+            {
                 ll = st->hash->syms.v[i];
+            }
         }
         else
         {
             if (!last_sym)
+            {
                 ll = st->ll;
+            }
         }
         last_sym = 0;
         if (ll)
+        {
             goto Lreturn;
+        }
         if (!st->search || st->search->up != st->up)
+        {
             break;
+        }
     }
 Lreturn:
     if (ll)
+    {
         *sym = ll;
+    }
     *scope = st;
     return ll;
 }
@@ -482,7 +572,9 @@ D_Sym* update_additional_D_Sym(D_Scope* st, D_Sym* sym, int sizeof_D_Sym)
     s = MALLOC(sizeof_D_Sym);
     memcpy(s, sym, sizeof(D_Sym));
     if (sym->update_of)
+    {
         sym = sym->update_of;
+    }
     s->update_of = sym;
     s->next = st->updates;
     st->updates = s;
@@ -499,7 +591,9 @@ void print_sym(D_Sym* s)
 {
     char* c = (char*) MALLOC(s->len + 1);
     if (s->len)
+    {
         memcpy(c, s->name, s->len);
+    }
     c[s->len] = 0;
     printf("%s, ", c);
     FREE(c);
@@ -510,15 +604,23 @@ void print_scope(D_Scope* st)
     printf("SCOPE %p: ", st);
     printf("  owned: %d, kind: %d, ", st->owned_by_user, st->kind);
     if (st->ll)
+    {
         printf("  LL\n");
+    }
     if (st->hash)
+    {
         printf("  HASH\n");
+    }
     if (st->hash)
     {
         int i;
         for (i = 0; i < st->hash->syms.n; i++)
+        {
             if (st->hash->syms.v[i])
+            {
                 print_sym(st->hash->syms.v[i]);
+            }
+        }
     }
     else
     {
@@ -531,7 +633,11 @@ void print_scope(D_Scope* st)
     }
     printf("\n\n");
     if (st->dynamic)
+    {
         print_scope(st->dynamic);
+    }
     if (st->search)
+    {
         print_scope(st->search);
+    }
 }

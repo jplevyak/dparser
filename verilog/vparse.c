@@ -167,7 +167,9 @@ static int getdeflen(const char* s, int srcleft)
     if (!(s[0] == '_' || (s[0] >= 'a' && s[0] <= 'z') ||
           (s[0] >= 'A' && s[0] <= 'Z')) ||
         srcleft < 1)
+    {
         return 0;
+    }
 
     deflen = 1;
 
@@ -175,7 +177,9 @@ static int getdeflen(const char* s, int srcleft)
            ((s[deflen] >= 'a' && s[deflen] <= 'z') ||
             (s[deflen] >= 'A' && s[deflen] <= 'Z') ||
             (s[deflen] >= '0' && s[deflen] <= '9') || s[deflen] == '_'))
+    {
         deflen++;
+    }
 
     return deflen;
 }
@@ -258,7 +262,9 @@ static int define_directive(struct fileinfo_s* pfi)
                 psubs += 2;
             }
             else
+            {
                 *psubd++ = *psubs++;
+            }
         }
         *psubd++ = '\0';
     }
@@ -346,8 +352,10 @@ static int ifdef_directive(struct fileinfo_s* pfi)
 
     defined = def_find(pfi->deftab, pname, deflen) != NULL;
     pfi->ifdefd_out <<= 1;
-    if (ifndef && defined || !ifndef && !defined)
+    if ((ifndef && defined) || (!ifndef && !defined))
+    {
         pfi->ifdefd_out |= 1;
+    }
 
     kill_eol(pfi);
     return 0;
@@ -386,10 +394,14 @@ static char* find_include(char* filename)
     static char file2[4096];
 
     if (access(filename, R_OK) == 0)
+    {
         return filename;
+    }
 
     if (!v_incdirs)
+    {
         return NULL;
+    }
 
     cp1 = v_incdirs;
     while (cp1[0])
@@ -397,9 +409,13 @@ static char* find_include(char* filename)
 
         cp2 = file2;
         while (cp1[0] && cp1[0] != ':' && (cp2 - file2) < sizeof(file2))
+        {
             *cp2++ = *cp1++;
+        }
         if (cp1[0] == ':')
+        {
             cp1++;
+        }
         /* Check for buffer overflows. */
         if ((cp2 - file2) + strlen(filename) + 2 > sizeof(file2))
         {
@@ -409,13 +425,17 @@ static char* find_include(char* filename)
 
         /* Ignore null directories. */
         if (cp2 == file2)
+        {
             continue;
+        }
 
         *cp2++ = '/';
         strcpy(cp2, filename);
 
         if (access(file2, R_OK) == 0)
+        {
             return file2;
+        }
     }
 
     return NULL;
@@ -439,9 +459,13 @@ static int include_directive(struct fileinfo_s* pfi)
     pfi->srcleft -= 7;
 
     while (pfi->srcleft > 0 && isspace(pfi->sp[0]))
+    {
         pfi->sp++, pfi->srcleft--;
+    }
     if (pfi->srcleft > 0 && pfi->sp[0] == '"')
+    {
         pfi->sp++, pfi->srcleft--;
+    }
 
     cp = basename;
     while (pfi->srcleft > 0 && !isspace(pfi->sp[0]) && pfi->sp[0] != '\n' &&
@@ -472,7 +496,9 @@ static int include_directive(struct fileinfo_s* pfi)
     pfi->srcleft = 0;
 
     if (v_getfile2(filename, pfi) < 0)
+    {
         return -1;
+    }
 
     pfi->srcbuf = save_srcbuf;
     pfi->srclen = save_srclen;
@@ -496,11 +522,13 @@ static __inline void f_appendc(struct fileinfo_s* pfi, char c)
             pfi->newspace += 1024;
             pfi->newbuf = realloc(pfi->newbuf, pfi->newspace);
             if (!pfi->newbuf)
+            {
                 fprintf(stderr,
                         "f_appendc: out of memory "
                         "(newspace=%d)\n",
                         pfi->newspace),
                     exit(1);
+            }
             pfi->dp = pfi->newbuf + pfi->newlen;
         }
 
@@ -528,18 +556,22 @@ static void f_appends(struct fileinfo_s* pfi, const char* s)
 
             pfi->newbuf = realloc(pfi->newbuf, pfi->newspace);
             if (!pfi->newbuf)
+            {
                 fprintf(stderr,
                         "f_appends: out of memory "
                         "(newspace=%d)\n",
                         pfi->newspace),
                     exit(1);
+            }
 
             pfi->dp = pfi->newbuf + pfi->newlen;
         }
 
         pfi->newlen += l;
         while (l-- > 0)
+        {
             *pfi->dp++ = *s++;
+        }
     }
 }
 
@@ -585,7 +617,9 @@ static int v_preprocess(struct fileinfo_s* pfi)
                     {
 
                         if ((*ppdirectives[i].handler)(pfi) < 0)
+                        {
                             return -1;
+                        }
 
                         isdirective = 1;
                         break;
@@ -593,7 +627,9 @@ static int v_preprocess(struct fileinfo_s* pfi)
                 }
 
                 if (isdirective)
+                {
                     continue;
+                }
             }
 
             /* Find end of legal substitution */
@@ -609,12 +645,16 @@ static int v_preprocess(struct fileinfo_s* pfi)
             /* Substitute defined thingy */
             subs = def_find(pfi->deftab, pfi->sp, deflen);
             if (subs)
+            {
                 f_appends(pfi, subs);
+            }
             else
             {
                 char name[1024];
                 if (deflen > 1023)
+                {
                     deflen = 1023;
+                }
                 strncpy(name, pfi->sp, deflen);
                 name[deflen] = '\0';
                 fprintf(stderr,
@@ -656,7 +696,9 @@ static int v_preprocess(struct fileinfo_s* pfi)
             {
 
                 if (*pfi->sp == '\n')
+                {
                     f_appendc(pfi, '\n');
+                }
 
                 pfi->srcleft--;
                 pfi->sp++;
@@ -673,9 +715,13 @@ static int v_preprocess(struct fileinfo_s* pfi)
 #endif
 
         if (pfi->sp[0] == '\n')
+        {
             is_start_of_line = 1;
+        }
         else if (!isspace(pfi->sp[0]))
+        {
             is_start_of_line = 0;
+        }
 
         f_appendc(pfi, *pfi->sp);
         pfi->sp++;
@@ -684,7 +730,9 @@ static int v_preprocess(struct fileinfo_s* pfi)
 
     /* XXX */
     for (i = 0; i < 8; i++)
+    {
         f_appendc(pfi, '\n');
+    }
 
     return 0;
 }
@@ -712,7 +760,9 @@ static int v_getfile2(const char* filename, struct fileinfo_s* pfi)
 
     pfi->srclen = pfi->srcleft = statbuf.st_size;
     if (pfi->srclen < 0)
+    {
         abort();
+    }
 
     pfi->srcbuf = pfi->sp = malloc(pfi->srclen + 16);
     if (!pfi->srcbuf)
@@ -743,10 +793,12 @@ static int v_getfile2(const char* filename, struct fileinfo_s* pfi)
         pfi->newspace = (pfi->srclen + 1023) & ~1023;
         pfi->newbuf = pfi->dp = malloc(pfi->newspace);
         if (!pfi->newbuf)
+        {
             fprintf(stderr,
                     "v_getfile2: couldn't malloc "
                     "newbuf.\n"),
                 exit(1);
+        }
         pfi->newlen = 0;
         pfi->ifdefd_out = 0;
     }
@@ -778,7 +830,9 @@ int v_getfile(const char* filename, char** pbuf, int* plen)
 
     fi.deftab = malloc(sizeof(struct deftab_s));
     if (!fi.deftab)
+    {
         fprintf(stderr, "v_getfile: couldn't malloc deftab.\n"), exit(1);
+    }
     bzero(fi.deftab, sizeof(struct deftab_s));
 
     if (v_getfile2(filename, &fi) < 0)
@@ -806,7 +860,9 @@ static int deftab_hash(const char* s, int len)
 {
     int j = 0;
     while (len-- > 0)
+    {
         j += *s++;
+    }
     return j % DEFTABHASHSZ;
 }
 
@@ -841,12 +897,16 @@ static void def_add(struct deftab_s* dt,
 
     pde = (struct deftab_e_s*) malloc(sizeof(struct deftab_e_s));
     if (!pde)
+    {
         fprintf(stderr, "adddef: out of memory."), exit(1);
+    }
     *ppde = pde;
 
     pde->name = malloc(namelen + 1);
     if (!pde->name)
+    {
         fprintf(stderr, "addef: out of memory.\n"), exit(1);
+    }
     memcpy(pde->name, name, namelen);
     pde->name[namelen] = '\0';
 
@@ -863,7 +923,9 @@ static char* def_find(struct deftab_s* dt, const char* name, int namelen)
     {
         if (strncmp(name, pde->name, namelen) == 0 &&
             strlen(pde->name) == namelen)
+        {
             return pde->substitution;
+        }
         pde = pde->next;
     }
     return NULL;
@@ -949,13 +1011,19 @@ int v_iskeyword(const char* s, const char* e)
     int slen = (e - s);
 
     if (s[0] < 'a' || s[0] > 'z')
+    {
         return 0;
+    }
 
     /* This could be faster. */
     for (i = 0; keyword_table[i]; i++)
+    {
         if (slen == keyword_length[i] &&
             strncmp(s, keyword_table[i], slen) == 0)
+        {
             return 1;
+        }
+    }
 
     return 0;
 }
@@ -965,5 +1033,7 @@ void v_parse_init(void)
     int i;
 
     for (i = 0; keyword_table[i]; i++)
+    {
         keyword_length[i] = strlen(keyword_table[i]);
+    }
 }

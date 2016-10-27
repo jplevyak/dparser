@@ -160,7 +160,9 @@ int main(int argc, char* argv[])
 
     process_args(&arg_state, argv);
     if (arg_state.nfile_arguments != 1)
+    {
         help(&arg_state, NULL);
+    }
     grammar_pathname = arg_state.file_argument[0];
     g = new_D_Grammar(grammar_pathname);
     /* grammar construction options */
@@ -202,17 +204,23 @@ int main(int argc, char* argv[])
 
     /* don't print anything to stdout, when the grammar is printed there */
     if (d_rdebug_grammar_level > 0)
+    {
         d_verbose_level = 0;
+    }
 
     mkdparse(g, grammar_pathname);
 
     if (d_rdebug_grammar_level == 0)
     {
         if (write_c_tables(g) < 0)
+        {
             d_fail("unable to write C tables '%s'", grammar_pathname);
+        }
     }
     else
+    {
         print_rdebug_grammar(g, grammar_pathname);
+    }
 
     free_args(&arg_state);
     free_D_Grammar(g);

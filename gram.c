@@ -132,7 +132,9 @@ static void unescape_term_string(Term* t)
                         break;
                     }
                     else
+                    {
                         goto Ldefault;
+                    }
                 case 'b':
                     *ss = '\b';
                     s++;
@@ -172,7 +174,9 @@ static void unescape_term_string(Term* t)
                         break;
                     }
                     else
+                    {
                         goto Ldefault;
+                    }
                 case '\'':
                     if (t->kind == TERM_STRING)
                     {
@@ -181,7 +185,9 @@ static void unescape_term_string(Term* t)
                         break;
                     }
                     else
+                    {
                         goto Ldefault;
+                    }
                 case 'x':
                     length = 0;
                     if (isxdigit_(s[2]))
@@ -190,7 +196,9 @@ static void unescape_term_string(Term* t)
                         start = s + 2;
                         length++;
                         if (isxdigit_(s[3]))
+                        {
                             length++;
+                        }
                     }
                     s += length + 1;
                     goto Lncont;
@@ -209,7 +217,9 @@ static void unescape_term_string(Term* t)
                                  ((s[2] == '2') &&
                                   ((s[3] < '5') ||
                                    ((s[3] == '5') && (s[4] < '6'))))))
+                            {
                                 length++;
+                            }
                         }
                     }
                     s += length + 1;
@@ -243,13 +253,17 @@ static void unescape_term_string(Term* t)
                         *ss = (unsigned char) strtol(start, NULL, base);
                         start[length] = saved_c;
                         if (*s > 0)
+                        {
                             break;
+                        }
                         d_fail(
                             "encountered an escaped NULL while processing '%s'",
                             t->string);
                     }
                     else
+                    {
                         goto next;
+                    }
                 Ldefault:
                 default:
                     *ss++ = *s;
@@ -259,14 +273,18 @@ static void unescape_term_string(Term* t)
             }
         }
         else
+        {
             *ss = *s;
+        }
         ss++;
     next:;
     }
     *ss = 0;
     t->string_len = strlen(t->string);
     if (!t->string_len)
+    {
         d_fail("empty string after unescape '%s'", t->string);
+    }
 }
 
 Elem* new_string(Grammar* g, char* s, char* e, Rule* r)
@@ -286,11 +304,17 @@ Elem* new_utf8_char(Grammar* g, char* s, char* e, Rule* r)
     {
         e--;
         if (*e >= '0' && *e <= '9')
+        {
             utf32_code += base * (*e - '0');
+        }
         else if (*e >= 'a' && *e <= 'f')
+        {
             utf32_code += base * (*e - 'a' + 10);
+        }
         else if (*e >= 'A' && *e <= 'F')
+        {
             utf32_code += base * (*e - 'A' + 10);
+        }
     }
     if (utf32_code < 0x80)
     {
@@ -337,7 +361,9 @@ Elem* new_ident(char* s, char* e, Rule* r)
     x->e.unresolved.len = strlen(x->e.unresolved.string);
     x->rule = r;
     if (r)
+    {
         vec_add(&r->elems, x);
+    }
     return x;
 }
 
@@ -364,7 +390,9 @@ Elem* dup_elem(Elem* e, Rule* r)
     Elem* ee = MALLOC(sizeof(Elem));
     memcpy(ee, e, sizeof(Elem));
     if (ee->kind == ELEM_UNRESOLVED)
+    {
         ee->e.unresolved.string = dup_str(e->e.unresolved.string, 0);
+    }
     ee->rule = r;
     return ee;
 }
@@ -372,9 +400,13 @@ Elem* dup_elem(Elem* e, Rule* r)
 void add_global_code(Grammar* g, char* start, char* end, int line)
 {
     if (!g->code)
+    {
         g->code = MALLOC(sizeof(Code) * 4);
+    }
     else if (!((g->ncode + 1) & 4))
+    {
         g->code = REALLOC(g->code, sizeof(Code) * (g->ncode + 4));
+    }
     g->code[g->ncode].code = dup_str(start, end);
     g->code[g->ncode].line = line;
     g->ncode++;
@@ -434,19 +466,27 @@ D_Pass* find_pass(Grammar* g, char* start, char* end)
 {
     int i, l;
     while (*start && isspace_(*start))
+    {
         start++;
+    }
     l = end - start;
     for (i = 0; i < g->passes.n; i++)
+    {
         if (l == g->passes.v[i]->name_len &&
             !strncmp(g->passes.v[i]->name, start, l))
+        {
             return g->passes.v[i];
+        }
+    }
     return NULL;
 }
 
 void add_pass(Grammar* g, char* start, char* end, uint kind, uint line)
 {
     if (find_pass(g, start, end))
+    {
         d_fail("duplicate pass '%s' line %d", dup_str(start, end), line);
+    }
     else
     {
         D_Pass* p = MALLOC(sizeof(*p));
@@ -469,11 +509,15 @@ void add_pass_code(Grammar* g,
 {
     D_Pass* p = find_pass(g, pass_start, pass_end);
     if (!p)
+    {
         d_fail("unknown pass '%s' line %d",
                dup_str(pass_start, pass_end),
                pass_line);
+    }
     while (r->pass_code.n <= p->index)
+    {
         vec_add(&r->pass_code, NULL);
+    }
     r->pass_code.v[p->index] = MALLOC(sizeof(Code));
     r->pass_code.v[p->index]->code = dup_str(code_start, code_end);
     r->pass_code.v[p->index]->line = code_line;
@@ -600,7 +644,9 @@ void rep_EBNF(Grammar* g, int min, int max)
     Elem* elem;
     int i, j;
     if (max < min)
+    {
         max = min;
+    }
 
     pp = new_internal_production(g, g->p);
     elem = last_elem(g->r);
@@ -608,7 +654,9 @@ void rep_EBNF(Grammar* g, int min, int max)
     {
         rr = new_rule(g, pp);
         for (j = 0; j < i; j++)
+        {
             vec_add(&rr->elems, dup_elem(elem, rr));
+        }
         vec_add(&pp->rules, rr);
     }
     last_elem(g->r) = new_elem_nterm(pp, g->r);
@@ -638,7 +686,9 @@ Production* lookup_production(Grammar* g, char* name, int l)
     {
         Production* pp = g->productions.v[i];
         if (pp->name_len != l || strncmp(pp->name, name, l))
+        {
             continue;
+        }
         return pp;
     }
     return NULL;
@@ -653,7 +703,9 @@ static Term* lookup_token(Grammar* g, char* name, int l)
         Term* t = g->terminals.v[i];
         if (t->kind != TERM_TOKEN || t->string_len != l ||
             strncmp(t->string, name, l))
+        {
             continue;
+        }
         return t;
     }
     return NULL;
@@ -663,6 +715,7 @@ static Term* unique_term(Grammar* g, Term* t)
 {
     int i;
     for (i = 0; i < g->terminals.n; i++)
+    {
         if (t->kind == g->terminals.v[i]->kind &&
             t->string_len == g->terminals.v[i]->string_len &&
             t->term_priority == g->terminals.v[i]->term_priority &&
@@ -671,7 +724,10 @@ static Term* unique_term(Grammar* g, Term* t)
              (t->op_assoc == g->terminals.v[i]->op_assoc &&
               t->op_priority == g->terminals.v[i]->op_priority)) &&
             !strncmp(t->string, g->terminals.v[i]->string, t->string_len))
+        {
             return g->terminals.v[i];
+        }
+    }
     return t;
 }
 
@@ -684,12 +740,14 @@ static void compute_nullable(Grammar* g)
     for (i = 0; i < g->productions.n; i++)
     {
         for (j = 0; j < g->productions.v[i]->rules.n; j++)
+        {
             if (!g->productions.v[i]->rules.v[j]->elems.n)
             {
                 g->productions.v[i]->nullable =
                     g->productions.v[i]->rules.v[j];
                 break;
             }
+        }
     }
     /* transitive closure */
     while (changed)
@@ -698,6 +756,7 @@ static void compute_nullable(Grammar* g)
         for (i = 0; i < g->productions.n; i++)
         {
             if (!g->productions.v[i]->nullable)
+            {
                 for (j = 0; j < g->productions.v[i]->rules.n; j++)
                 {
                     for (k = 0; k < g->productions.v[i]->rules.v[j]->elems.n;
@@ -705,13 +764,16 @@ static void compute_nullable(Grammar* g)
                     {
                         e = g->productions.v[i]->rules.v[j]->elems.v[k];
                         if (e->kind != ELEM_NTERM || !e->e.nterm->nullable)
+                        {
                             goto Lnot_nullable;
+                        }
                     }
                     changed = 1;
                     g->productions.v[i]->nullable =
                         g->productions.v[i]->rules.v[j];
                     break;
                 }
+            }
         Lnot_nullable:;
         }
     }
@@ -735,7 +797,9 @@ static void resolve_grammar(Grammar* g)
     {
         p = g->productions.v[i];
         if (p != lookup_production(g, p->name, p->name_len))
+        {
             d_fail("duplicate production '%s'", p->name);
+        }
         p->index = i;
         for (j = 0; j < p->rules.n; j++)
         {
@@ -773,7 +837,9 @@ static void resolve_grammar(Grammar* g)
                     }
                 }
                 if (e->kind == ELEM_TERM)
+                {
                     last_term = e->e.term;
+                }
             }
             r->end->index = r->elems.n;
             if (g->set_op_priority_from_rule)
@@ -787,7 +853,9 @@ static void resolve_grammar(Grammar* g)
         }
     }
     for (i = 0; i < g->terminals.n; i++)
+    {
         g->terminals.v[i]->index = i;
+    }
     compute_nullable(g);
 }
 
@@ -808,7 +876,9 @@ static void merge_identical_terminals(Grammar* g)
             {
                 e = r->elems.v[k];
                 if (e->kind == ELEM_TERM)
+                {
                     e->e.term = unique_term(g, e->e.term);
+                }
             }
         }
     }
@@ -818,36 +888,56 @@ void print_term(Term* t)
 {
     char* s = t->string ? escape_string(t->string) : NULL;
     if (t->term_name)
+    {
         printf("term_name(\"%s\") ", t->term_name);
+    }
     else if (t->kind == TERM_STRING)
     {
         if (!t->string || !*t->string)
+        {
             printf("<EOF> ");
+        }
         else
+        {
             printf("string(\"%s\") ", s);
+        }
     }
     else if (t->kind == TERM_REGEX)
     {
         printf("regex(\"%s\") ", s);
     }
     else if (t->kind == TERM_CODE)
+    {
         printf("code(\"%s\") ", s);
+    }
     else if (t->kind == TERM_TOKEN)
+    {
         printf("token(\"%s\") ", s);
+    }
     else
+    {
         d_fail("unknown token kind");
+    }
     if (s)
+    {
         FREE(s);
+    }
 }
 
 void print_elem(Elem* ee)
 {
     if (ee->kind == ELEM_TERM)
+    {
         print_term(ee->e.term);
+    }
     else if (ee->kind == ELEM_UNRESOLVED)
+    {
         printf("%s ", ee->e.unresolved.string);
+    }
     else
+    {
         printf("%s ", ee->e.nterm->name);
+    }
 }
 
 struct EnumStr
@@ -868,8 +958,12 @@ static char* assoc_str(uint e)
     int i;
 
     for (i = 0; i < sizeof(assoc_strings) / sizeof(assoc_strings[0]); i++)
+    {
         if (e == assoc_strings[i].e)
+        {
             return assoc_strings[i].s;
+        }
+    }
     return assoc_strings[0].s;
 }
 
@@ -879,11 +973,17 @@ void print_rule(Rule* r)
 
     printf("%s: ", r->prod->name);
     for (k = 0; k < r->elems.n; k++)
+    {
         print_elem(r->elems.v[k]);
+    }
     if (r->speculative_code.code)
+    {
         printf("SPECULATIVE_CODE\n%s\nEND CODE\n", r->speculative_code.code);
+    }
     if (r->final_code.code)
+    {
         printf("FINAL_CODE\n%s\nEND CODE\n", r->final_code.code);
+    }
 }
 
 void print_grammar(Grammar* g)
@@ -893,7 +993,9 @@ void print_grammar(Grammar* g)
     Rule* rr;
 
     if (!g->productions.n)
+    {
         return;
+    }
     printf("PRODUCTIONS\n\n");
     for (i = 0; i < g->productions.n; i++)
     {
@@ -903,23 +1005,41 @@ void print_grammar(Grammar* g)
         {
             rr = pp->rules.v[j];
             if (!j)
+            {
                 printf("\t: ");
+            }
             else
+            {
                 printf("\t| ");
+            }
             for (k = 0; k < rr->elems.n; k++)
+            {
                 print_elem(rr->elems.v[k]);
+            }
             if (rr->op_priority)
+            {
                 printf("op %d ", rr->op_priority);
+            }
             if (rr->op_assoc)
+            {
                 printf("%s ", assoc_str(rr->op_assoc));
+            }
             if (rr->rule_priority)
+            {
                 printf("rule %d ", rr->rule_priority);
+            }
             if (rr->rule_assoc)
+            {
                 printf("%s ", assoc_str(rr->rule_assoc));
+            }
             if (rr->speculative_code.code)
+            {
                 printf("%s ", rr->speculative_code.code);
+            }
             if (rr->final_code.code)
+            {
                 printf("%s ", rr->final_code.code);
+            }
             printf("\n");
         }
         printf("\t;\n");
@@ -951,7 +1071,9 @@ static void print_item(Item* i)
         print_elem(e);
     }
     if (end)
+    {
         printf(". ");
+    }
     printf("\n");
 }
 
@@ -975,9 +1097,13 @@ static void print_state(State* s)
            s->items.n,
            s->accept ? " ACCEPT" : "");
     for (j = 0; j < s->items.n; j++)
+    {
         print_item(s->items.v[j]);
+    }
     if (s->gotos.n)
+    {
         printf("  GOTO\n");
+    }
     for (j = 0; j < s->gotos.n; j++)
     {
         printf("\t");
@@ -1004,9 +1130,13 @@ static void print_state(State* s)
         printf("\n");
     }
     if (s->reduce_actions.n > 1)
+    {
         print_conflict("reduce/reduce", &conflict);
+    }
     if (s->reduce_actions.n && s->shift_actions.n)
+    {
         print_conflict("shift/reduce", &conflict);
+    }
     printf("\n");
 }
 
@@ -1015,16 +1145,22 @@ void print_states(Grammar* g)
     int i;
 
     for (i = 0; i < g->states.n; i++)
+    {
         print_state(g->states.v[i]);
+    }
 }
 
 int state_for_declaration(Grammar* g, int iproduction)
 {
     int i;
     for (i = 0; i < g->declarations.n; i++)
+    {
         if (g->declarations.v[i]->kind == DECLARE_STATE_FOR &&
             g->declarations.v[i]->elem->e.nterm->index == iproduction)
+        {
             return 1;
+        }
+    }
     return 0;
 }
 
@@ -1036,23 +1172,28 @@ static void make_elems_for_productions(Grammar* g)
 
     pp = g->productions.v[0];
     for (i = 0; i < g->productions.n; i++)
+    {
         if (!g->productions.v[i]->internal)
         {
             if (g->states_for_all_nterms || state_for_declaration(g, i))
             {
                 /* try to find an existing elem */
                 for (j = 0; j < g->productions.n; j++)
+                {
                     for (k = 0; k < g->productions.v[j]->rules.n; k++)
                     {
                         rr = g->productions.v[j]->rules.v[k];
                         for (l = 0; l < rr->elems.n; l++)
+                        {
                             if (rr->elems.v[l]->e.term_or_nterm ==
                                 g->productions.v[i])
                             {
                                 g->productions.v[i]->elem = rr->elems.v[l];
                                 break;
                             }
+                        }
                     }
+                }
                 if (j >= g->productions.n)
                 { /* not found */
                     g->productions.v[i]->elem =
@@ -1062,6 +1203,7 @@ static void make_elems_for_productions(Grammar* g)
                 }
             }
         }
+    }
     if (!g->states_for_all_nterms && g->states_for_whitespace &&
         (ppp = lookup_production(g, "whitespace", sizeof("whitespace") - 1)))
     {
@@ -1081,37 +1223,49 @@ static void convert_regex_production_one(Grammar* g, Production* p)
     char *buf = 0, *b, *s;
     int buf_len = 0;
 
-    if (p->regex_term) /* already done */
+    if (p->regex_term)
+    { /* already done */
         return;
+    }
     if (p->in_regex)
+    {
         d_fail("circular regex production '%s'", p->name);
+    }
     p->in_regex = 1;
     for (j = 0; j < p->rules.n; j++)
     {
         r = p->rules.v[j];
         if (r->final_code.code ||
             (r->speculative_code.code && p->rules.n > 1))
+        {
             d_fail(
                 "final and/or multi-rule code not permitted in regex productions '%s'",
                 p->name);
+        }
         for (k = 0; k < r->elems.n; k++)
         {
             e = r->elems.v[k];
             if (e->kind == ELEM_NTERM)
             {
                 if (!e->e.nterm->regex)
+                {
                     d_fail(
                         "regex production '%s' cannot invoke non-regex production '%s'",
                         p->name,
                         e->e.nterm->name);
+                }
                 pp = e->e.nterm;
                 for (l = 0; l < pp->rules.n; l++)
+                {
                     if (pp->rules.v[l]->speculative_code.code ||
                         pp->rules.v[l]->final_code.code)
+                    {
                         d_fail(
                             "code not permitted in rule %d of regex productions '%s'",
                             l,
                             p->name);
+                    }
+                }
                 if (p != pp)
                 {
                     convert_regex_production_one(g, pp);
@@ -1127,8 +1281,10 @@ static void convert_regex_production_one(Grammar* g, Production* p)
             { /* e->kind == ELEM_TERM */
                 if (e->e.term->kind == TERM_CODE ||
                     e->e.term->kind == TERM_TOKEN)
+                {
                     d_fail(
                         "regex production '%s' cannot include scanners or tokens");
+                }
                 buf_len += e->e.term->string_len + 5;
             }
         }
@@ -1145,72 +1301,108 @@ static void convert_regex_production_one(Grammar* g, Production* p)
     if (circular)
     { /* attempt to match to regex operators */
         if (p->rules.n != 2)
+        {
         Lfail:
             d_fail("unable to resolve circular regex production: '%s'",
                    p->name);
+        }
         l = p->rules.v[0]->elems.n + p->rules.v[1]->elems.n;
         if (l == 2 || l == 3)
         {
             if (p->rules.v[0]->elems.n != 2 && p->rules.v[1]->elems.n != 2)
+            {
                 goto Lfail;
+            }
             r = p->rules.v[0]->elems.n == 2 ? p->rules.v[0] : p->rules.v[1];
             rr = p->rules.v[0] == r ? p->rules.v[1] : p->rules.v[0];
             if (r->elems.v[0]->e.nterm != p && r->elems.v[1]->e.nterm != p)
+            {
                 goto Lfail;
+            }
             e = r->elems.v[0]->e.nterm == p ? r->elems.v[1] : r->elems.v[1];
             if (rr->elems.n &&
                 e->e.term_or_nterm != rr->elems.v[0]->e.term_or_nterm)
+            {
                 goto Lfail;
+            }
             t = e->kind == ELEM_TERM ? e->e.term : e->e.nterm->regex_term;
             *b++ = '(';
             if (t->kind == TERM_STRING)
+            {
                 s = escape_string_for_regex(t->string);
+            }
             else
+            {
                 s = t->string;
+            }
             memcpy(b, s, strlen(s));
             b += strlen(s);
             if (t->kind == TERM_STRING)
+            {
                 FREE(s);
+            }
             *b++ = ')';
             if (l == 2)
+            {
                 *b++ = '*';
+            }
             else
+            {
                 *b++ = '+';
+            }
             *b = 0;
             p->regex_term->string_len = strlen(p->regex_term->string);
         }
         else
+        {
             goto Lfail;
+        }
     }
     else
     { /* handle the base case, p = (r | r'), r = (e e') */
         if (p->rules.n > 1)
+        {
             *b++ = '(';
+        }
         for (j = 0; j < p->rules.n; j++)
         {
             r = p->rules.v[j];
             if (r->elems.n > 1)
+            {
                 *b++ = '(';
+            }
             for (k = 0; k < r->elems.n; k++)
             {
                 e = r->elems.v[k];
                 t = e->kind == ELEM_TERM ? e->e.term : e->e.nterm->regex_term;
                 if (t->kind == TERM_STRING)
+                {
                     s = escape_string_for_regex(t->string);
+                }
                 else
+                {
                     s = t->string;
+                }
                 memcpy(b, s, strlen(s));
                 b += strlen(s);
                 if (t->kind == TERM_STRING)
+                {
                     FREE(s);
+                }
             }
             if (r->elems.n > 1)
+            {
                 *b++ = ')';
+            }
             if (j != p->rules.n - 1)
+            {
                 *b++ = '|';
+            }
         }
         if (p->rules.n > 1)
+        {
             *b++ = ')';
+        }
         *b = 0;
         p->regex_term->string_len = strlen(p->regex_term->string);
     }
@@ -1227,7 +1419,9 @@ static void convert_regex_productions(Grammar* g)
     {
         p = g->productions.v[i];
         if (!p->regex)
+        {
             continue;
+        }
         convert_regex_production_one(g, p);
     }
     for (i = 0; i < g->productions.n; i++)
@@ -1256,7 +1450,9 @@ static void check_default_actions(Grammar* g)
 
     pdefault = lookup_production(g, "_", 1);
     if (pdefault && pdefault->rules.n > 1)
+    {
         d_fail("number of rules in default action != 1");
+    }
 }
 
 typedef struct
@@ -1286,31 +1482,43 @@ void build_eq(Grammar* g)
                 ss = g->states.v[j];
                 ee = &eq[ss->index];
                 if (e->eq || ee->eq)
+                {
                     continue;
+                }
                 if (s->same_shifts != ss->same_shifts && ss->same_shifts != s)
+                {
                     continue;
+                }
                 /* check gotos */
                 if (s->gotos.n != ss->gotos.n)
+                {
                     continue;
+                }
                 for (k = 0; k < s->gotos.n; k++)
                 {
                     if (elem_symbol(g, s->gotos.v[k]->elem) !=
                         elem_symbol(g, ss->gotos.v[k]->elem))
+                    {
                         goto Lcontinue;
+                    }
                     if (s->gotos.v[k]->state != ss->gotos.v[k]->state)
                     {
                         EqState* ge = &eq[s->gotos.v[k]->state->index];
                         EqState* gee = &eq[ss->gotos.v[k]->state->index];
                         if (ge->eq != ss->gotos.v[k]->state &&
                             gee->eq != s->gotos.v[k]->state)
+                        {
                             goto Lcontinue;
+                        }
                         if ((ee->diff_state &&
                              ee->diff_state !=
                                  eq[ss->gotos.v[k]->state->index].eq) ||
                             (e->diff_state &&
                              e->diff_state !=
                                  eq[s->gotos.v[k]->state->index].eq))
+                        {
                             goto Lcontinue;
+                        }
                         /* allow one different state */
                         ee->diff_state = ss->gotos.v[k]->state;
                         e->diff_state = s->gotos.v[k]->state;
@@ -1318,15 +1526,21 @@ void build_eq(Grammar* g)
                 }
                 /* check reductions */
                 if (s->reduce_actions.n != ss->reduce_actions.n)
+                {
                     continue;
+                }
                 for (k = 0; k < s->reduce_actions.n; k++)
                 {
                     if (s->reduce_actions.v[k]->rule ==
                         ss->reduce_actions.v[k]->rule)
+                    {
                         continue;
+                    }
                     if (s->reduce_actions.v[k]->rule->prod !=
                         ss->reduce_actions.v[k]->rule->prod)
+                    {
                         goto Lcontinue;
+                    }
                     if ((x = s->reduce_actions.v[k]->rule->elems.n) !=
                         (xx = ss->reduce_actions.v[k]->rule->elems.n))
                     {
@@ -1335,7 +1549,9 @@ void build_eq(Grammar* g)
                                  ss->reduce_actions.v[k]->rule) ||
                             (e->diff_rule &&
                              e->diff_rule != s->reduce_actions.v[k]->rule))
+                        {
                             goto Lcontinue;
+                        }
                         /* allow one different rule */
                         ee->diff_rule = ss->reduce_actions.v[k]->rule;
                         e->diff_rule = s->reduce_actions.v[k]->rule;
@@ -1357,9 +1573,11 @@ void build_eq(Grammar* g)
             {
                 printf("eq %d %d ", s->index, e->eq->index);
                 if (e->diff_state)
+                {
                     printf("diff state (%d %d) ",
                            e->diff_state->index,
                            eq[e->eq->index].diff_state->index);
+                }
                 if (e->diff_rule)
                 {
                     printf("diff rule ");
@@ -1400,8 +1618,12 @@ void build_eq(Grammar* g)
     {
         s = g->states.v[i];
         if (s->reduces_to)
+        {
             if (d_verbose_level)
+            {
                 printf("reduces_to %d %d\n", s->index, s->reduces_to->index);
+            }
+        }
     }
     FREE(eq);
 }
@@ -1419,9 +1641,13 @@ static void free_rule(Rule* r)
     int i;
     FREE(r->end);
     if (r->final_code.code)
+    {
         FREE(r->final_code.code);
+    }
     if (r->speculative_code.code)
+    {
         FREE(r->speculative_code.code);
+    }
     vec_free(&r->elems);
     for (i = 0; i < r->pass_code.n; i++)
     {
@@ -1443,16 +1669,22 @@ void free_D_Grammar(Grammar* g)
         {
             Rule* r = p->rules.v[j];
             if (r == g->r)
+            {
                 g->r = 0;
+            }
             for (k = 0; k < r->elems.n; k++)
             {
                 Elem* e = r->elems.v[k];
                 if (e == p->elem)
+                {
                     p->elem = 0;
+                }
                 FREE(e);
             }
             if (r->end == p->elem)
+            {
                 p->elem = 0;
+            }
             free_rule(r);
         }
         vec_free(&p->rules);
@@ -1469,17 +1701,25 @@ void free_D_Grammar(Grammar* g)
     {
         Term* t = g->terminals.v[i];
         if (t->string)
+        {
             FREE(t->string);
+        }
         if (t->term_name)
+        {
             FREE(t->term_name);
+        }
         FREE(t);
     }
     vec_free(&g->terminals);
     for (i = 0; i < g->actions.n; i++)
+    {
         free_Action(g->actions.v[i]);
+    }
     vec_free(&g->actions);
     if (g->scanner.code)
+    {
         FREE(g->scanner.code);
+    }
     for (i = 0; i < g->states.n; i++)
     {
         State* s = g->states.v[i];
@@ -1494,10 +1734,14 @@ void free_D_Grammar(Grammar* g)
         vec_free(&s->shift_actions);
         vec_free(&s->reduce_actions);
         for (j = 0; j < s->right_epsilon_hints.n; j++)
+        {
             FREE(s->right_epsilon_hints.v[j]);
+        }
         vec_free(&s->right_epsilon_hints);
         for (j = 0; j < s->error_recovery_hints.n; j++)
+        {
             FREE(s->error_recovery_hints.v[j]);
+        }
         vec_free(&s->error_recovery_hints);
         if (!s->same_shifts)
         {
@@ -1509,12 +1753,14 @@ void free_D_Grammar(Grammar* g)
             }
             vec_free(&s->scanner.states);
             for (j = 0; j < s->scanner.transitions.n; j++)
+            {
                 if (s->scanner.transitions.v[j])
                 {
                     vec_free(&s->scanner.transitions.v[j]->live_diff);
                     vec_free(&s->scanner.transitions.v[j]->accepts_diff);
                     FREE(s->scanner.transitions.v[j]);
                 }
+            }
             vec_free(&s->scanner.transitions);
         }
         FREE(s->goto_valid);
@@ -1522,7 +1768,9 @@ void free_D_Grammar(Grammar* g)
     }
     vec_free(&g->states);
     for (i = 0; i < g->ncode; i++)
+    {
         FREE(g->code[i].code);
+    }
     FREE(g->code);
     for (i = 0; i < g->declarations.n; i++)
     {
@@ -1537,10 +1785,14 @@ void free_D_Grammar(Grammar* g)
     }
     vec_free(&g->passes);
     for (i = 0; i < g->all_pathnames.n; i++)
+    {
         FREE(g->all_pathnames.v[i]);
+    }
     FREE(g->pathname);
     if (g->default_white_space)
+    {
         FREE(g->default_white_space);
+    }
     FREE(g);
 }
 
@@ -1552,22 +1804,34 @@ int parse_grammar(Grammar* g, char* pathname, char* sarg)
 
     vec_add(&g->all_pathnames, dup_str(pathname, 0));
     if (!s)
+    {
         if (!(s = sbuf_read(pathname)))
+        {
             return -1;
+        }
+    }
     if (!g->productions.n)
+    {
         initialize_productions(g);
+    }
     p = new_D_Parser(&parser_tables_dparser_gram, sizeof(D_ParseNode_User));
     p->initial_globals = g;
     p->loc.pathname = pathname;
     if (dparse(p, s, strlen(s)))
     {
         if (g->productions.n > 1)
+        {
             finish_productions(g);
+        }
     }
     else
+    {
         res = -1;
+    }
     if (!sarg)
+    {
         FREE(s);
+    }
     free_D_Parser(p);
     return res;
 }
@@ -1590,7 +1854,9 @@ set_declaration_group(Production* p, Production* root, Declaration* d)
 {
     int i, j;
     if (p->declaration_group[d->kind] == root)
+    {
         return;
+    }
     if (d->kind == DECLARE_TOKENIZE && p->declaration_group[d->kind])
     {
         d_fail("shared tokenize subtrees");
@@ -1601,9 +1867,13 @@ set_declaration_group(Production* p, Production* root, Declaration* d)
     for (i = 0; i < p->rules.n; i++)
     {
         for (j = 0; j < p->rules.v[i]->elems.n; j++)
+        {
             if (p->rules.v[i]->elems.v[j]->kind == ELEM_NTERM)
+            {
                 set_declaration_group(
                     p->rules.v[i]->elems.v[j]->e.nterm, root, d);
+            }
+        }
     }
 }
 
@@ -1616,12 +1886,16 @@ static void propogate_declarations(Grammar* g)
 
     /* global defaults */
     if (g->tokenizer)
+    {
         new_declaration(
             g, new_elem_nterm(g->productions.v[0], NULL), DECLARE_TOKENIZE);
+    }
     if (g->longest_match)
+    {
         new_declaration(g,
                         new_elem_nterm(g->productions.v[0], NULL),
                         DECLARE_LONGEST_MATCH);
+    }
     /* resolve declarations */
     for (i = 0; i < g->declarations.n; i++)
     {
@@ -1629,10 +1903,14 @@ static void propogate_declarations(Grammar* g)
         if (e->kind == ELEM_UNRESOLVED)
         {
             if (e->e.unresolved.len == 0)
+            {
                 p = g->productions.v[0];
+            }
             else if (!(p = lookup_production(
                            g, e->e.unresolved.string, e->e.unresolved.len)))
+            {
                 d_fail("unresolved declaration '%s'", e->e.unresolved.string);
+            }
             FREE(e->e.unresolved.string);
             e->e.unresolved.string = 0;
             e->kind = ELEM_NTERM;
@@ -1658,7 +1936,9 @@ static void propogate_declarations(Grammar* g)
                 }
             }
             else
+            {
                 set_declaration_group(p, p, g->declarations.v[i]);
+            }
         }
     }
     /* set terminal scan_kind */
@@ -1675,21 +1955,31 @@ static void propogate_declarations(Grammar* g)
                 {
                     if (!p->declaration_group[DECLARE_LONGEST_MATCH] &&
                         !p->declaration_group[DECLARE_ALL_MATCHES])
+                    {
                         e->e.term->scan_kind = D_SCAN_DEFAULT;
+                    }
                     else if (p->declaration_group[DECLARE_LONGEST_MATCH] &&
                              !p->declaration_group[DECLARE_ALL_MATCHES])
+                    {
                         e->e.term->scan_kind = D_SCAN_LONGEST;
+                    }
                     else if (!p->declaration_group[DECLARE_LONGEST_MATCH] &&
                              p->declaration_group[DECLARE_ALL_MATCHES])
+                    {
                         e->e.term->scan_kind = D_SCAN_ALL;
+                    }
                     else
                     {
                         if (p->last_declaration[DECLARE_LONGEST_MATCH]
                                 ->index >
                             p->last_declaration[DECLARE_ALL_MATCHES]->index)
+                        {
                             e->e.term->scan_kind = D_SCAN_LONGEST;
+                        }
                         else
+                        {
                             e->e.term->scan_kind = D_SCAN_ALL;
+                        }
                     }
                 }
             }
@@ -1703,9 +1993,13 @@ static void merge_shift_actions(State* to, State* from)
     for (i = 0; i < from->shift_actions.n; i++)
     {
         for (j = 0; j < to->shift_actions.n; j++)
+        {
             if (from->shift_actions.v[i]->term ==
                 to->shift_actions.v[j]->term)
+            {
                 goto Lnext;
+            }
+        }
         vec_add(&to->shift_actions, from->shift_actions.v[i]);
     Lnext:;
     }
@@ -1723,7 +2017,9 @@ compute_declaration_states(Grammar* g, Production* p, Declaration* d)
         if (d->kind == DECLARE_TOKENIZE)
         {
             if (!base_s)
+            {
                 base_s = s;
+            }
             else
             {
                 s->same_shifts = base_s;
@@ -1733,26 +2029,38 @@ compute_declaration_states(Grammar* g, Production* p, Declaration* d)
         if (scanner)
         {
             for (k = 0; k < s->items.n; k++)
+            {
                 if (s->items.v[k]->kind == ELEM_TERM)
+                {
                     switch (s->items.v[k]->e.term->scan_kind)
                     {
                         case D_SCAN_LONGEST:
                             if (s->scan_kind == D_SCAN_RESERVED ||
                                 s->scan_kind == D_SCAN_LONGEST)
+                            {
                                 s->scan_kind = D_SCAN_LONGEST;
+                            }
                             else
+                            {
                                 s->scan_kind = D_SCAN_MIXED;
+                            }
                             break;
                         case D_SCAN_ALL:
                             if (s->scan_kind == D_SCAN_RESERVED ||
                                 s->scan_kind == D_SCAN_ALL)
+                            {
                                 s->scan_kind = D_SCAN_ALL;
+                            }
                             else
+                            {
                                 s->scan_kind = D_SCAN_MIXED;
+                            }
                             break;
                         default:
                             break;
                     }
+                }
+            }
         }
     }
 }
@@ -1769,14 +2077,20 @@ static void map_declarations_to_states(Grammar* g)
     }
     /* map groups to sets of states */
     for (i = 0; i < g->declarations.n; i++)
+    {
         if (scanner_declaration(g->declarations.v[i]))
+        {
             compute_declaration_states(
                 g, g->declarations.v[i]->elem->e.nterm, g->declarations.v[i]);
+        }
+    }
     for (i = 0; i < g->states.n; i++)
     {
         s = g->states.v[i];
         if (s->scan_kind == D_SCAN_RESERVED)
+        {
             s->scan_kind = D_SCAN_DEFAULT; /* set the default */
+        }
     }
 }
 
@@ -1822,17 +2136,23 @@ static void print_term_escaped(Term* t, int double_escaped)
     {
         s = t->string ? escape_string_single_quote(t->string) : NULL;
         if (!t->string || !*t->string)
+        {
             printf("<EOF> ");
+        }
         else
         {
             printf("'%s' ",
                    double_escaped ? escape_string_single_quote(s) : s);
             if (t->ignore_case)
+            {
                 printf("/i ");
+            }
             if (t->term_priority)
+            {
                 printf("%sterm %d ",
                        double_escaped ? "#" : "$",
                        t->term_priority);
+            }
         }
     }
     else if (t->kind == TERM_REGEX)
@@ -1843,10 +2163,14 @@ static void print_term_escaped(Term* t, int double_escaped)
         printf(
             "%s%s%s ", quote, double_escaped ? escape_string(s) : s, quote);
         if (t->ignore_case)
+        {
             printf("/i ");
+        }
         if (t->term_priority)
+        {
             printf(
                 "%sterm %d ", double_escaped ? "#" : "$", t->term_priority);
+        }
     }
     else if (t->kind == TERM_CODE)
     {
@@ -1859,20 +2183,30 @@ static void print_term_escaped(Term* t, int double_escaped)
         printf("%s ", s);
     }
     else
+    {
         d_fail("unknown token kind");
+    }
     if (s)
+    {
         FREE(s);
+    }
 }
 
 /* print_elem changed to call print_term_escaped */
 static void print_element_escaped(Elem* ee, int double_escaped)
 {
     if (ee->kind == ELEM_TERM)
+    {
         print_term_escaped(ee->e.term, double_escaped);
+    }
     else if (ee->kind == ELEM_UNRESOLVED)
+    {
         printf("%s ", ee->e.unresolved.string);
+    }
     else
+    {
         printf("%s ", ee->e.nterm->name);
+    }
 }
 
 static void print_global_code(Grammar* g)
@@ -1884,10 +2218,14 @@ static void print_global_code(Grammar* g)
     {
         printf("%s", g->code[i].code);
         if (strstr(g->code[i].code, "<stdio.h>") != NULL)
+        {
             print_stdio_h = 0;
+        }
     }
     if (print_stdio_h)
+    {
         printf("\n  #include <stdio.h>\n");
+    }
     printf("%%>\n\n");
 }
 
@@ -1921,22 +2259,36 @@ static void print_production(Production* p)
         else
         {
             if (variant == 0)
+            {
                 printf("%s", next_or_rule);
+            }
             else
+            {
                 printf("%s%s%s", opening[variant], p->name, middle[variant]);
+            }
         }
 
         for (k = 0; k < r->elems.n; k++)
+        {
             print_element_escaped(r->elems.v[k], variant);
+        }
 
         if (r->op_assoc)
+        {
             printf(" %s%s ", assoc[variant], assoc_str(r->op_assoc) + 1);
+        }
         if (r->op_priority)
+        {
             printf("%d ", r->op_priority);
+        }
         if (r->rule_assoc)
+        {
             printf(" %s%s ", assoc[variant], assoc_str(r->rule_assoc) + 1);
+        }
         if (r->rule_priority)
+        {
             printf("%d ", r->rule_priority);
+        }
 
         if ((d_rdebug_grammar_level == 1 && variant == 0) ||
             (d_rdebug_grammar_level == 3 && variant == 0))
@@ -1948,7 +2300,9 @@ static void print_production(Production* p)
             (d_rdebug_grammar_level == 3 && variant == 1))
         {
             if (variant == 1)
+            {
                 printf("%s", speculative_final_closing);
+            }
             variant = 2;
             goto Lmore;
         }
@@ -1970,13 +2324,17 @@ static void print_productions(Grammar* g, char* pathname)
         return;
     }
     for (i = 1; i < g->productions.n; i++)
+    {
         print_production(g->productions.v[i]);
+    }
 }
 
 static void print_declare(char* s, char* n)
 {
     while (*n && (isspace_(*n) || isdigit_(*n)))
+    {
         n++;
+    }
     printf(s, n);
 }
 
@@ -1985,7 +2343,9 @@ static void print_declarations(Grammar* g)
     int i;
 
     if (g->tokenizer)
+    {
         printf("${declare tokenize}\n");
+    }
     for (i = 0; i < g->declarations.n; i++)
     {
         Declaration* dd = g->declarations.v[i];
@@ -1994,17 +2354,25 @@ static void print_declarations(Grammar* g)
         {
             case DECLARE_LONGEST_MATCH:
                 if (g->longest_match)
+                {
                     printf("${declare longest_match}\n");
+                }
                 else
+                {
                     print_declare("${declare longest_match %s}\n",
                                   ee->e.nterm->name);
+                }
                 break;
             case DECLARE_ALL_MATCHES:
                 if (!g->longest_match)
+                {
                     printf("${declare all_matches}\n");
+                }
                 else
+                {
                     print_declare("${declare all_matches %s}\n",
                                   ee->e.nterm->name);
+                }
                 break;
             default:
                 printf("\n/*\nDeclaration->kind: %d", dd->kind);
@@ -2012,18 +2380,28 @@ static void print_declarations(Grammar* g)
         }
     }
     if (g->set_op_priority_from_rule)
+    {
         printf("${declare set_op_priority_from_rule}\n");
+    }
     if (g->states_for_all_nterms)
+    {
         printf("${declare all_subparsers}\n");
+    }
     /* todo: DECLARE_STATE_FOR */
     if (g->default_white_space)
+    {
         printf("${declare whitespace %s}\n", g->default_white_space);
+    }
     if (g->save_parse_tree)
+    {
         printf("${declare save_parse_tree}\n");
+    }
     /* todo: DECLARE_NUM */
 
     if (g->scanner.code)
+    {
         printf("${scanner %s}\n", g->scanner.code);
+    }
 
     {
         int token_exists = 0;
@@ -2037,7 +2415,9 @@ static void print_declarations(Grammar* g)
             }
         }
         if (token_exists)
+        {
             printf("}\n");
+        }
     }
 
     printf("\n");

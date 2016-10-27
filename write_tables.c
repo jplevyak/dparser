@@ -10,9 +10,13 @@ void myfprintf(FILE* f, const char* format, ...)
     va_start(ap, format);
 
     if (!f)
+    {
         d_warn("trying to write code to binary file");
+    }
     else
+    {
         vfprintf(f, format, ap);
+    }
     va_end(ap);
 }
 #define fprintf myfprintf
@@ -77,7 +81,9 @@ static void write_chk(const void* ptr, size_t size, size_t nmemb, File* file)
     if (file->fp)
     {
         if (fwrite(ptr, size, nmemb, file->fp) != nmemb)
+        {
             d_fail("error writing binary file\n");
+        }
     }
     else
     {
@@ -112,18 +118,26 @@ static void save_binary_tables(File* file)
     write_chk(file->tables.start, sizeof(char), tables.tables_size, file);
     write_chk(file->strings.start, sizeof(char), tables.strings_size, file);
     for (i = 0; i < file->relocations.n; i++)
+    {
         write_chk(&file->relocations.v[i], sizeof(void*), 1, file);
+    }
     for (i = 0; i < file->str_relocations.n; i++)
+    {
         write_chk(&file->str_relocations.v[i], sizeof(void*), 1, file);
+    }
 }
 
 static void free_tables(File* f)
 {
     int i;
     if (f->tables.start)
+    {
         FREE(f->tables.start);
+    }
     if (f->strings.start)
+    {
         FREE(f->strings.start);
+    }
     vec_free(&f->str_relocations);
     vec_free(&f->relocations);
     for (i = 0; i < f->entries.n; i++)
@@ -221,7 +235,9 @@ static OffsetEntry* search_for_offset(File* fp, char* name)
             else
             {
                 if (!strcmp(v->v[i]->name, name))
+                {
                     return v->v[i];
+                }
             }
         }
     }
@@ -370,7 +386,9 @@ static void add_array_member_internal(File* fp)
 static void handle_comma(File* file)
 {
     if (!file->first_member)
+    {
         fprintf(file->fp, ", ");
+    }
     file->first_member = 0;
 }
 
@@ -426,13 +444,16 @@ static void start_array_fn(File* fp,
     else
     {
         if (length_data == 0)
+        {
             fprintf(fp->fp,
                     "%s%s %s[] = {%s",
                     type_prefix,
                     type_str,
                     name,
                     whitespace);
+        }
         else if (strlen(length_str) == 0)
+        {
             fprintf(fp->fp,
                     "%s%s %s[%d] = {%s",
                     type_prefix,
@@ -440,7 +461,9 @@ static void start_array_fn(File* fp,
                     name,
                     length_data,
                     whitespace);
+        }
         else
+        {
             fprintf(fp->fp,
                     "%s%s %s[%s] = {%s",
                     type_prefix,
@@ -448,6 +471,7 @@ static void start_array_fn(File* fp,
                     name,
                     length_str,
                     whitespace);
+        }
     }
 }
 
@@ -462,7 +486,9 @@ static void add_struct_str_member_fn(File* fp, char** dest, const char* str)
     else
     {
         if (!fp->first_member)
+        {
             fprintf(fp->fp, ", ");
+        }
         fprintf(fp->fp, "\"%s\"", str);
     }
     fp->first_member = 0;
@@ -479,9 +505,13 @@ add_struct_ptr_member_fn(File* fp, void** dest, OffsetEntry* oe, char* format)
     else
     {
         if (*format == '&' && strcmp(oe->name, "NULL") == 0)
+        {
             format++;
+        }
         if (!fp->first_member)
+        {
             fprintf(fp->fp, ", ");
+        }
         fprintf(fp->fp, format, oe->name);
     }
     fp->first_member = 0;
@@ -501,7 +531,9 @@ add_array_ptr_member_fn(File* fp, OffsetEntry* oe, char* format, int last)
     else
     {
         if (*format == '&' && strcmp(oe->name, "NULL") == 0)
+        {
             format++;
+        }
         fprintf(fp->fp, format, oe->name, last ? "" : ",");
     }
 }
@@ -520,7 +552,9 @@ static void add_array_member_fn(
     {
         fprintf((file)->fp, format, data);
         if (!last)
+        {
             fprintf(file->fp, ", ");
+        }
     }
 }
 
@@ -583,9 +617,13 @@ typedef Vec(State*) VecState;
 static int scanner_size(State* s)
 {
     if (s->scanner.states.n < 255 && s->scanner.transitions.n < 255)
+    {
         return 1;
+    }
     if (s->scanner.states.n < 32384 && s->scanner.transitions.n < 32384)
+    {
         return 2;
+    }
     return 4;
 }
 
@@ -680,11 +718,17 @@ scanner_block_cmp_fn(ScannerBlock* a, ScannerBlock* b, hash_fns_t* fns)
     for (i = 0; i < block_size; i++)
     {
         if (sa[i] == sb[i])
+        {
             continue;
+        }
         if (!sa[i] || !sb[i])
+        {
             return 1;
+        }
         if (sa[i]->index != sb[i]->index)
+        {
             return 1;
+        }
     }
     return 0;
 }
@@ -717,11 +761,17 @@ trans_scanner_block_cmp_fn(ScannerBlock* a, ScannerBlock* b, hash_fns_t* fns)
     for (i = 0; i < block_size; i++)
     {
         if (sa[i] == sb[i])
+        {
             continue;
+        }
         if (!sa[i] || !sb[i])
+        {
             return 1;
+        }
         if (sa[i]->index != sb[i]->index)
+        {
             return 1;
+        }
     }
     return 0;
 }
@@ -853,7 +903,9 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
     /* scanners */
     nvsblocks = 0;
     for (i = 0; i < g->states.n; i++)
+    {
         nvsblocks += g->states.v[i]->scanner.states.n * g->scanner_blocks;
+    }
     vsblock = MALLOC((nvsblocks ? nvsblocks : 1) * sizeof(ScannerBlock));
     for (i = 0; i < 4; i++)
     {
@@ -872,7 +924,9 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
     {
         s = g->states.v[i];
         if (s->same_shifts)
+        {
             continue;
+        }
         ss = &s->scanner.states;
         /* build accepts differences */
         for (j = 0; j < s->scanner.transitions.n; j++)
@@ -887,6 +941,7 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
             for (k = 0; k < va->n; k++)
             {
                 if (va->v[k]->kind != ACTION_SHIFT_TRAILING)
+                {
                     add_array_ptr_member(
                         fp,
                         D_Shift*,
@@ -894,7 +949,9 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                         get_offset(
                             fp, "d_shift_%d_%s", va->v[k]->term->index, tag),
                         0);
+                }
                 else
+                {
                     add_array_ptr_member(
                         fp,
                         D_Shift*,
@@ -902,6 +959,7 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                         get_offset(
                             fp, "d_tshift_%d_%s", va->v[k]->term->index, tag),
                         0);
+                }
             }
             add_array_member(fp, D_Shift*, "% d", 0, 1);
             end_array(fp, "\n");
@@ -925,7 +983,9 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                     j == s->scanner.transitions.n - 1);
                 print(fp, "\n");
                 if (j != s->scanner.transitions.n - 1)
+                {
                     g->write_line++;
+                }
             }
             end_array(fp, "\n\n");
             g->write_line += 3;
@@ -1039,16 +1099,22 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                         if (ss->v[j]->accepts.n == 1)
                         {
                             if (a->temp_string)
+                            {
                                 continue;
+                            }
                             a->temp_string = dup_str(tmp, 0);
                             aa = set_add_fn(&shift_hash, a, &shift_fns);
                             if (aa != a)
+                            {
                                 continue;
+                            }
                         }
                         /* output shifts */
                         if (!k)
+                        {
                             start_array(
                                 fp, D_Shift*, make_name(tmp), "", 0, "");
+                        }
                         if (a->kind != ACTION_SHIFT_TRAILING)
                         {
                             add_array_ptr_member(
@@ -1083,7 +1149,9 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                             }
                         }
                         if (k == ss->v[j]->accepts.n - 1)
+                        {
                             g->write_line += 2;
+                        }
                     }
                 }
             }
@@ -1128,16 +1196,20 @@ static void write_scanner_data(File* fp, Grammar* g, char* tag)
                             shift);
                     }
                     else
+                    {
                         add_struct_ptr_member(
                             fp,
                             SB_uint8,
                             "",
                             get_offset(fp, "d_shift_%d_%d_%s", i, j, tag),
                             shift);
+                    }
                 }
                 else
+                {
                     add_struct_ptr_member(
                         fp, SB_uint8, "", &null_entry, shift);
+                }
                 print_no_comma(fp, ", {");
                 for (k = 0; k < g->scanner_blocks; k++)
                 {
@@ -1271,9 +1343,13 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
         {
             /* check for goto on token */
             for (j = 0; j < s->gotos.n; j++)
+            {
                 if (s->gotos.v[j]->elem->kind == ELEM_TERM &&
                     s->gotos.v[j]->elem->e.term->kind == TERM_TOKEN)
+                {
                     s->goto_on_token = 1;
+                }
+            }
             /* find lowest goto, set valid bits */
             memset(goto_valid, 0, nvalid_bytes);
             lowest_sym = elem_symbol(g, s->gotos.v[0]->elem);
@@ -1283,7 +1359,9 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
                 sym = elem_symbol(g, s->gotos.v[j]->elem);
                 SET_BIT(goto_valid, sym);
                 if (sym < lowest_sym)
+                {
                     lowest_sym = sym;
+                }
             }
             /* insert into vgoto */
             again = 1;
@@ -1299,8 +1377,12 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
                         int qq = 0;
                         vec_add(&vgoto, 0);
                         for (qq = 0; qq < vgoto.n; qq++)
+                        {
                             if (vgoto.v[qq] == 239847234)
+                            {
                                 printf("wow...\n");
+                            }
+                        }
                     }
                     if (vgoto.v[x])
                     {
@@ -1316,7 +1398,9 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
                         break;
                     }
                     else
+                    {
                         vgoto.v[x] = s->gotos.v[j]->state->index + 1;
+                    }
                 }
             }
             s->goto_table_offset = lowest_sym;
@@ -1330,16 +1414,20 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
             print(fp, "\n");
             g->write_line += 1;
             for (j = 0; j < nvalid_bytes; j++)
+            {
                 add_array_member(fp,
                                  unsigned char,
                                  "0x%x",
                                  goto_valid[j],
                                  j == nvalid_bytes - 1);
+            }
             end_array(fp, "\n");
             g->write_line += 1;
         }
         else
+        {
             s->goto_table_offset = -INT_MAX;
+        }
         /* reduce_actions */
         if (s->reduce_actions.n)
         {
@@ -1350,6 +1438,7 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
                         0,
                         "");
             for (j = 0; j < s->reduce_actions.n; j++)
+            {
                 add_array_ptr_member(
                     fp,
                     D_Reduction*,
@@ -1359,6 +1448,7 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
                                reduction_index(s->reduce_actions.v[j]->rule),
                                tag),
                     j == s->reduce_actions.n - 1);
+            }
             end_array(fp, "\n");
             g->write_line += 1;
         }
@@ -1414,7 +1504,9 @@ static void write_goto_data(File* fp, Grammar* g, char* tag)
         for (j = 0; j < vgoto.n; j++)
         {
             if (vgoto.v[j] < 0 || vgoto.v[j] > 65535)
+            {
                 d_fail("goto table overflow");
+            }
             add_array_member(
                 fp, unsigned short, "%d", vgoto.v[j], j == vgoto.n - 1);
             if (j % 16 == 15)
@@ -1474,7 +1566,9 @@ static void write_scanner_code(File* file, Grammar* g, char* tag)
                     fprintf(fp, ", ");
                 }
                 else
+                {
                     fprintf(fp, "%s(", a->term->string);
+                }
                 fprintf(fp,
                         "loc, op_assoc, op_priority))) {\n"
                         "    *symbol = %d;\n"
@@ -1497,20 +1591,25 @@ static void write_scanner_code(File* file, Grammar* g, char* tag)
 static int find_symbol(Grammar* g, char* s, char* e, int kind)
 {
     while (*s && isspace_(*s))
+    {
         s++;
+    }
     if (e > s)
     {
         if (kind == D_SYMBOL_NTERM)
         {
             Production* p;
             if ((p = lookup_production(g, s, e - s)))
+            {
                 return p->index;
+            }
         }
         else if (kind == D_SYMBOL_STRING)
         {
             int i;
             int found = -1;
             for (i = 0; i < g->terminals.n; i++)
+            {
                 if (g->terminals.v[i]->kind == TERM_STRING &&
                     ((g->terminals.v[i]->term_name &&
                       strlen(g->terminals.v[i]->term_name) == e - s &&
@@ -1526,10 +1625,15 @@ static int find_symbol(Grammar* g, char* s, char* e, int kind)
                             g->terminals.v[i]->string);
                     }
                     else
+                    {
                         found = i;
+                    }
                 }
+            }
             if (found > 0)
+            {
                 return found + g->productions.n;
+            }
         }
     }
     return -1;
@@ -1565,9 +1669,13 @@ static void write_code(FILE* fp,
             if (c[1] == '\'' || c[1] == '"')
             {
                 if (in_string == c[1])
+                {
                     in_string = 0;
+                }
                 else if (!in_string)
+                {
                     in_string = c[1];
+                }
             }
         }
         if (!in_string && *c == '/')
@@ -1598,7 +1706,9 @@ static void write_code(FILE* fp,
             }
         }
         if (*c == '\n')
+        {
             g->write_line++;
+        }
         if (!in_string && *c == '$')
         {
             c++;
@@ -1613,14 +1723,20 @@ static void write_code(FILE* fp,
                         "(d_get_number_of_children((D_PN(_children[%d], _offset))))",
                         n);
                     if (n > r->elems.n - 1)
+                    {
                         d_fail(
                             "$nXXXX greater than number of children at line %d",
                             line);
+                    }
                     while (isdigit_(*c))
+                    {
                         c++;
+                    }
                 }
                 else
+                {
                     fprintf(fp, "(_n_children)");
+                }
             }
             else if (*c == 'g')
             {
@@ -1635,14 +1751,20 @@ static void write_code(FILE* fp,
                     int n = atoi(c);
                     fprintf(fp, "(*(D_PN(_children[%d], _offset)))", n);
                     if (n > r->elems.n - 1)
+                    {
                         d_fail(
                             "$nXXXX greater than number of children at line %d",
                             line);
+                    }
                     while (isdigit_(*c))
+                    {
                         c++;
+                    }
                 }
                 else
+                {
                     fprintf(fp, "(*(D_PN(_ps, _offset)))");
+                }
             }
             else if (*c == '$')
             {
@@ -1654,20 +1776,30 @@ static void write_code(FILE* fp,
                 int n = atoi(c);
                 fprintf(fp, "(D_PN(_children[%d], _offset)->user)", n);
                 while (isdigit_(*c))
+                {
                     c++;
+                }
             }
             else if (*c == '{')
             {
                 char *e = ++c, *a;
                 while (*e && *e != '}' && !isspace_(*e))
+                {
                     e++;
+                }
                 a = e;
                 if (isspace_(*a))
+                {
                     a++;
+                }
                 while (*a && *a != '}')
+                {
                     a++;
+                }
                 if (!*a)
+                {
                     d_fail("unterminated ${...} at line %d", line);
+                }
                 if (STREQ(c, e - c, "child"))
                 {
                     char xx[2][4096], *x, *y;
@@ -1680,22 +1812,36 @@ static void write_code(FILE* fp,
                         x = xx[i];
                         y = xx[!i];
                         while (*e && *e != '}' && *e != ',')
+                        {
                             e++;
+                        }
                         if (!*e || ss == e)
+                        {
                             d_fail("bad ${...} at line %d", line);
+                        }
                         n = dup_str(ss, e);
                         if (!*y)
+                        {
                             sprintf(x, "(D_PN(_children[%s], _offset))", n);
+                        }
                         else
+                        {
                             sprintf(x, "d_get_child(%s, %s)", y, n);
+                        }
                         if (*e == ',')
+                        {
                             e++;
+                        }
                         if (isspace_(*e))
+                        {
                             e++;
+                        }
                         i = !i;
                     }
                     if (!xx[!i])
+                    {
                         d_fail("empty ${child } at line %d", line);
+                    }
                     fprintf(fp, "%s", xx[!i]);
                 }
                 else if (STREQ(c, e - c, "reject"))
@@ -1728,16 +1874,22 @@ static void write_code(FILE* fp,
                 {
                     D_Pass* p = find_pass(g, e, a);
                     if (!p)
+                    {
                         d_fail(
                             "unknown pass '%s' line %d", dup_str(e, a), line);
+                    }
                     fprintf(fp, "%d", p->index);
                 }
                 else
+                {
                     d_fail("bad $ escape in code line %u\n", line);
+                }
                 c = a + 1;
             }
             else
+            {
                 d_fail("bad $ escape in code line %u\n", line);
+            }
         }
         else
         {
@@ -1771,7 +1923,9 @@ static void write_global_code(FILE* fp, Grammar* g, char* tag)
         while (*c)
         {
             if (*c == '\n')
+            {
                 g->write_line++;
+            }
             if (*c == '$')
             {
                 c++;
@@ -1779,12 +1933,18 @@ static void write_global_code(FILE* fp, Grammar* g, char* tag)
                 {
                     char *e = ++c, *a;
                     while (*e && *e != '}' && !isspace_(*e))
+                    {
                         ++e;
+                    }
                     a = e;
                     if (isspace_(*a))
+                    {
                         ++a;
+                    }
                     while (*a && *a != '}')
+                    {
                         a++;
+                    }
                     if (STREQ(c, e - c, "nterm"))
                     {
                         fprintf(
@@ -1799,19 +1959,25 @@ static void write_global_code(FILE* fp, Grammar* g, char* tag)
                     {
                         D_Pass* p = find_pass(g, e, a);
                         if (!p)
+                        {
                             d_fail("unknown pass '%s' line %d",
                                    dup_str(e, a),
                                    g->code[i].line + i);
+                        }
                         fprintf(fp, "%d", p->index);
                     }
                     else
+                    {
                         d_fail("bad $ escape in code line %u\n",
                                g->code[i].line + i);
+                    }
                     c = a + 1;
                 }
                 else
+                {
                     d_fail("bad $ escape in code line %u\n",
                            g->code[i].line + i);
+                }
             }
             else
             {
@@ -1883,6 +2049,7 @@ static void write_reductions(File* file, Grammar* g, char* tag)
         {
             r = p->rules.v[j];
             for (k = 0; k < j; k++)
+            {
                 if (r->elems.n == p->rules.v[k]->elems.n &&
                     r->speculative_code.code ==
                         p->rules.v[k]->speculative_code.code &&
@@ -1894,29 +2061,40 @@ static void write_reductions(File* file, Grammar* g, char* tag)
                     r->action_index == p->rules.v[k]->action_index)
                 {
                     if (r->pass_code.n != p->rules.v[k]->pass_code.n)
+                    {
                         continue;
+                    }
                     for (l = 0; l < r->pass_code.n; l++)
                     {
                         if (!r->pass_code.v[l] &&
                             !p->rules.v[k]->pass_code.v[l])
+                        {
                             continue;
+                        }
                         if (!r->pass_code.v[l] ||
                             !p->rules.v[k]->pass_code.v[l])
+                        {
                             goto Lcontinue;
+                        }
                         if (r->pass_code.v[l]->code !=
                             p->rules.v[k]->pass_code.v[l]->code)
+                        {
                             goto Lcontinue;
+                        }
                     }
                     r->same_reduction = p->rules.v[k];
                     break;
                 Lcontinue:;
                 }
+            }
         }
         for (j = 0; j < p->rules.n; j++)
         {
             r = p->rules.v[j];
             if (r->same_reduction)
+            {
                 continue;
+            }
             if (r->speculative_code.code)
             {
                 char fname[256];
@@ -1973,44 +2151,60 @@ static void write_reductions(File* file, Grammar* g, char* tag)
                 }
             }
             if (r->speculative_code.code)
+            {
                 sprintf(speculative_code,
                         "d_speculative_reduction_code_%d_%d_%s",
                         r->prod->index,
                         r->index,
                         tag);
+            }
             else if (rdefault && rdefault->speculative_code.code)
+            {
                 sprintf(speculative_code,
                         "d_speculative_reduction_code_%d_%d_%s",
                         rdefault->prod->index,
                         rdefault->index,
                         tag);
+            }
             else
+            {
                 strcpy(speculative_code, "NULL");
+            }
             if (r->final_code.code)
+            {
                 sprintf(final_code,
                         "d_final_reduction_code_%d_%d_%s",
                         r->prod->index,
                         r->index,
                         tag);
+            }
             else if (rdefault && rdefault->final_code.code)
+            {
                 sprintf(final_code,
                         "d_final_reduction_code_%d_%d_%s",
                         rdefault->prod->index,
                         rdefault->index,
                         tag);
+            }
             else
+            {
                 strcpy(final_code, "NULL");
+            }
             pmax = r->pass_code.n;
             if (r->pass_code.n || (rdefault && rdefault->pass_code.n))
             {
                 if (rdefault && rdefault->pass_code.n > pmax)
+                {
                     pmax = rdefault->pass_code.n;
+                }
                 if (!r->pass_code.n)
+                {
                     sprintf(pass_code,
                             "d_pass_code_%d_%d_%s",
                             rdefault->prod->index,
                             rdefault->index,
                             tag);
+                }
                 else
                 {
                     sprintf(pass_code,
@@ -2022,6 +2216,7 @@ static void write_reductions(File* file, Grammar* g, char* tag)
                     for (k = 0; k < pmax; k++)
                     {
                         if (r->pass_code.n > k && r->pass_code.v[k])
+                        {
                             fprintf(fp,
                                     "d_pass_code_%d_%d_%d_%s%s",
                                     k,
@@ -2029,8 +2224,10 @@ static void write_reductions(File* file, Grammar* g, char* tag)
                                     r->index,
                                     tag,
                                     k < pmax - 1 ? ", " : "");
+                        }
                         else if (rdefault && rdefault->pass_code.n > k &&
                                  rdefault->pass_code.v[k])
+                        {
                             fprintf(fp,
                                     "d_pass_code_%d_%d_%d_%s%s",
                                     k,
@@ -2038,15 +2235,20 @@ static void write_reductions(File* file, Grammar* g, char* tag)
                                     rdefault->index,
                                     tag,
                                     k < pmax - 1 ? ", " : "");
+                        }
                         else
+                        {
                             fprintf(fp, "NULL%s", k < pmax - 1 ? ", " : "");
+                        }
                     }
                     fprintf(fp, "};\n\n");
                     g->write_line += 2;
                 }
             }
             else
+            {
                 strcpy(pass_code, "NULL");
+            }
             start_struct(file,
                          D_Reduction,
                          make_name("d_reduction_%d_%s", r->index, tag),
@@ -2119,7 +2321,9 @@ static uint32 er_hint_hash_fn(State* a, hash_fns_t* fns)
         hash += (sa->v[i]->depth + 1) * 13;
         hash += strhashl(ta->string, ta->string_len);
         if (sa->v[i]->rule)
+        {
             hash += sa->v[i]->rule->prod->index * 10007;
+        }
     }
     return hash;
 }
@@ -2130,7 +2334,9 @@ static int er_hint_cmp_fn(State* a, State* b, hash_fns_t* fns)
     VecHint *sa = &a->error_recovery_hints, *sb = &b->error_recovery_hints;
     Term *ta, *tb;
     if (sa->n != sb->n)
+    {
         return 1;
+    }
     for (i = 0; i < sa->n; i++)
     {
         ta = sa->v[i]->rule->elems.v[sa->v[i]->rule->elems.n - 1]->e.term;
@@ -2138,7 +2344,9 @@ static int er_hint_cmp_fn(State* a, State* b, hash_fns_t* fns)
         if (sa->v[i]->depth != sb->v[i]->depth ||
             strcmp(ta->string, tb->string) ||
             sa->v[i]->rule->prod->index != sb->v[i]->rule->prod->index)
+        {
             return 1;
+        }
     }
     return 0;
 }
@@ -2200,7 +2408,9 @@ write_error_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
                             fp,
                             j == s->error_recovery_hints.n - 1 ? "" : ",\n");
                         if (j != s->error_recovery_hints.n - 1)
+                        {
                             g->write_line += 1;
+                        }
                         FREE(ss);
                     }
                     end_array(fp, "\n");
@@ -2230,15 +2440,19 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
             shifts = s->same_shifts ? s->same_shifts : s;
             start_struct_in_array(fp);
             if (s->gotos.n)
+            {
                 add_struct_ptr_member(
                     fp,
                     D_State,
                     "",
                     get_offset(fp, "d_goto_valid_%d_%s", i, tag),
                     goto_valid);
+            }
             else
+            {
                 add_struct_ptr_member(
                     fp, D_State, "", &null_entry, goto_valid);
+            }
             add_struct_member(
                 fp, D_State, "%d", s->goto_table_offset, goto_table_offset);
             print_no_comma(fp, ", {");
@@ -2310,9 +2524,13 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
             print(fp, "}");
             if (s->shift_actions.n || s->scanner_code ||
                 (g->scanner.code && s->goto_on_token))
+            {
                 add_struct_member(fp, D_State, "%d", 1, shifts);
+            }
             else
+            {
                 add_struct_member(fp, D_State, "%d", 0, shifts);
+            }
             if (g->scanner.code)
             {
                 if (s->goto_on_token)
@@ -2327,15 +2545,19 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
                 }
             }
             else if (s->scanner_code)
+            {
                 add_struct_ptr_member(
                     fp,
                     D_State,
                     "",
                     get_offset(fp, "d_scan_code_%d_%s", i, tag),
                     scanner_code);
+            }
             else
+            {
                 add_struct_ptr_member(
                     fp, D_State, "", &null_entry, scanner_code);
+            }
             if (s->scanner.states.n)
             {
                 print_no_comma(fp, ", (void*)");
@@ -2352,10 +2574,14 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
                     fp, D_State, "", &null_entry, scanner_table);
             }
             if (!fp->binary)
+            {
                 fprintf(fp->fp, ", sizeof(%s) ", scanner_type(s));
+            }
             else
+            {
                 add_struct_member(
                     fp, D_State, "%d", scanner_size(s), scanner_size);
+            }
             add_struct_member(fp, D_State, "%d", s->accept ? 1 : 0, accept);
             add_struct_const_member(fp,
                                     D_State,
@@ -2382,6 +2608,7 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
             if ((shifts->scan_kind != D_SCAN_LONGEST ||
                  shifts->trailing_context) &&
                 shifts->scanner.states.n)
+            {
                 add_struct_ptr_member(
                     fp,
                     D_State,
@@ -2389,24 +2616,35 @@ write_state_data(File* fp, Grammar* g, VecState* er_hash, char* tag)
                     get_offset(
                         fp, "d_accepts_diff_%d_%s", shifts->index, tag),
                     accepts_diff);
+            }
             else
+            {
                 add_struct_ptr_member(
                     fp, D_State, "", &null_entry, accepts_diff);
+            }
             if (s->reduces_to)
+            {
                 add_struct_member(
                     fp, D_State, "%d", s->reduces_to->index, reduces_to);
+            }
             else
+            {
                 add_struct_member(fp, D_State, "%d", -1, reduces_to);
+            }
             end_struct_in_array(fp, (i == g->states.n - 1 ? "\n" : ",\n"));
         }
         end_array(fp, "\n\n");
     }
     else
     {
-        if (!fp->binary) /*BS it doesn't look like this fits a D_State?*/
+        if (!fp->binary)
+        { /*BS it doesn't look like this fits a D_State?*/
             fprintf(fp->fp, "{{0, {0, NULL}, 0, NULL}};\n\n");
+        }
         else
+        {
             d_fail("no states\n");
+        }
     }
 }
 
@@ -2418,21 +2656,35 @@ static int write_header(Grammar* g, char* base_pathname, char* tag)
     FILE* hfp;
 
     for (i = 0; i < g->terminals.n; i++)
+    {
         if (g->terminals.v[i]->kind == TERM_TOKEN)
+        {
             tokens = 1;
+        }
+    }
     if (g->states_for_all_nterms)
+    {
         states = 1;
+    }
     else
+    {
         for (i = 0; i < g->productions.n; i++)
+        {
             if (state_for_declaration(g, i))
+            {
                 states = 1;
+            }
+        }
+    }
     if (g->write_header > 0 || (g->write_header < 0 && (tokens || states)))
     {
         strcpy(pathname, base_pathname);
         strcat(pathname, ".d_parser.h");
         hfp = fopen(pathname, "w");
         if (!hfp)
+        {
             d_fail("unable to open `%s` for write\n", pathname);
+        }
         d_version(ver);
         fprintf(hfp, "/*\n  Generated by Make DParser Version %s\n", ver);
         fprintf(hfp, "  Available at http://dparser.sf.net\n*/\n\n");
@@ -2443,11 +2695,15 @@ static int write_header(Grammar* g, char* base_pathname, char* tag)
             if (!g->token_type)
             {
                 for (i = 0; i < g->terminals.n; i++)
+                {
                     if (g->terminals.v[i]->kind == TERM_TOKEN)
+                    {
                         fprintf(hfp,
                                 "#define %s \t%d\n",
                                 g->terminals.v[i]->string,
                                 g->terminals.v[i]->index + g->productions.n);
+                    }
+                }
             }
             else
             {
@@ -2476,12 +2732,16 @@ static int write_header(Grammar* g, char* base_pathname, char* tag)
         if (states)
         {
             for (i = 0; i < g->productions.n; i++)
+            {
                 if (!g->productions.v[i]->internal &&
                     g->productions.v[i]->elem)
+                {
                     fprintf(hfp,
                             "#define D_START_STATE_%s \t%d\n",
                             g->productions.v[i]->name,
                             g->productions.v[i]->state->index);
+                }
+            }
         }
         fprintf(hfp, "#endif\n");
         fclose(hfp);
@@ -2509,7 +2769,9 @@ static void write_symbol_data(File* fp, Grammar* g, char* tag)
     {
         int state = -1, internal_index;
         if (!g->productions.v[i]->internal && g->productions.v[i]->elem)
+        {
             state = g->productions.v[i]->state->index;
+        }
         start_struct_in_array(fp);
         internal_index =
             g->productions.v[i]->internal
@@ -2594,7 +2856,9 @@ void write_parser_tables(Grammar* g, char* tag, File* file)
     write_reductions(file, g, tag);
     write_scanner_data(file, g, tag);
     if (!file->binary)
+    {
         write_scanner_code(file, g, tag);
+    }
     write_goto_data(file, g, tag);
     write_error_data(file, g, &er_hash, tag);
     write_state_data(file, g, &er_hash, tag);
@@ -2603,7 +2867,9 @@ void write_parser_tables(Grammar* g, char* tag, File* file)
     vec_free(&er_hash);
 
     if ((p = lookup_production(g, "whitespace", sizeof("whitespace") - 1)))
+    {
         whitespace_production = p->state->index;
+    }
 
     if (file->binary)
     {
@@ -2641,21 +2907,31 @@ void write_parser_tables(Grammar* g, char* tag, File* file)
         fprintf(file->fp, ", %s", g->default_white_space);
     }
     else
+    {
         add_struct_ptr_member(
             file, D_ParserTables, "", &null_entry, default_white_space);
+    }
     add_struct_member(file, D_ParserTables, "% d", g->passes.n, npasses);
     if (g->passes.n)
+    {
         add_struct_ptr_member(file,
                               D_ParserTables,
                               "",
                               get_offset(file, "d_passes_%s", tag),
                               passes);
+    }
     else
+    {
         add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
+    }
     if (g->save_parse_tree)
+    {
         add_struct_member(file, D_ParserTables, "% d", 1, save_parse_tree);
+    }
     else
+    {
         add_struct_member(file, D_ParserTables, "% d", 0, save_parse_tree);
+    }
     end_struct(file, D_ParserTables, "\n");
 
     if (file->binary)
@@ -2664,13 +2940,17 @@ void write_parser_tables(Grammar* g, char* tag, File* file)
         {
             file->fp = fopen(g->write_pathname, "wb");
             if (!file->fp)
+            {
                 d_fail("unable to open `%s` for write\n", g->pathname);
+            }
         }
         save_binary_tables(file);
     }
     free_tables(file);
     if (file->fp)
+    {
         fclose(file->fp);
+    }
 }
 
 void write_parser_tables_internal(Grammar* g,
@@ -2686,7 +2966,9 @@ void write_parser_tables_internal(Grammar* g,
     {
         fp = fopen(g->write_pathname, "w");
         if (!fp)
+        {
             d_fail("unable to open `%s` for write\n", g->write_pathname);
+        }
     }
     file_init(&file, binary, fp, str, str_len);
     if (!binary)

@@ -69,8 +69,12 @@ static char* change_newline2space(char* s)
 {
     char* ss = s;
     while (*ss++)
+    {
         if (*ss == '\n')
+        {
             *ss = ' ';
+        }
+    }
     if (strlen(s) > MAX_LINE_LENGTH)
     {
         *(s + MAX_LINE_LENGTH - 3) = '.';

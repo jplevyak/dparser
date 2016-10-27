@@ -58,7 +58,9 @@ static void free_VecDFAState(VecDFAState* dfas)
 {
     int i;
     for (i = 0; i < dfas->n; i++)
+    {
         free_DFAState(dfas->v[i]);
+    }
     vec_free(dfas);
 }
 
@@ -66,7 +68,9 @@ static void free_NFAState(NFAState* y)
 {
     int i;
     for (i = 0; i < 256; i++)
+    {
         vec_free(&y->chars[i]);
+    }
     vec_free(&y->epsilon);
     vec_free(&y->accepts);
     FREE(y);
@@ -76,7 +80,9 @@ static void free_VecNFAState(VecNFAState* nfas)
 {
     int i;
     for (i = 0; i < nfas->n; i++)
+    {
         free_NFAState(nfas->v[i]);
+    }
     vec_free(nfas);
 }
 
@@ -99,15 +105,21 @@ static void nfa_closure(DFAState* x)
     int i, j, k;
 
     for (i = 0; i < x->states.n; i++)
+    {
         for (j = 0; j < x->states.v[i]->epsilon.n; j++)
         {
             for (k = 0; k < x->states.n; k++)
+            {
                 if (x->states.v[i]->epsilon.v[j] == x->states.v[k])
+                {
                     goto Lbreak;
+                }
+            }
             NFAState* s = x->states.v[i];
             vec_add(&x->states, s->epsilon.v[j]);
         Lbreak:;
         }
+    }
     qsort(x->states.v, x->states.n, sizeof(x->states.v[0]), nfacmp);
 }
 
@@ -116,10 +128,16 @@ static int eq_dfa_state(DFAState* x, DFAState* y)
     int i;
 
     if (x->states.n != y->states.n)
+    {
         return 0;
+    }
     for (i = 0; i < x->states.n; i++)
+    {
         if (x->states.v[i] != y->states.v[i])
+        {
             return 0;
+        }
+    }
     return 1;
 }
 
@@ -137,10 +155,15 @@ static void dfa_to_scanner(VecDFAState* alldfas, VecScanState* scanner)
     for (i = 0; i < alldfas->n; i++)
     {
         for (j = 0; j < 256; j++)
+        {
             if (alldfas->v[i]->chars[j])
+            {
                 alldfas->v[i]->scan->chars[j] = alldfas->v[i]->chars[j]->scan;
+            }
+        }
         highest = INT_MIN;
         for (j = 0; j < alldfas->v[i]->states.n; j++)
+        {
             for (k = 0; k < alldfas->v[i]->states.v[j]->accepts.n; k++)
             {
                 p = alldfas->v[i]
@@ -148,9 +171,13 @@ static void dfa_to_scanner(VecDFAState* alldfas, VecScanState* scanner)
                         ->accepts.v[k]
                         ->term->term_priority;
                 if (highest < p)
+                {
                     highest = p;
+                }
             }
+        }
         for (j = 0; j < alldfas->v[i]->states.n; j++)
+        {
             for (k = 0; k < alldfas->v[i]->states.v[j]->accepts.n; k++)
             {
                 p = alldfas->v[i]
@@ -158,9 +185,12 @@ static void dfa_to_scanner(VecDFAState* alldfas, VecScanState* scanner)
                         ->accepts.v[k]
                         ->term->term_priority;
                 if (p == highest)
+                {
                     vec_add(&alldfas->v[i]->scan->accepts,
                             alldfas->v[i]->states.v[j]->accepts.v[k]);
+                }
             }
+        }
     }
 }
 
@@ -186,7 +216,9 @@ static void nfa_to_scanner(NFAState* n, Scanner* s)
                 for (i = 0; i < x->states.v[i_states]->chars[i_char].n; i++)
                 {
                     if (!y)
+                    {
                         y = new_DFAState();
+                    }
                     set_add(&y->states,
                             x->states.v[i_states]->chars[i_char].v[i]);
                 }
@@ -196,12 +228,14 @@ static void nfa_to_scanner(NFAState* n, Scanner* s)
                 set_to_vec(&y->states);
                 nfa_closure(y);
                 for (i = 0; i < alldfas.n; i++)
+                {
                     if (eq_dfa_state(y, alldfas.v[i]))
                     {
                         free_DFAState(y);
                         y = alldfas.v[i];
                         goto Lnext;
                     }
+                }
                 vec_add(&alldfas, y);
             Lnext:
                 x->chars[i_char] = y;
@@ -247,7 +281,9 @@ static int build_regex_nfa(
                     reversed = 1;
                 }
                 else
+                {
                     reversed = 0;
+                }
                 memset(mark, 0, sizeof(mark));
                 pc = UCHAR_MAX;
                 while ((c = *reg++))
@@ -259,13 +295,21 @@ static int build_regex_nfa(
                         case '-':
                             c = *reg++;
                             if (!c)
+                            {
                                 goto Lerror;
+                            }
                             if (c == '\\')
+                            {
                                 c = *reg++;
+                            }
                             if (!c)
+                            {
                                 goto Lerror;
+                            }
                             for (; pc <= c; pc++)
+                            {
                                 mark[pc] = 1;
+                            }
                             break;
                         case '\\':
                             c = *reg++;
@@ -279,8 +323,12 @@ static int build_regex_nfa(
             Lsetdone:
                 x = new_NFAState(ls);
                 for (i = 1; i < 256; i++)
+                {
                     if ((!reversed && mark[i]) || (reversed && !mark[i]))
+                    {
                         vec_add(&s->chars[i], x);
+                    }
+                }
                 p = s;
                 s = x;
                 break;
@@ -301,11 +349,15 @@ static int build_regex_nfa(
             case '\\':
                 c = *reg++;
                 if (!c)
+                {
                     goto Lerror;
+                }
             /* fall through */
             default:
                 if (!ls->ignore_case || !isalpha(c))
+                {
                     vec_add(&s->chars[c], (x = new_NFAState(ls)));
+                }
                 else
                 {
                     vec_add(&s->chars[tolower(c)], (x = new_NFAState(ls)));
@@ -331,12 +383,16 @@ static void action_diff(VecAction* a, VecAction* b, VecAction* c)
     while (1)
     {
         if (bb >= b->n)
+        {
             break;
+        }
     Lagainc:
         if (cc >= c->n)
         {
             while (bb < b->n)
+            {
                 vec_add(a, b->v[bb++]);
+            }
             break;
         }
     Lagainb:
@@ -350,7 +406,9 @@ static void action_diff(VecAction* a, VecAction* b, VecAction* c)
         {
             vec_add(a, b->v[bb++]);
             if (bb >= b->n)
+            {
                 break;
+            }
             goto Lagainb;
         }
         cc++;
@@ -364,10 +422,14 @@ static void action_intersect(VecAction* a, VecAction* b, VecAction* c)
     while (1)
     {
         if (bb >= b->n)
+        {
             break;
+        }
     Lagainc:
         if (cc >= c->n)
+        {
             break;
+        }
     Lagainb:
         if (b->v[bb]->index == c->v[cc]->index)
         {
@@ -379,7 +441,9 @@ static void action_intersect(VecAction* a, VecAction* b, VecAction* c)
         {
             bb++;
             if (bb >= b->n)
+            {
                 break;
+            }
             goto Lagainb;
         }
         cc++;
@@ -410,8 +474,12 @@ static void compute_liveness(Scanner* scanner)
                 if ((sss = ss->chars[j]))
                 {
                     if (ss != sss)
+                    {
                         if (set_union(&ss->live, &sss->live))
+                        {
                             changed = 1;
+                        }
+                    }
                 }
             }
         }
@@ -430,10 +498,16 @@ static uint32 trans_hash_fn(ScanStateTransition* a, hash_fns_t* fns)
     int i;
 
     if (!fns->data[0])
+    {
         for (i = 0; i < a->live_diff.n; i++)
+        {
             h += 3 * a->live_diff.v[i]->index;
+        }
+    }
     for (i = 0; i < a->accepts_diff.n; i++)
+    {
         h += 3 * a->accepts_diff.v[i]->index;
+    }
     return h;
 }
 
@@ -443,17 +517,33 @@ trans_cmp_fn(ScanStateTransition* a, ScanStateTransition* b, hash_fns_t* fns)
     int i;
 
     if (!fns->data[0])
+    {
         if (a->live_diff.n != b->live_diff.n)
+        {
             return 1;
+        }
+    }
     if (a->accepts_diff.n != b->accepts_diff.n)
+    {
         return 1;
+    }
     if (!fns->data[0])
+    {
         for (i = 0; i < a->live_diff.n; i++)
+        {
             if (a->live_diff.v[i] != b->live_diff.v[i])
+            {
                 return 1;
+            }
+        }
+    }
     for (i = 0; i < a->accepts_diff.n; i++)
+    {
         if (a->accepts_diff.v[i] != b->accepts_diff.v[i])
+        {
             return 1;
+        }
+    }
     return 0;
 }
 
@@ -491,7 +581,9 @@ static void build_transitions(LexState* ls, Scanner* s)
             }
             if ((x = set_add_fn(&s->transitions, trans, &trans_hash_fns)) ==
                 trans)
+            {
                 trans = NULL;
+            }
             else
             {
                 vec_free(&trans->live_diff);
@@ -501,11 +593,15 @@ static void build_transitions(LexState* ls, Scanner* s)
         }
     }
     if (trans)
+    {
         FREE(trans);
+    }
     j = 0;
     set_to_vec(&s->transitions);
     for (i = 0; i < s->transitions.n; i++)
+    {
         s->transitions.v[i]->index = i;
+    }
     ls->transitions += s->transitions.n;
 }
 
@@ -532,9 +628,13 @@ static void build_state_scanner(Grammar* g, LexState* ls, State* s)
         {
             one = 1;
             if (!n->chars[0].n)
+            {
                 vec_add(&n->chars[0], (nnn = new_NFAState(ls)));
+            }
             else
+            {
                 nnn = n->chars[0].v[0];
+            }
             vec_add(&nnn->accepts, a);
         }
         else if (a->kind == ACTION_SHIFT && a->term->kind == TERM_STRING)
@@ -546,9 +646,13 @@ static void build_state_scanner(Grammar* g, LexState* ls, State* s)
                 for (c = (uint8*) a->term->string; *c; c++)
                 {
                     if (!nn->chars[*c].n)
+                    {
                         vec_add(&nn->chars[*c], (nnn = new_NFAState(ls)));
+                    }
                     else
+                    {
                         nnn = nn->chars[*c].v[0];
+                    }
                     nn = nnn;
                 }
             }
@@ -563,7 +667,9 @@ static void build_state_scanner(Grammar* g, LexState* ls, State* s)
                         vec_add(&nn->chars[tolower(*c)], nnn);
                     }
                     else
+                    {
                         vec_add(&nn->chars[*c], (nnn = new_NFAState(ls)));
+                    }
                     nn = nnn;
                 }
             }
@@ -592,7 +698,9 @@ static void build_state_scanner(Grammar* g, LexState* ls, State* s)
                 vec_add(&g->actions, trailing_context);
             }
             else
+            {
                 FREE(trailing_context);
+            }
             vec_add(&nn->accepts, a);
         }
     }
@@ -624,19 +732,31 @@ void build_scanners(Grammar* g)
     {
         s = g->states.v[i];
         if (s->same_shifts)
+        {
             continue;
+        }
         for (j = 0; j < i; j++)
         {
             if (g->states.v[j]->same_shifts)
+            {
                 continue;
+            }
             if (g->states.v[j]->shift_actions.n != s->shift_actions.n)
+            {
                 continue;
+            }
             if (g->states.v[j]->scan_kind != s->scan_kind)
+            {
                 continue;
+            }
             for (k = 0; k < g->states.v[j]->shift_actions.n; k++)
+            {
                 if (s->shift_actions.v[k]->term !=
                     g->states.v[j]->shift_actions.v[k]->term)
+                {
                     break;
+                }
+            }
             if (k >= g->states.v[j]->shift_actions.n)
             {
                 s->same_shifts = g->states.v[j];
@@ -651,12 +771,18 @@ void build_scanners(Grammar* g)
         if (s->shift_actions.n)
         {
             if (s->same_shifts)
+            {
                 s->scanner = s->same_shifts->scanner;
+            }
             else
+            {
                 build_state_scanner(g, ls, s);
+            }
         }
     }
     if (d_verbose_level)
+    {
         printf("%d scanners %d transitions\n", ls->scanners, ls->transitions);
+    }
     FREE(ls);
 }

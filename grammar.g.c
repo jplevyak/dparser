@@ -33,7 +33,9 @@ int d_final_reduction_code_4_7_dparser_gram(void* _ps,
         dup_str((*(D_PN(_children[1], _offset))).start_loc.s + 1,
                 (*(D_PN(_children[1], _offset))).end - 1);
     if (parse_grammar((D_PN(_ps, _offset)->globals), grammar_pathname, 0) < 0)
+    {
         d_fail("unable to parse grammar '%s'", grammar_pathname);
+    }
     FREE(grammar_pathname);
     return 0;
 }
@@ -141,11 +143,13 @@ int d_final_reduction_code_5_11_dparser_gram(void* _ps,
                                              D_Parser* _parser)
 {
     if (!d_get_number_of_children(&(*(D_PN(_children[2], _offset)))))
+    {
         add_declaration((D_PN(_ps, _offset)->globals),
                         (*(D_PN(_children[2], _offset))).start_loc.s,
                         (*(D_PN(_children[2], _offset))).end,
                         (D_PN(_children[1], _offset)->user).kind,
                         (*(D_PN(_children[2], _offset))).start_loc.line);
+    }
     else
     {
         int i,
@@ -1010,7 +1014,9 @@ int d_final_reduction_code_34_75_dparser_gram(void* _ps,
                                               D_Parser* _parser)
 {
     if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
+    {
         d_fail("terminal priority on non-terminal");
+    }
     (D_PN(_ps, _offset)->globals)->e->e.term->term_priority =
         strtol((*(D_PN(_children[1], _offset))).start_loc.s, NULL, 0);
     return 0;
@@ -1037,7 +1043,9 @@ int d_final_reduction_code_34_76_dparser_gram(void* _ps,
                                               D_Parser* _parser)
 {
     if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
+    {
         d_fail("terminal name on non-terminal");
+    }
     (D_PN(_ps, _offset)->globals)->e->e.term->term_name =
         dup_str((*(D_PN(_children[1], _offset))).start_loc.s + 1,
                 (*(D_PN(_children[1], _offset))).end - 1);
@@ -1065,7 +1073,9 @@ int d_final_reduction_code_34_77_dparser_gram(void* _ps,
                                               D_Parser* _parser)
 {
     if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
+    {
         d_fail("ignore-case (/i) on non-terminal");
+    }
     (D_PN(_ps, _offset)->globals)->e->e.term->ignore_case = 1;
     return 0;
 }
@@ -1461,11 +1471,15 @@ int d_final_reduction_code_38_97_dparser_gram(void* _ps,
                                               D_Parser* _parser)
 {
     if ((D_PN(_ps, _offset)->globals)->r->op_assoc)
+    {
         (D_PN(_ps, _offset)->globals)->r->op_priority =
             strtol((*(D_PN(_children[0], _offset))).start_loc.s, NULL, 0);
+    }
     else
+    {
         (D_PN(_ps, _offset)->globals)->r->rule_priority =
             strtol((*(D_PN(_children[0], _offset))).start_loc.s, NULL, 0);
+    }
     return 0;
 }
 

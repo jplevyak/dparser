@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
     p->ambiguity_fn = my_ambiguity_fn;
 
     while ((ch = getopt(argc, argv, "vphI:")) != -1)
+    {
         switch (ch)
         {
             case 'v':
@@ -52,7 +53,9 @@ int main(int argc, char* argv[])
                 }
                 if (strlen(v_incdirs) + strlen(optarg) + 2 >
                     sizeof(incdirsbuf))
+                {
                     exit(1);
+                }
                 strcat(v_incdirs, optarg);
                 strcat(v_incdirs, ":");
                 break;
@@ -62,6 +65,7 @@ int main(int argc, char* argv[])
                 fprintf(stderr, usage, argv[0]);
                 exit(1);
         }
+    }
 
     for (arg = optind; arg < argc; arg++)
     {
@@ -80,14 +84,20 @@ int main(int argc, char* argv[])
         {
             int i;
             for (i = 0; i < size; i++)
+            {
                 putchar(filebuf[i]);
+            }
         }
 
         v_parse_init();
         if (dparse(p, filebuf, size) && !p->syntax_errors)
+        {
             fprintf(stderr, "%s succeeded\n", argv[arg]);
+        }
         else
+        {
             fprintf(stderr, "%s failed\n", argv[arg]);
+        }
 
         free(filebuf);
 

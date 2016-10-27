@@ -24,16 +24,24 @@ void process_arg(ArgumentState* arg_state, int i, char*** argv)
     {
         char type = desc[i].type[0];
         if (type == 'F' || type == 'f')
+        {
             *(int*) desc[i].location = type == 'F' ? 1 : 0;
+        }
         else if (type == 'T')
+        {
             *(int*) desc[i].location = !*(int*) desc[i].location;
+        }
         else if (type == '+')
+        {
             (*(int*) desc[i].location)++;
+        }
         else
         {
             arg = *++(**argv) ? **argv : *++(*argv);
             if (!arg)
+            {
                 usage(arg_state, NULL);
+            }
             switch (type)
             {
                 case 'I':
@@ -61,7 +69,9 @@ void process_arg(ArgumentState* arg_state, int i, char*** argv)
         }
     }
     if (desc[i].pfn)
+    {
         desc[i].pfn(arg_state, arg);
+    }
 }
 
 void process_args(ArgumentState* arg_state, char** argv)
@@ -73,13 +83,17 @@ void process_args(ArgumentState* arg_state, char** argv)
     for (i = 0;; i++)
     {
         if (!desc[i].name)
+        {
             break;
+        }
         if (desc[i].env)
         {
             char type = desc[i].type[0];
             char* env = getenv(desc[i].env);
             if (!env)
+            {
                 continue;
+            }
             switch (type)
             {
                 case 'A':
@@ -102,7 +116,9 @@ void process_args(ArgumentState* arg_state, char** argv)
                     break;
             }
             if (desc[i].pfn)
+            {
                 desc[i].pfn(arg_state, env);
+            }
         }
     }
 
@@ -119,18 +135,28 @@ void process_args(ArgumentState* arg_state, char** argv)
                 for (i = 0;; i++)
                 {
                     if (!desc[i].name)
+                    {
                         usage(arg_state, NULL);
+                    }
                     if ((end = strchr((*argv) + 2, '=')))
+                    {
                         len = end - ((*argv) + 2);
+                    }
                     else
+                    {
                         len = strlen((*argv) + 2);
+                    }
                     if (len == strlen(desc[i].name) &&
                         !strncmp(desc[i].name, (*argv) + 2, len))
                     {
                         if (!end)
+                        {
                             *argv += strlen(*argv) - 1;
+                        }
                         else
+                        {
                             *argv = end;
+                        }
                         process_arg(arg_state, i, &argv);
                         break;
                     }
@@ -139,16 +165,20 @@ void process_args(ArgumentState* arg_state, char** argv)
             else
             {
                 while (*++(*argv))
+                {
                     for (i = 0;; i++)
                     {
                         if (!desc[i].name)
+                        {
                             usage(arg_state, NULL);
+                        }
                         if (desc[i].key == **argv)
                         {
                             process_arg(arg_state, i, &argv);
                             break;
                         }
                     }
+                }
             }
         }
         else
@@ -172,9 +202,13 @@ void usage(ArgumentState* arg_state, char* arg_unused)
     for (i = 0;; i++)
     {
         if (!desc[i].name)
+        {
             break;
+        }
         if (!desc[i].description)
+        {
             continue;
+        }
         fprintf(stderr,
                 "  %c%c%c --%s%s%s",
                 desc[i].key != ' ' ? '-' : ' ',
@@ -214,7 +248,9 @@ void usage(ArgumentState* arg_state, char* arg_unused)
                 if (*(char*) desc[i].location)
                 {
                     if (strlen((char*) desc[i].location) < 10)
+                    {
                         fprintf(stderr, " %-9s", (char*) desc[i].location);
+                    }
                     else
                     {
                         ((char*) desc[i].location)[7] = 0;
@@ -222,7 +258,9 @@ void usage(ArgumentState* arg_state, char* arg_unused)
                     }
                 }
                 else
+                {
                     fprintf(stderr, " (null)   ");
+                }
                 break;
             case 'D':
                 fprintf(stderr, " %-9.3e", *(double*) desc[i].location);
@@ -247,5 +285,7 @@ void usage(ArgumentState* arg_state, char* arg_unused)
 void free_args(ArgumentState* arg_state)
 {
     if (arg_state->file_argument)
+    {
         FREE(arg_state->file_argument);
+    }
 }

@@ -20,16 +20,22 @@ char* d_dup_pathname_str(const char* s)
 {
     const char* e = s;
     if (!s)
+    {
         return dup_str("", 0);
+    }
     if (*e == '"')
     {
         e++;
         while (*e && *e != '"')
+        {
             e++;
+        }
         return dup_str(s + 1, e);
     }
     else
+    {
         return dup_str(s, s + strlen(s));
+    }
 }
 
 char* dup_str(const char* s, const char* e)
@@ -50,7 +56,9 @@ uint strhashl(const char* s, int l)
     {
         h = (h << 4) + *s;
         if ((g = h & 0xf0000000))
+        {
             h = (h ^ (g >> 24)) ^ g;
+        }
     }
     return h;
 }
@@ -64,7 +72,9 @@ int buf_read(const char* pathname, char** buf, int* len)
     *len = 0;
     fd = open(pathname, O_RDONLY);
     if (fd <= 0)
+    {
         return -1;
+    }
     memset(&sb, 0, sizeof(sb));
     fstat(fd, &sb);
     *len = sb.st_size;
@@ -84,7 +94,9 @@ char* sbuf_read(const char* pathname)
     int len;
 
     if (buf_read(pathname, &buf, &len) < 0)
+    {
         return NULL;
+    }
     return buf;
 }
 
@@ -151,10 +163,16 @@ int vec_eq(void* v, void* vv)
     uint i;
 
     if (av->n != avv->n)
+    {
         return 0;
+    }
     for (i = 0; i < av->n; i++)
+    {
         if (av->v[i] != avv->v[i])
+        {
             return 0;
+        }
+    }
     return 1;
 }
 
@@ -167,7 +185,9 @@ void* stack_push_internal(AbstractStack* s, void* elem)
         memcpy(s->cur, s->start, n * sizeof(void*));
     }
     else
+    {
         s->cur = (void**) REALLOC(s->start, n * 2 * sizeof(void*));
+    }
     s->end = s->start = s->cur;
     s->cur += n;
     s->end += n * 2;
@@ -192,7 +212,9 @@ int set_find(void* av, void* t)
                 return 0;
             }
             else if (v->v[i] == t)
+            {
                 return 1;
+            }
         }
     }
     return 0;
@@ -216,7 +238,9 @@ int set_add(void* av, void* t)
                 return 1;
             }
             else if (v->v[i] == t)
+            {
                 return 0;
+            }
         }
     }
     if (!n)
@@ -261,7 +285,9 @@ void* set_add_fn(void* av, void* t, hash_fns_t* fns)
             else
             {
                 if (!fns->cmp_fn(v->v[i], t, fns))
+                {
                     return v->v[i];
+                }
             }
         }
     }
@@ -293,8 +319,12 @@ int set_union(void* av, void* avv)
     uint i, changed = 0;
 
     for (i = 0; i < vv->n; i++)
+    {
         if (vv->v[i])
+        {
             changed = set_add(av, vv->v[i]) || changed;
+        }
+    }
     return changed;
 }
 
@@ -304,8 +334,12 @@ void set_union_fn(void* av, void* avv, hash_fns_t* fns)
     uint i;
 
     for (i = 0; i < vv->n; i++)
+    {
         if (vv->v[i])
+        {
             set_add_fn(av, vv->v[i], fns);
+        }
+    }
 }
 
 void set_to_vec(void* av)
@@ -323,8 +357,12 @@ void set_to_vec(void* av)
     v->n = 0;
     v->v = 0;
     for (i = 0; i < vv.n; i++)
+    {
         if (vv.v[i])
+        {
             vec_add_internal(v, vv.v[i]);
+        }
+    }
     FREE(vv.v);
 }
 
@@ -333,12 +371,16 @@ void int_list_diff(int* a, int* b, int* c)
     while (1)
     {
         if (*b < 0)
+        {
             break;
+        }
     Lagainc:
         if (*c < 0)
         {
             while (*b >= 0)
+            {
                 *a++ = *b++;
+            }
             break;
         }
     Lagainb:
@@ -352,7 +394,9 @@ void int_list_diff(int* a, int* b, int* c)
         {
             *a++ = *b++;
             if (*b < 0)
+            {
                 break;
+            }
             goto Lagainb;
         }
         if (*c < *b)
@@ -369,10 +413,14 @@ void int_list_intersect(int* a, int* b, int* c)
     while (1)
     {
         if (*b < 0)
+        {
             break;
+        }
     Lagainc:
         if (*c < 0)
+        {
             break;
+        }
     Lagainb:
         if (*b == *c)
         {
@@ -384,7 +432,9 @@ void int_list_intersect(int* a, int* b, int* c)
         {
             b++;
             if (*b < 0)
+            {
                 break;
+            }
             goto Lagainb;
         }
         if (*c < *b)
@@ -457,7 +507,9 @@ static char* escape_string_internal(char* s, int single_quote)
                 break;
             default:
                 if (isprint_(*s))
+                {
                     *ss++ = *s;
+                }
                 else
                 {
                     *ss++ = '\\';
