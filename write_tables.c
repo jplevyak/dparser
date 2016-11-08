@@ -476,9 +476,9 @@ scanner_size(State *s) {
 }
 
 #define copy_func(name, type) static void name(void *dest, int data) { (*(type*)(dest)) = (data); }
-copy_func(unsigned_char_copy, unsigned char);
-copy_func(unsigned_short_copy, unsigned short);
-copy_func(unsigned_int_copy, unsigned int);
+copy_func(unsigned_char_copy, unsigned char)
+copy_func(unsigned_short_copy, unsigned short)
+copy_func(unsigned_int_copy, unsigned int)
 
 static CopyFuncType
 get_copy_func(int i) {
