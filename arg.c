@@ -156,17 +156,13 @@ usage(ArgumentState *arg_state, char *arg_unused) {
       case 0: fprintf(stderr, "          "); break;
       case 'L':
         fprintf(stderr,
-#ifdef __alpha
+#if defined(__alpha)
                 " %-9ld",
 #else
-#ifdef FreeBSD
+#if defined(FreeBSD)
                 " %-9qd",
 #else
-#ifdef __MINGW32__
-                " %-9I64d",
-#else
-                " %-9lld",
-#endif
+               " %-9" PRId64,
 #endif
 #endif
                 *(int64*)desc[i].location);

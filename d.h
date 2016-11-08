@@ -4,6 +4,7 @@
 #ifndef _d_H_
 #define _d_H_
 
+#define __USE_MINGW_ANSI_STDIO 1
 #ifdef MEMWATCH
 #define MEMWATCH_STDIO 1
 #include "../../src/memwatch-2.67/memwatch.h"
@@ -75,19 +76,15 @@ D_BUILD_VERSION)
 ((((_x)>>4) > 9) ? (((_x)>>4) - 10 + 'A') : (((_x)>>4) + '0'))
 #define numberof(_x) ((sizeof(_x))/(sizeof((_x)[0])))
 
-typedef char int8;
-typedef unsigned char uint8;
-typedef int int32;
-typedef unsigned int uint32;
-typedef long long int64;
-typedef unsigned long long uint64;
-typedef short int16;
-typedef unsigned short uint16;
-#ifdef __MINGW32__
-/* already part of most systems */
-typedef unsigned long ulong;
-typedef uint32 uint; 
-#endif
+typedef int8_t int8;
+typedef uint8_t uint8;
+typedef int32_t int32;
+typedef uint32_t uint32;
+typedef int64_t int64;
+typedef uint64_t  uint64;
+typedef int16_t int16;
+typedef uint16_t uint16;
+typedef unsigned int uint;
 
 #include "dparse.h"
 #include "arg.h"

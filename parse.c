@@ -68,7 +68,7 @@ xprint_paren(Parser *pp, PNode *p) {
   char *c;
   LATEST(pp, p);
   if (!p->error_recovery) {
-    printf("[%p %s]", p, pp->t->symbols[p->parse_node.symbol].name);
+    printf("[%p %s]", (void*)p, pp->t->symbols[p->parse_node.symbol].name);
     if (p->children.n) {
       printf("(");
       for (i = 0; i < p->children.n; i++)
