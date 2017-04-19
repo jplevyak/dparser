@@ -88,6 +88,8 @@ ifdef D_PROFILE
 CFLAGS += -pg
 endif
 
+CFLAGS += -Wpedantic
+
 AUX_FILES = d/Makefile d/COPYRIGHT d/README d/CHANGES d/4calc.g d/4calc.in d/my.g d/my.c d/index.html d/manual.html d/faq.html d/make_dparser.1 d/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
 TEST_FILES = d/parser_tests d/baseline $(TESTS:%=d/%)

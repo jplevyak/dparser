@@ -19,6 +19,10 @@ read_binary_tables_internal(FILE *fp, unsigned char *str,
   int i;
   BinaryTables * binary_tables = MALLOC(sizeof(BinaryTables));
   char *tables_buf, *strings_buf;
+  struct P { D_ReductionCode code; };
+  struct P p_spec_code, p_final_code;
+  p_spec_code.code = spec_code;
+  p_final_code.code = final_code;
 
   read_chk(&tables, sizeof(BinaryTablesHead), 1, fp, &str);
 
@@ -37,17 +41,17 @@ read_binary_tables_internal(FILE *fp, unsigned char *str,
     if (*intptr == -1) {
       *ptr = (void*)0;
     } else if (*intptr == -2) {
-      *ptr = (void*)spec_code;
+      *ptr = *(void**)&p_spec_code;
     } else if (*intptr == -3) {
-      *ptr = (void*)final_code;
+      *ptr = *(void**)&p_final_code;
     } else {
-      *ptr += (intptr_t)tables_buf;
+      *((char**)ptr) += (intptr_t)tables_buf;
     }
   }
   for (i=0; i<tables.n_strings; i++) {
     intptr_t offset;
     read_chk((void*)&offset, sizeof(intptr_t), 1, fp, &str);
-    *(void**)(tables_buf+offset) += (intptr_t)strings_buf;
+    *((char**)(tables_buf+offset)) += (intptr_t)strings_buf;
   }
   if (fp)
     fclose(fp);
