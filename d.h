@@ -19,16 +19,18 @@
 #endif
 #include <limits.h>
 #include <sys/types.h>
-#ifndef __MINGW32__
+#if !defined(__MINGW32__) && !defined(WIN32)
 #include <sys/mman.h>
 #include <sys/uio.h>
 #endif
+#if !defined(WIN32)
 #include <unistd.h>
+#include <sys/time.h>
+#include <dirent.h>
+#endif
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <dirent.h>
 #include <ctype.h>
 #include <string.h>
 
