@@ -3,10 +3,14 @@
 */
 #include "d.h"
 
+const char * git_commit_id = "$Id: $";
+
 void
 d_version(char *v) {
+  char scommit[43];
+  strcpy(scommit, &git_commit_id[5]);
+  scommit[40] = '\0';
   v += sprintf(v, "%d.%d", D_MAJOR_VERSION, D_MINOR_VERSION);
-  if (strcmp("",D_BUILD_VERSION))
-    v += sprintf(v, ".%s", D_BUILD_VERSION);
+  v += sprintf(v, ".%s", scommit);
 }
 
