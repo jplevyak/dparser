@@ -28,7 +28,7 @@ add_dependencies(sample_parser make_dparser)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sample.g.d_parser.c
   DEPENDS make_dparser sample.g
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} VERBATIM
-  COMMAND make_dparser ${CMAKE_CURRENT_SOURCE_DIR}/sample.g
+  COMMAND $<TARGET_FILE:make_dparser> ${CMAKE_CURRENT_SOURCE_DIR}/sample.g -o ${CMAKE_CURRENT_BINARY_DIR}/sample.g.d_parser.c
 )
 
 add_executable(test_parser
@@ -41,7 +41,7 @@ add_dependencies(test_parser make_dparser)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/my.g.d_parser.c
   DEPENDS make_dparser my.g
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} VERBATIM
-  COMMAND make_dparser ${CMAKE_CURRENT_SOURCE_DIR}/my.g
+  COMMAND $<TARGET_FILE:make_dparser> ${CMAKE_CURRENT_SOURCE_DIR}/my.g -o ${CMAKE_CURRENT_BINARY_DIR}/my.g.d_parser.c
 )
 
 add_library(mkdparse STATIC
@@ -86,6 +86,7 @@ macro(d_comple_defs _target)
   if(${LEAK_DETECT})
     target_compile_definitions(${_target} PRIVATE -DLEAK_DETECT)
   endif()
+  target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
 d_comple_defs(make_dparser)
