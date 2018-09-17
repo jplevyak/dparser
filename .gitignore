@@ -9,3 +9,4 @@ test_parser
 sample_parser
 /.build
 /.vs
+/.install

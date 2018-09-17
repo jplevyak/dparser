@@ -3,7 +3,7 @@
 */
 #include "d.h"
 
-const char * git_commit_id = "$Id: $";
+const char * git_commit_id = "$Id$";
 
 void
 d_version(char *v) {
