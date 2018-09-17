@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.0)
 
 project(dparser VERSION 1.30.0.0)
 
+include(CPack)
+include(GenerateExportHeader)
+include(CMakePackageConfigHelpers)
+
 option(DEBUG "DEBUG" FALSE)
 option(OPTIMIZE "OPTIMIZE" TRUE)
 option(PROFILE "PROFILE" FALSE)
@@ -9,9 +13,6 @@ option(USE_GC "USE_GC" FALSE)
 option(LEAK_DETECT "LEAK_DETECT" FALSE)
 option(USE_FREELISTS "OPTIMIZE" TRUE)
 
-if(${USE_GC})
-  
-endif()
 
 add_executable(make_dparser
   make_dparser.c
@@ -65,8 +66,6 @@ add_library(dparse STATIC
   version.c
 )
 
-
-
 target_link_libraries(make_dparser PRIVATE mkdparse dparse)
 target_link_libraries(sample_parser PRIVATE mkdparse dparse)
 target_link_libraries(test_parser PRIVATE mkdparse dparse)
@@ -75,7 +74,6 @@ macro(d_comple_defs _target)
   target_compile_definitions(${_target} PRIVATE 
     -DD_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
     -DD_MINOR_VERSION=${PROJECT_VERSION_MINOR}
-    -DD_BUILD_VERSION="${PROJECT_VERSION}"
   )
   if(${DEBUG})
     target_compile_definitions(${_target} PRIVATE -DDEBUG -D_DEBUG)
@@ -95,3 +93,43 @@ d_comple_defs(test_parser)
 d_comple_defs(mkdparse)
 d_comple_defs(dparse)
 
+generate_export_header(dparse)
+
+install(
+  TARGETS make_dparser sample_parser test_parser
+  EXPORT DParseTargets
+  RUNTIME DESTINATION bin
+)
+install(
+  TARGETS mkdparse dparse
+  EXPORT DParseTargets
+  ARCHIVE DESTINATION lib
+)
+install(
+  FILES d.h dparse.h
+  DESTINATION include
+)
+configure_file(dparser-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake @ONLY)
+install(
+  FILES dparser-generate.cmake ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake
+  DESTINATION lib/cmake/dparser
+)
+
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/DParseVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT DParseTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/DParseTargets.cmake"
+  NAMESPACE dparser::
+)
+
+install(
+  EXPORT DParseTargets
+  FILE DParseTargets.cmake
+  NAMESPACE dparser::
+  DESTINATION lib/cmake/dparser
+)
