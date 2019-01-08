@@ -7,7 +7,7 @@
 
 extern D_ParserTables parser_tables_dparser_gram;
 
-#define SIZEOF_MY_PARSE_NODE	100	/* permit test cases up to this size */
+#define SIZEOF_MY_PARSE_NODE 100 /* permit test cases up to this size */
 
 static int save_parse_tree = 1;
 static int partial_parses = 0;
@@ -31,61 +31,37 @@ static int scanner_block_size;
 static void help(ArgumentState *arg_state, char *arg_unused);
 
 ArgumentDescription arg_desc[] = {
- {"longest_match", 'l', "Use Longest Match Rule for Tokens", "T",
-  &longest_match, "D_MAKE_LONGEST_MATCH", NULL},
- {"tokenizer", 'T', "Tokenizer for START", "T", &tokenizer,
-  "D_MAKE_PARSER_TOKENIZER", NULL},
- {"whitespace_states", 'C', "Compute Whitespace States", "T",
-  &states_for_whitespace,  "D_MAKE_PARSER_WHITESPACE", NULL},
- {"all_states", 'A', "Compute States For All NTERMs", "T",
-  &states_for_all_nterms,  "D_MAKE_PARSER_ALL_NTERMS", NULL},
- {"scanner_blocks", 'b', "Scanner Blocks", "I", &scanner_blocks,
-  "D_MAKE_PARSER_SCANNER_BLOCKS", NULL},
- {"op_pri_from_rule", 'p', "Set Operator Priority From Rule", "T",
-  &set_op_priority_from_rule, "D_MAKE_PARSER_SET_PRIORITY", NULL},
- {"right_recurse_BNF", 'r', "Use Right Recursion For */+", "T",
-  &right_recursive_BNF, "D_MAKE_PARSER_RIGHT_RECURSIVE_BNF", NULL},
+    {"longest_match", 'l', "Use Longest Match Rule for Tokens", "T", &longest_match, "D_MAKE_LONGEST_MATCH", NULL},
+    {"tokenizer", 'T', "Tokenizer for START", "T", &tokenizer, "D_MAKE_PARSER_TOKENIZER", NULL},
+    {"whitespace_states", 'C', "Compute Whitespace States", "T", &states_for_whitespace, "D_MAKE_PARSER_WHITESPACE",
+     NULL},
+    {"all_states", 'A', "Compute States For All NTERMs", "T", &states_for_all_nterms, "D_MAKE_PARSER_ALL_NTERMS", NULL},
+    {"scanner_blocks", 'b', "Scanner Blocks", "I", &scanner_blocks, "D_MAKE_PARSER_SCANNER_BLOCKS", NULL},
+    {"op_pri_from_rule", 'p', "Set Operator Priority From Rule", "T", &set_op_priority_from_rule,
+     "D_MAKE_PARSER_SET_PRIORITY", NULL},
+    {"right_recurse_BNF", 'r', "Use Right Recursion For */+", "T", &right_recursive_BNF,
+     "D_MAKE_PARSER_RIGHT_RECURSIVE_BNF", NULL},
 
- {"start_state", 'S', "Start State", "I", &start_state, 
-  "D_PARSE_START_STATE", NULL},
- {"save_parse_tree", 's', "Save Parse Tree", "T", &save_parse_tree, 
-  "D_PARSE_SAVE_PARSE_TREE", NULL},
- {"partial_parses", 'p', "Partial Parses", "T", &partial_parses, 
-  "D_PARSE_PARTIAL_PARSES", NULL},
- {"compare_stacks", 'c', "Compare Stacks", "T", &compare_stacks, 
-  "D_PARSE_COMPARE_STACKS", NULL},
- {"commit_interval", 'i', "Commit Interval", "I", &commit_actions_interval, 
-  "D_PARSE_COMMIT_INTERVAL", NULL},
- {"fixup", 'f', "Fixup Internal Productions", "T", &fixup, 
-  "D_PARSE_FIXUP", NULL},
- {"fixup_ebnf", 'e', "Fixup EBNF Productions", "T", &fixup_ebnf, 
-  "D_PARSE_FIXUP_EBNF", NULL},
+    {"start_state", 'S', "Start State", "I", &start_state, "D_PARSE_START_STATE", NULL},
+    {"save_parse_tree", 's', "Save Parse Tree", "T", &save_parse_tree, "D_PARSE_SAVE_PARSE_TREE", NULL},
+    {"partial_parses", 'p', "Partial Parses", "T", &partial_parses, "D_PARSE_PARTIAL_PARSES", NULL},
+    {"compare_stacks", 'c', "Compare Stacks", "T", &compare_stacks, "D_PARSE_COMPARE_STACKS", NULL},
+    {"commit_interval", 'i', "Commit Interval", "I", &commit_actions_interval, "D_PARSE_COMMIT_INTERVAL", NULL},
+    {"fixup", 'f', "Fixup Internal Productions", "T", &fixup, "D_PARSE_FIXUP", NULL},
+    {"fixup_ebnf", 'e', "Fixup EBNF Productions", "T", &fixup_ebnf, "D_PARSE_FIXUP_EBNF", NULL},
 
- {"noheight", 'H', "Do not use Height Disambiguization", "T", &no_height_disamb, 
-  "D_PARSE_NO_HEIGHT_DISAMB", NULL},
- {"nogreedy", 'G', "Do not use Greedy Disambiguization", "T", &no_greedy_disamb, 
-  "D_PARSE_NO_GREEDY_DISAMB", NULL},
+    {"noheight", 'H', "Do not use Height Disambiguization", "T", &no_height_disamb, "D_PARSE_NO_HEIGHT_DISAMB", NULL},
+    {"nogreedy", 'G', "Do not use Greedy Disambiguization", "T", &no_greedy_disamb, "D_PARSE_NO_GREEDY_DISAMB", NULL},
 
+    {"verbose", 'v', "Verbose", "+", &d_verbose_level, "D_PARSE_VERBOSE", NULL},
+    {"test", 't', "Test", "+", &test_level, "D_PARSE_TEST", NULL},
+    {"debug", 'd', "Debug", "+", &d_debug_level, "D_PARSE_DEBUG", NULL},
+    {"help", 'h', "Help", NULL, NULL, NULL, help},
+    {0}};
 
- {"verbose", 'v', "Verbose", "+", &d_verbose_level, 
-  "D_PARSE_VERBOSE", NULL},
- {"test", 't', "Test", "+", &test_level, 
-  "D_PARSE_TEST", NULL},
- {"debug", 'd', "Debug", "+", &d_debug_level, 
-  "D_PARSE_DEBUG", NULL},
- {"help", 'h', "Help", NULL, NULL, 
-  NULL, help},
- {0}
-};
+ArgumentState arg_state = {0, 0, "program", arg_desc};
 
-ArgumentState arg_state = {
-  0, 0,
-  "program", 
-  arg_desc
-};
-
-static void
-help(ArgumentState *arg_state, char *arg_unused) {
+static void help(ArgumentState *arg_state, char *arg_unused) {
   char ver[30];
   d_version(ver);
   fprintf(stderr, "Test DParser Version %s ", ver);
@@ -94,10 +70,8 @@ help(ArgumentState *arg_state, char *arg_unused) {
 }
 
 char *ops = "+";
-void *ops_cache = NULL; 
-int ops_scan(char *ops, void *ops_cache, d_loc_t *loc,
-	     unsigned char *op_assoc, int *op_priority) 
-{
+void *ops_cache = NULL;
+int ops_scan(char *ops, void *ops_cache, d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
   if (loc->s[0] == '+') {
     loc->s++;
     *op_assoc = ASSOC_BINARY_LEFT;
@@ -107,20 +81,11 @@ int ops_scan(char *ops, void *ops_cache, d_loc_t *loc,
   return 0;
 }
 
-int spec_code(void *new_ps, void **children, int n_children, int pn_offset, 
-              struct D_Parser *parser)
-{
-  return 0;
-}
+int spec_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { return 0; }
 
-int final_code(void *new_ps, void **children, int n_children, int pn_offset, 
-               struct D_Parser *parser)
-{
-  return 0;
-}
+int final_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { return 0; }
 
-int
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   int i, len = 0;
   char *buf = NULL, *fn, *grammar_pathname;
   D_Parser *p;
@@ -128,11 +93,10 @@ main(int argc, char *argv[]) {
   unsigned char *str = NULL;
   unsigned int str_len;
   Grammar *g;
-  BinaryTables * binary_tables;
+  BinaryTables *binary_tables;
 
   process_args(&arg_state, argv);
-  if (arg_state.nfile_arguments < 2)
-    help(&arg_state, NULL);
+  if (arg_state.nfile_arguments < 2) help(&arg_state, NULL);
 
   /* build grammar */
   grammar_pathname = arg_state.file_argument[0];
@@ -145,11 +109,12 @@ main(int argc, char *argv[]) {
   g->longest_match = longest_match;
   g->scanner_blocks = scanner_blocks;
   g->scanner_block_size = scanner_block_size;
-  
-  if (!(str = (unsigned char*)sbuf_read(grammar_pathname)))
+
+  if (!(str = (unsigned char *)sbuf_read(grammar_pathname)))
     d_fail("unable to read grammar file '%s'", grammar_pathname);
-  mkdparse_from_string(g, (char*)str);
-  d_free(str); str = 0;
+  mkdparse_from_string(g, (char *)str);
+  d_free(str);
+  str = 0;
   if (write_binary_tables_to_string(g, &str, &str_len) < 0)
     d_fail("unable to write tables to string '%s'", grammar_pathname);
   free_D_Grammar(g);
@@ -174,7 +139,7 @@ main(int argc, char *argv[]) {
     p->loc.col = 0;
     if (buf_read(arg_state.file_argument[i], &buf, &len) > 0)
       pn = dparse(p, buf, len);
-    else 
+    else
       d_fail("unable to read file '%s'", arg_state.file_argument[i]);
     if (pn) {
       free_D_ParseNode(p, pn);
@@ -184,12 +149,10 @@ main(int argc, char *argv[]) {
       fprintf(stderr, "fatal error, '%s' line %d\n", fn, p->loc.line);
       FREE(fn);
     }
-    if (buf)
-      FREE(buf);
+    if (buf) FREE(buf);
   }
   free_BinaryTables(binary_tables);
   free_D_Parser(p);
   free_args(&arg_state);
   exit(0);
 }
-

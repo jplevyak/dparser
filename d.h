@@ -36,9 +36,9 @@
 #define GC_DEBUG
 #include "gc.h"
 #define MALLOC(n) GC_MALLOC(n)
-#define CALLOC(m,n) GC_MALLOC((m)*(n))
+#define CALLOC(m, n) GC_MALLOC((m) * (n))
 #define FREE(p) GC_FREE(p)
-#define REALLOC(p,n) GC_REALLOC((p),(n))
+#define REALLOC(p, n) GC_REALLOC((p), (n))
 #define CHECK_LEAKS() GC_gcollect()
 #else
 #ifdef USE_GC
@@ -62,26 +62,22 @@
 #define isxdigit_(_c) isxdigit((unsigned char)(_c))
 #define isprint_(_c) isprint((unsigned char)(_c))
 
-#define D_VERSION			(\
-(D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + \
-D_BUILD_VERSION)
-                         
-/* Compilation Options 
-*/
+#define D_VERSION ((D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + D_BUILD_VERSION)
 
-#define round2(_x,_n) ((_x + ((_n)-1)) & ~((_n)-1))
-#define tohex1(_x) \
-((((_x)&15) > 9) ? (((_x)&15) - 10 + 'A') : (((_x)&15) + '0'))
-#define tohex2(_x) \
-((((_x)>>4) > 9) ? (((_x)>>4) - 10 + 'A') : (((_x)>>4) + '0'))
-#define numberof(_x) ((sizeof(_x))/(sizeof((_x)[0])))
+/* Compilation Options
+ */
+
+#define round2(_x, _n) ((_x + ((_n)-1)) & ~((_n)-1))
+#define tohex1(_x) ((((_x)&15) > 9) ? (((_x)&15) - 10 + 'A') : (((_x)&15) + '0'))
+#define tohex2(_x) ((((_x) >> 4) > 9) ? (((_x) >> 4) - 10 + 'A') : (((_x) >> 4) + '0'))
+#define numberof(_x) ((sizeof(_x)) / (sizeof((_x)[0])))
 
 typedef int8_t int8;
 typedef uint8_t uint8;
 typedef int32_t int32;
 typedef uint32_t uint32;
 typedef int64_t int64;
-typedef uint64_t  uint64;
+typedef uint64_t uint64;
 typedef int16_t int16;
 typedef uint16_t uint16;
 typedef unsigned int uint;
@@ -98,13 +94,16 @@ typedef unsigned int uint;
 #include "read_binary.h"
 
 #ifdef D_DEBUG
-#define DBG(_x) if (d_debug_level>1) { _x; }
+#define DBG(_x)            \
+  if (d_debug_level > 1) { \
+    _x;                    \
+  }
 #else
 #define DBG(_x)
 #endif
 
 void d_version(char *);
 
-#define USE_SCANNER		1
+#define USE_SCANNER 1
 
 #endif

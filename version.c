@@ -3,10 +3,7 @@
 */
 #include "d.h"
 
-void
-d_version(char *v) {
+void d_version(char *v) {
   v += sprintf(v, "%d.%d", D_MAJOR_VERSION, D_MINOR_VERSION);
-  if (strcmp("",D_BUILD_VERSION))
-    v += sprintf(v, ".%s", D_BUILD_VERSION);
+  if (strcmp("", D_BUILD_VERSION)) v += sprintf(v, ".%s", D_BUILD_VERSION);
 }
-

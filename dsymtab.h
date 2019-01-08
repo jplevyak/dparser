@@ -12,33 +12,33 @@ struct D_SymHash;
 struct D_Scope;
 
 typedef struct D_Sym {
-  char		 *name;
-  int		 len;
-  unsigned int	 hash;
+  char *name;
+  int len;
+  unsigned int hash;
   struct D_Scope *scope;
-  struct D_Sym	 *update_of;
-  struct D_Sym	 *next;
-  D_UserSym	 user;
+  struct D_Sym *update_of;
+  struct D_Sym *next;
+  D_UserSym user;
 } D_Sym;
 
-#define D_SCOPE_INHERIT			0
-#define D_SCOPE_RECURSIVE		1
-#define D_SCOPE_PARALLEL		2
-#define D_SCOPE_SEQUENTIAL		3
+#define D_SCOPE_INHERIT 0
+#define D_SCOPE_RECURSIVE 1
+#define D_SCOPE_PARALLEL 2
+#define D_SCOPE_SEQUENTIAL 3
 
 typedef struct D_Scope {
-  unsigned int		kind:2;
-  unsigned int		owned_by_user:1; /* don't automatically delete */
-  unsigned int		depth;
-  D_Sym		 	*ll;
-  struct D_SymHash	*hash;
-  D_Sym		 	*updates;
-  struct D_Scope *search;       /* scope to start search */
-  struct D_Scope *dynamic;      /* dynamic scope (e.g. methods) */
-  struct D_Scope *up;		/* enclosing scope */
-  struct D_Scope *up_updates;	/* prior scope in speculative parse */
-  struct D_Scope *down;		/* enclosed scopes (for FREE) */
-  struct D_Scope *down_next;	/* next enclosed scope */
+  unsigned int kind : 2;
+  unsigned int owned_by_user : 1; /* don't automatically delete */
+  unsigned int depth;
+  D_Sym *ll;
+  struct D_SymHash *hash;
+  D_Sym *updates;
+  struct D_Scope *search;     /* scope to start search */
+  struct D_Scope *dynamic;    /* dynamic scope (e.g. methods) */
+  struct D_Scope *up;         /* enclosing scope */
+  struct D_Scope *up_updates; /* prior scope in speculative parse */
+  struct D_Scope *down;       /* enclosed scopes (for FREE) */
+  struct D_Scope *down_next;  /* next enclosed scope */
 } D_Scope;
 
 D_Scope *new_D_Scope(D_Scope *parent);

@@ -10,7 +10,7 @@
 #endif
 
 /* Argument Handling
-*/
+ */
 struct ArgumentState;
 
 typedef void ArgumentFunction(struct ArgumentState *arg_state, char *arg);
