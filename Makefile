@@ -8,7 +8,7 @@ D_OPTIMIZE=1
 D_USE_FREELISTS=1
 
 MAJOR=1
-MINOR=30
+MINOR=31
 RELEASE=$(MAJOR).$(MINOR)
 
 CC = gcc
@@ -90,14 +90,14 @@ endif
 
 CFLAGS += -pedantic
 
-AUX_FILES = d/Makefile d/COPYRIGHT d/README d/CHANGES d/4calc.g d/4calc.in d/my.g d/my.c d/index.html d/manual.html d/faq.html d/make_dparser.1 d/make_dparser.cat
+AUX_FILES = dparser/Makefile dparser/COPYRIGHT dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
-TEST_FILES = d/parser_tests d/baseline $(TESTS:%=d/%)
-PYTHON_FILES = d/python/Makefile d/python/*.py d/python/*.c d/python/*.h d/python/*.i d/python/README d/python/*.html d/python/contrib/d* d/python/tests/*.py
-VERILOG_FILES = d/verilog/Makefile d/verilog/verilog.g d/verilog/README d/verilog/ambig.c \
-d/verilog/main.c d/verilog/vparse.c d/verilog/vparse.h d/verilog/verilog_tests
-TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) d/D_BUILD_VERSION \
-d/grammar.g d/sample.g d/my.g 
+TEST_FILES = dparser/parser_tests dparser/baseline $(TESTS:%=dparser/%)
+PYTHON_FILES = dparser/python/Makefile dparser/python/*.py dparser/python/*.c dparser/python/*.h dparser/python/*.i dparser/python/README dparser/python/*.html dparser/python/contrib/d* dparser/python/tests/*.py
+VERILOG_FILES = dparser/verilog/Makefile dparser/verilog/verilog.g dparser/verilog/README dparser/verilog/ambig.c \
+dparser/verilog/main.c dparser/verilog/vparse.c dparser/verilog/vparse.h dparser/verilog/verilog_tests
+TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) dparser/D_BUILD_VERSION \
+dparser/grammar.g dparser/sample.g dparser/my.g 
 
 LIB_SRCS = arg.c parse.c scan.c symtab.c util.c read_binary.c dparse_tree.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
@@ -207,10 +207,10 @@ D_BUILD_VERSION:
 	mv D_BUILD_VERSION.tmp D_BUILD_VERSION
 
 tar:
-	(cd ..;tar czf d-$(RELEASE)-src.tar.gz d/*.c d/*.h $(TAR_FILES)) 
+	(cd ..;tar czf dparser-$(RELEASE)-src.tar.gz dparser/*.c dparser/*.h $(TAR_FILES)) 
 
 bintar:
-	(cd ..;tar czf d-$(RELEASE)-$(OS_TYPE)-bin.tar.gz $(AUX_FILES) $(LIBRARIES:%=d/%) $(INCLUDES:%=d/%) $(EXECUTABLE_FILES:%=d/%))
+	(cd ..;tar czf d-$(RELEASE)-$(OS_TYPE)-bin.tar.gz $(AUX_FILES) $(LIBRARIES:%=dparser/%) $(INCLUDES:%=dparser/%) $(EXECUTABLE_FILES:%=dparser/%))
 
 clean:
 	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
