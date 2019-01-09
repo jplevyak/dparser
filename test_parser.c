@@ -83,9 +83,23 @@ int ops_scan(char *ops, void *ops_cache, d_loc_t *loc, unsigned char *op_assoc, 
   return 0;
 }
 
-int spec_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { (void)new_ps; (void)children; (void)n_children; (void)pn_offset; (void)parser; return 0; }
+int spec_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) {
+  (void)new_ps;
+  (void)children;
+  (void)n_children;
+  (void)pn_offset;
+  (void)parser;
+  return 0;
+}
 
-int final_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { (void)new_ps; (void)children; (void)n_children; (void)pn_offset; (void)parser; return 0; }
+int final_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) {
+  (void)new_ps;
+  (void)children;
+  (void)n_children;
+  (void)pn_offset;
+  (void)parser;
+  return 0;
+}
 
 int main(int argc, char *argv[]) {
   int i, len = 0;

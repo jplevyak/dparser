@@ -35,8 +35,8 @@ typedef struct D_Parser {
   D_SyntaxErrorFn syntax_error_fn;
   D_AmbiguityFn ambiguity_fn;
   D_FreeNodeFn free_node_fn;
-  d_loc_t loc;      /* initial location, set on error */
-  int start_state;  /* do not move or change without fixing copy_user_configurables() */
+  d_loc_t loc;     /* initial location, set on error */
+  int start_state; /* do not move or change without fixing copy_user_configurables() */
   /* user configurables */
   int sizeof_user_parse_node;
   int save_parse_tree;
@@ -50,7 +50,7 @@ typedef struct D_Parser {
   int error_recovery;
   int partial_parses;
   /* parse results */
-  int syntax_errors;  /* do not move or change without fixing copy_user_configurables() */
+  int syntax_errors; /* do not move or change without fixing copy_user_configurables() */
 } D_Parser;
 
 typedef struct D_ParseNode {

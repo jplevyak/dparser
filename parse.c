@@ -542,9 +542,8 @@ static int reduce_actions(Parser *p, PNode *pn, D_Reduction *r) {
 }
 
 #define x 666 /* impossible */
-static int child_table[4][3][6] = {
-  {
-    /* binary parent, child on left */
+static int child_table[4][3][6] = {{
+                                       /* binary parent, child on left */
                                        /* priority of child vs parent, or = with child|parent associativity
                                           > < =LL =LR =RL =RR
                                         */
@@ -569,8 +568,7 @@ static int child_table[4][3][6] = {
                                        {1, 0, x, 0, x, 0}, /* binary child */
                                        {1, 0, x, 1, x, x}, /* left unary child */
                                        {1, 1, x, x, x, 1}  /* right unary child */
-                                   }
-};
+                                   }};
 #undef x
 
 /* returns 1 if legal for child reduction and illegal for child shift */
@@ -855,7 +853,7 @@ static int greedycmp(const void *ax, const void *ay) {
 
 static int cmp_greediness(Parser *p, PNode *x, PNode *y) {
   uint ix = 0, iy = 0;
-  int  ret = 0;
+  int ret = 0;
 
   VecPNode pvx, pvy;
   vec_clear(&pvx);
@@ -987,7 +985,7 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
       return NULL;
     }
     if (path && path->n > 1) {
-      uint n = path->n;
+      uint n = path->n, i;
       for (i = 0; i < n; i += n - 1) {
         PNode *child = new_pn->children.v[i];
         if (child->assoc && new_pn->assoc &&
@@ -1964,7 +1962,9 @@ Ldone:
 }
 
 void null_white_space(D_Parser *p, d_loc_t *loc, void **p_globals) {
-  (void)p; (void)loc; (void)p_globals;
+  (void)p;
+  (void)loc;
+  (void)p_globals;
 }
 
 D_Parser *new_D_Parser(D_ParserTables *t, int sizeof_ParseNode_User) {

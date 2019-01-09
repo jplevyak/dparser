@@ -50,6 +50,8 @@ static void help(ArgumentState *arg_state, char *arg_unused) {
 char *ops = "+";
 void *ops_cache = NULL;
 int ops_scan(char *ops, void *ops_cache, d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
+  (void)ops;
+  (void)ops_cache;
   if (loc->s[0] == '+') {
     loc->s++;
     *op_assoc = ASSOC_BINARY_LEFT;
@@ -64,6 +66,7 @@ int main(int argc, char *argv[]) {
   char *buf = NULL, *fn;
   D_Parser *p;
   D_ParseNode *pn = NULL;
+  (void)argc;
 
   process_args(&arg_state, argv);
   if (!arg_state.nfile_arguments) help(&arg_state, NULL);
