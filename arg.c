@@ -93,7 +93,7 @@ void process_args(ArgumentState *arg_state, char **argv) {
             len = end - ((*argv) + 2);
           else
             len = strlen((*argv) + 2);
-          if (len == strlen(desc[i].name) && !strncmp(desc[i].name, (*argv) + 2, len)) {
+          if (len == (int)strlen(desc[i].name) && !strncmp(desc[i].name, (*argv) + 2, len)) {
             if (!end)
               *argv += strlen(*argv) - 1;
             else

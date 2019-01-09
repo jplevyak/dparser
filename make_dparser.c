@@ -64,6 +64,7 @@ static void help(ArgumentState *arg_state, char *arg_unused) {
 int main(int argc, char *argv[]) {
   char *grammar_pathname;
   Grammar *g;
+  (void)argc;
 
   process_args(&arg_state, argv);
   if (arg_state.nfile_arguments != 1) help(&arg_state, NULL);

@@ -49,13 +49,13 @@ static void free_DFAState(DFAState *y) {
 }
 
 static void free_VecDFAState(VecDFAState *dfas) {
-  int i;
+  uint i;
   for (i = 0; i < dfas->n; i++) free_DFAState(dfas->v[i]);
   vec_free(dfas);
 }
 
 static void free_NFAState(NFAState *y) {
-  int i;
+  uint i;
   for (i = 0; i < 256; i++) vec_free(&y->chars[i]);
   vec_free(&y->epsilon);
   vec_free(&y->accepts);
@@ -63,7 +63,7 @@ static void free_NFAState(NFAState *y) {
 }
 
 static void free_VecNFAState(VecNFAState *nfas) {
-  int i;
+  uint i;
   for (i = 0; i < nfas->n; i++) free_NFAState(nfas->v[i]);
   vec_free(nfas);
 }
@@ -81,7 +81,7 @@ static int nfacmp(const void *ai, const void *aj) {
 }
 
 static void nfa_closure(DFAState *x) {
-  int i, j, k;
+  uint i, j, k;
 
   for (i = 0; i < x->states.n; i++)
     for (j = 0; j < x->states.v[i]->epsilon.n; j++) {
@@ -95,7 +95,7 @@ static void nfa_closure(DFAState *x) {
 }
 
 static int eq_dfa_state(DFAState *x, DFAState *y) {
-  int i;
+  uint i;
 
   if (x->states.n != y->states.n) return 0;
   for (i = 0; i < x->states.n; i++)
@@ -104,7 +104,8 @@ static int eq_dfa_state(DFAState *x, DFAState *y) {
 }
 
 static void dfa_to_scanner(VecDFAState *alldfas, VecScanState *scanner) {
-  int i, j, k, highest, p;
+  uint i, j, k;
+  int highest, p;
 
   vec_clear(scanner);
   for (i = 0; i < alldfas->n; i++) {
@@ -132,7 +133,7 @@ static void dfa_to_scanner(VecDFAState *alldfas, VecScanState *scanner) {
 static void nfa_to_scanner(NFAState *n, Scanner *s) {
   DFAState *x = new_DFAState(), *y;
   VecDFAState alldfas;
-  int i, i_alldfas, i_states, i_char;
+  uint i, i_alldfas, i_states, i_char;
   VecScanState *scanner = &s->states;
 
   memset(&alldfas, 0, sizeof(alldfas));
@@ -264,7 +265,7 @@ Lerror:
 }
 
 static void action_diff(VecAction *a, VecAction *b, VecAction *c) {
-  int bb = 0, cc = 0;
+  uint bb = 0, cc = 0;
   while (1) {
     if (bb >= b->n) break;
   Lagainc:
@@ -289,7 +290,7 @@ static void action_diff(VecAction *a, VecAction *b, VecAction *c) {
 }
 
 static void action_intersect(VecAction *a, VecAction *b, VecAction *c) {
-  int bb = 0, cc = 0;
+  uint bb = 0, cc = 0;
   while (1) {
     if (bb >= b->n) break;
   Lagainc:
@@ -311,7 +312,7 @@ static void action_intersect(VecAction *a, VecAction *b, VecAction *c) {
 }
 
 static void compute_liveness(Scanner *scanner) {
-  int i, j, changed = 1;
+  uint i, j, changed = 1;
   ScanState *ss, *sss;
   VecScanState *states = &scanner->states;
 
@@ -340,8 +341,7 @@ static void compute_liveness(Scanner *scanner) {
 }
 
 static uint32 trans_hash_fn(ScanStateTransition *a, hash_fns_t *fns) {
-  uint h = 0;
-  int i;
+  uint h = 0, i;
 
   if (!fns->data[0])
     for (i = 0; i < a->live_diff.n; i++) h += 3 * a->live_diff.v[i]->index;
@@ -350,7 +350,7 @@ static uint32 trans_hash_fn(ScanStateTransition *a, hash_fns_t *fns) {
 }
 
 static int trans_cmp_fn(ScanStateTransition *a, ScanStateTransition *b, hash_fns_t *fns) {
-  int i;
+  uint i;
 
   if (!fns->data[0])
     if (a->live_diff.n != b->live_diff.n) return 1;
@@ -366,7 +366,7 @@ static int trans_cmp_fn(ScanStateTransition *a, ScanStateTransition *b, hash_fns
 static hash_fns_t trans_hash_fns = {(hash_fn_t)trans_hash_fn, (cmp_fn_t)trans_cmp_fn, {0, 0}};
 
 static void build_transitions(LexState *ls, Scanner *s) {
-  int i, j;
+  uint i, j;
   ScanState *ss;
   ScanStateTransition *trans = NULL, *x;
   VecScanState *states = &s->states;
@@ -412,7 +412,7 @@ static void build_state_scanner(Grammar *g, LexState *ls, State *s) {
   NFAState *n, *nn, *nnn;
   Action *a;
   uint8 *c, *reg;
-  int j, one;
+  uint j, one;
 
   one = 0;
   n = new_NFAState(ls);
@@ -488,7 +488,7 @@ static LexState *new_LexState() {
 }
 
 void build_scanners(Grammar *g) {
-  int i, j, k;
+  uint i, j, k;
   State *s;
   LexState *ls = new_LexState();
 

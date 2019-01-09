@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
   p->save_parse_tree = 1;
 
   if (argc != 2) {
-    fprintf(stderr, "U¿ycie: %s FILE_to_parse\n", argv[0]);
+    fprintf(stderr, "Usage: %s FILE_to_parse\n", argv[0]);
     return -1;
   } else {
     buf = sbuf_read(argv[1]);

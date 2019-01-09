@@ -72,6 +72,8 @@ static void help(ArgumentState *arg_state, char *arg_unused) {
 char *ops = "+";
 void *ops_cache = NULL;
 int ops_scan(char *ops, void *ops_cache, d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
+  (void)ops;
+  (void)ops_cache;
   if (loc->s[0] == '+') {
     loc->s++;
     *op_assoc = ASSOC_BINARY_LEFT;
@@ -81,9 +83,9 @@ int ops_scan(char *ops, void *ops_cache, d_loc_t *loc, unsigned char *op_assoc, 
   return 0;
 }
 
-int spec_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { return 0; }
+int spec_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { (void)new_ps; (void)children; (void)n_children; (void)pn_offset; (void)parser; return 0; }
 
-int final_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { return 0; }
+int final_code(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser) { (void)new_ps; (void)children; (void)n_children; (void)pn_offset; (void)parser; return 0; }
 
 int main(int argc, char *argv[]) {
   int i, len = 0;
@@ -94,6 +96,7 @@ int main(int argc, char *argv[]) {
   unsigned int str_len;
   Grammar *g;
   BinaryTables *binary_tables;
+  (void)argc;
 
   process_args(&arg_state, argv);
   if (arg_state.nfile_arguments < 2) help(&arg_state, NULL);

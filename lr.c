@@ -37,7 +37,7 @@ static void free_state(State *s) {
 }
 
 static State *maybe_add_state(Grammar *g, State *s) {
-  int i, j;
+  uint i, j;
 
   for (i = 0; i < g->states.n; i++) {
     if (s->hash == g->states.v[i]->hash && s->items.n == g->states.v[i]->items.n) {
@@ -61,7 +61,7 @@ static Elem *next_elem(Item *i) {
 }
 
 static State *build_closure(Grammar *g, State *s) {
-  int j, k;
+  uint j, k;
 
   for (j = 0; j < s->items.n; j++) {
     Item *i = s->items.v[j];
@@ -92,7 +92,7 @@ static void add_goto(State *s, State *ss, Elem *e) {
 }
 
 static void build_state_for(Grammar *g, State *s, Elem *e) {
-  int j;
+  uint j;
   Item *i;
   State *ss = NULL;
 
@@ -107,7 +107,7 @@ static void build_state_for(Grammar *g, State *s, Elem *e) {
 }
 
 static void build_new_states(Grammar *g) {
-  int i, j;
+  uint i, j;
   State *s;
   Elem e;
 
@@ -127,7 +127,7 @@ static void build_new_states(Grammar *g) {
 }
 
 static void build_states_for_each_production(Grammar *g) {
-  int i;
+  uint i;
   for (i = 0; i < g->productions.n; i++)
     if (!g->productions.v[i]->internal && g->productions.v[i]->elem) {
       State *s = new_state();
@@ -150,7 +150,7 @@ static int gotocmp(const void *aa, const void *bb) {
 }
 
 static void sort_Gotos(Grammar *g) {
-  int i;
+  uint i;
 
   for (i = 0; i < g->states.n; i++) {
     VecGoto *vg = &g->states.v[i]->gotos;
@@ -184,8 +184,8 @@ void free_Action(Action *a) {
   FREE(a);
 }
 
-static void add_action(Grammar *g, State *s, int akind, Term *aterm, Rule *arule, State *astate) {
-  int i;
+static void add_action(Grammar *g, State *s, uint akind, Term *aterm, Rule *arule, State *astate) {
+  uint i;
   Action *a;
 
   if (akind == ACTION_REDUCE) {
@@ -209,7 +209,7 @@ static void init_LR(Grammar *g) { g->action_count = 0; }
 
 static int actioncmp(const void *aa, const void *bb) {
   Action *a = *(Action **)aa, *b = *(Action **)bb;
-  int i, j;
+  uint i, j;
   if (a->kind == ACTION_SHIFT_TRAILING)
     i = a->term->index + 11000000;
   else if (a->kind == ACTION_SHIFT)
@@ -228,7 +228,7 @@ static int actioncmp(const void *aa, const void *bb) {
 void sort_VecAction(VecAction *v) { qsort(v->v, v->n, sizeof(Action *), actioncmp); }
 
 static void build_actions(Grammar *g) {
-  int x, y, z;
+  uint x, y, z;
   State *s;
   Elem *e;
 
@@ -254,7 +254,7 @@ static void build_actions(Grammar *g) {
 }
 
 State *goto_State(State *s, Elem *e) {
-  int i;
+  uint i;
   for (i = 0; i < s->gotos.n; i++)
     if (s->gotos.v[i]->elem->e.term_or_nterm == e->e.term_or_nterm) return s->gotos.v[i]->state;
   return NULL;
@@ -279,7 +279,7 @@ static int hintcmp(const void *ai, const void *aj) {
 }
 
 static void build_right_epsilon_hints(Grammar *g) {
-  int x, y, z;
+  uint x, y, z;
   State *s, *ss;
   Elem *e;
   Rule *r;
@@ -308,7 +308,7 @@ static void build_right_epsilon_hints(Grammar *g) {
 }
 
 static void build_error_recovery(Grammar *g) {
-  int i, j, k, depth;
+  uint i, j, k, depth;
   State *s;
   Rule *r, *rr;
   Elem *e, *ee;

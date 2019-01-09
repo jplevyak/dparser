@@ -20,10 +20,12 @@ static void xprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, prin
 static void xprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_fn_t fn, void *client_data) {
   int nch = d_get_number_of_children(pn), i;
   char *name = (char *)pt.symbols[pn->symbol].name;
-  //  int len = pn->end_skip - pn->start_loc.s;
-  //  char *value = malloc(len+2);
-  //  memcpy(value, pn->start_loc.s, len);
-  //  value[len] = 0;
+  /*
+    int len = pn->end_skip - pn->start_loc.s;
+    char *value = malloc(len+2);
+    memcpy(value, pn->start_loc.s, len);
+    value[len] = 0;
+  */
   char *value = dup_str(pn->start_loc.s, pn->end);
   fn(depth, name, value, client_data);
   free(value);
@@ -41,7 +43,12 @@ void print_parsetree(D_ParserTables pt, D_ParseNode *pn, print_node_fn_t fn, voi
   xprint_parsetree(pt, pn, 0, (NULL == fn) ? print_node_default : fn, client_data);
 }
 
-void print_node_parenthesised(int depth, char *name, char *value, void *client_data) { printf("( %s )", name); }
+void print_node_parenthesised(int depth, char *name, char *value, void *client_data) {
+  (void)depth;
+  (void)value;
+  (void)client_data;
+  printf("( %s )", name);
+}
 
 static char *change_newline2space(char *s) {
   char *ss = s;
@@ -57,6 +64,7 @@ static char *change_newline2space(char *s) {
 }
 
 void print_node_default(int depth, char *name, char *value, void *client_data) {
+  (void)client_data;
   printf("%*s", depth * INDENT_SPACES, "");
   printf("%s  %s.\n", name, change_newline2space(value));
 }

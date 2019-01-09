@@ -369,7 +369,7 @@ void add_declaration(Grammar *g, char *start, char *end, uint kind, uint line) {
 }
 
 D_Pass *find_pass(Grammar *g, char *start, char *end) {
-  int i, l;
+  uint i, l;
   while (*start && isspace_(*start)) start++;
   l = end - start;
   for (i = 0; i < g->passes.n; i++)
@@ -404,7 +404,7 @@ Production *new_internal_production(Grammar *g, Production *p) {
   char *n = p ? p->name : " _synthetic";
   char *name = MALLOC(strlen(n) + 21);
   Production *pp = NULL, *tp = NULL, *ttp;
-  int i, found = 0;
+  uint i, found = 0;
   sprintf(name, "%s__%d", n, g->productions.n);
   pp = new_production(g, name);
   pp->internal = INTERNAL_HIDDEN;
@@ -528,8 +528,8 @@ void finish_productions(Grammar *g) {
   rr->elems.v[0]->e.nterm = g->productions.v[1];
 }
 
-Production *lookup_production(Grammar *g, char *name, int l) {
-  int i;
+Production *lookup_production(Grammar *g, char *name, uint l) {
+  uint i;
 
   for (i = 0; i < g->productions.n; i++) {
     Production *pp = g->productions.v[i];
@@ -540,7 +540,7 @@ Production *lookup_production(Grammar *g, char *name, int l) {
 }
 
 static Term *lookup_token(Grammar *g, char *name, int l) {
-  int i;
+  uint i;
 
   for (i = 0; i < g->terminals.n; i++) {
     Term *t = g->terminals.v[i];
@@ -551,7 +551,7 @@ static Term *lookup_token(Grammar *g, char *name, int l) {
 }
 
 static Term *unique_term(Grammar *g, Term *t) {
-  int i;
+  uint i;
   for (i = 0; i < g->terminals.n; i++)
     if (t->kind == g->terminals.v[i]->kind && t->string_len == g->terminals.v[i]->string_len &&
         t->term_priority == g->terminals.v[i]->term_priority && t->term_name == g->terminals.v[i]->term_name &&
@@ -563,7 +563,7 @@ static Term *unique_term(Grammar *g, Term *t) {
 }
 
 static void compute_nullable(Grammar *g) {
-  int i, j, k, changed = 1;
+  uint i, j, k, changed = 1;
   Elem *e;
 
   /* ensure that the trivial case is the first cause */
@@ -599,7 +599,7 @@ static void compute_nullable(Grammar *g) {
   - set element indexes
 */
 static void resolve_grammar(Grammar *g) {
-  int i, j, k, l;
+  uint i, j, k, l;
   Production *p, *pp;
   Rule *r;
   Elem *e;
@@ -652,7 +652,7 @@ static void resolve_grammar(Grammar *g) {
 }
 
 static void merge_identical_terminals(Grammar *g) {
-  int i, j, k;
+  uint i, j, k;
   Production *p;
   Rule *r;
   Elem *e;
@@ -711,7 +711,7 @@ struct EnumStr {
                      {ASSOC_NO, "$noassoc"}};
 
 static char *assoc_str(uint e) {
-  int i;
+  uint i;
 
   for (i = 0; i < sizeof(assoc_strings) / sizeof(assoc_strings[0]); i++)
     if (e == assoc_strings[i].e) return assoc_strings[i].s;
@@ -719,7 +719,7 @@ static char *assoc_str(uint e) {
 }
 
 void print_rule(Rule *r) {
-  int k;
+  uint k;
 
   printf("%s: ", r->prod->name);
   for (k = 0; k < r->elems.n; k++) print_elem(r->elems.v[k]);
@@ -765,7 +765,7 @@ void print_grammar(Grammar *g) {
 }
 
 static void print_item(Item *i) {
-  int j, end = 1;
+  uint j, end = 1;
 
   printf("\t%s: ", i->rule->prod->name);
   for (j = 0; j < i->rule->elems.n; j++) {
@@ -780,7 +780,7 @@ static void print_item(Item *i) {
   printf("\n");
 }
 
-static void print_conflict(char *kind, int *conflict) {
+static void print_conflict(char *kind, uint *conflict) {
   if (!*conflict) {
     printf("  CONFLICT (before precedence and associativity)\n");
     *conflict = 1;
@@ -790,7 +790,7 @@ static void print_conflict(char *kind, int *conflict) {
 }
 
 static void print_state(State *s) {
-  int j, conflict = 0;
+  uint j, conflict = 0;
 
   printf("STATE %d (%d ITEMS)%s\n", s->index, s->items.n, s->accept ? " ACCEPT" : "");
   for (j = 0; j < s->items.n; j++) print_item(s->items.v[j]);
@@ -822,13 +822,14 @@ static void print_state(State *s) {
 }
 
 void print_states(Grammar *g) {
-  int i;
+  uint i;
 
   for (i = 0; i < g->states.n; i++) print_state(g->states.v[i]);
 }
 
-int state_for_declaration(Grammar *g, int iproduction) {
-  int i;
+uint state_for_declaration(Grammar *g, uint iproduction) {
+  uint i;
+
   for (i = 0; i < g->declarations.n; i++)
     if (g->declarations.v[i]->kind == DECLARE_STATE_FOR && g->declarations.v[i]->elem->e.nterm->index == iproduction)
       return 1;
@@ -836,7 +837,7 @@ int state_for_declaration(Grammar *g, int iproduction) {
 }
 
 static void make_elems_for_productions(Grammar *g) {
-  int i, j, k, l;
+  uint i, j, k, l;
   Rule *rr;
   Production *pp, *ppp;
 
@@ -868,7 +869,7 @@ static void make_elems_for_productions(Grammar *g) {
 }
 
 static void convert_regex_production_one(Grammar *g, Production *p) {
-  int j, k, l;
+  uint j, k, l;
   Production *pp;
   Rule *r, *rr;
   Elem *e;
@@ -974,7 +975,7 @@ static void convert_regex_production_one(Grammar *g, Production *p) {
 }
 
 static void convert_regex_productions(Grammar *g) {
-  int i, j, k;
+  uint i, j, k;
   Production *p;
   Rule *r;
 
@@ -1011,7 +1012,7 @@ typedef struct {
 } EqState;
 
 void build_eq(Grammar *g) {
-  int i, j, k, changed = 1, x, xx;
+  uint i, j, k, changed = 1, x, xx;
   State *s, *ss;
   EqState *eq, *e, *ee;
 
@@ -1114,7 +1115,7 @@ Grammar *new_D_Grammar(char *pathname) {
 }
 
 static void free_rule(Rule *r) {
-  int i;
+  uint i;
   FREE(r->end);
   if (r->final_code.code) FREE(r->final_code.code);
   if (r->speculative_code.code) FREE(r->speculative_code.code);
@@ -1128,7 +1129,7 @@ static void free_rule(Rule *r) {
 }
 
 void free_D_Grammar(Grammar *g) {
-  int i, j, k;
+  uint i, j, k;
 
   for (i = 0; i < g->productions.n; i++) {
     Production *p = g->productions.v[i];
@@ -1247,7 +1248,7 @@ static int scanner_declaration(Declaration *d) {
 }
 
 static void set_declaration_group(Production *p, Production *root, Declaration *d) {
-  int i, j;
+  uint i, j;
   if (p->declaration_group[d->kind] == root) return;
   if (d->kind == DECLARE_TOKENIZE && p->declaration_group[d->kind]) {
     d_fail("shared tokenize subtrees");
@@ -1263,7 +1264,7 @@ static void set_declaration_group(Production *p, Production *root, Declaration *
 }
 
 static void propogate_declarations(Grammar *g) {
-  int i, j, k;
+  uint i, j, k;
   Production *p, *start = g->productions.v[0];
   Rule *r;
   Elem *e;
@@ -1325,7 +1326,7 @@ static void propogate_declarations(Grammar *g) {
 }
 
 static void merge_shift_actions(State *to, State *from) {
-  int i, j;
+  uint i, j;
   for (i = 0; i < from->shift_actions.n; i++) {
     for (j = 0; j < to->shift_actions.n; j++)
       if (from->shift_actions.v[i]->term == to->shift_actions.v[j]->term) goto Lnext;
@@ -1336,7 +1337,8 @@ static void merge_shift_actions(State *to, State *from) {
 
 static void compute_declaration_states(Grammar *g, Production *p, Declaration *d) {
   State *s, *base_s = NULL;
-  int j, k, scanner = scanner_declaration(d);
+  uint j, k, scanner = scanner_declaration(d);
+  (void)p;
 
   for (j = 0; j < g->states.n; j++) {
     s = g->states.v[j];
@@ -1371,7 +1373,7 @@ static void compute_declaration_states(Grammar *g, Production *p, Declaration *d
 }
 
 static void map_declarations_to_states(Grammar *g) {
-  int i;
+  uint i;
   State *s;
 
   for (i = 0; i < g->states.n; i++) {
@@ -1427,9 +1429,9 @@ static void print_term_escaped(Term *t, int double_escaped) {
       if (t->term_priority) printf("%sterm %d ", double_escaped ? "#" : "$", t->term_priority);
     }
   } else if (t->kind == TERM_REGEX) {
-    s = t->string ? escape_string(t->string) : NULL;
-    // char *s = t->string; // ? escape_string(t->string) : NULL;
     char *quote = double_escaped ? "\\\"" : "\"";
+    s = t->string ? escape_string(t->string) : NULL;
+    /* char *s = t->string; // ? escape_string(t->string) : NULL; */
     printf("%s%s%s ", quote, double_escaped ? escape_string(s) : s, quote);
     if (t->ignore_case) printf("/i ");
     if (t->term_priority) printf("%sterm %d ", double_escaped ? "#" : "$", t->term_priority);
@@ -1455,7 +1457,7 @@ static void print_element_escaped(Elem *ee, int double_escaped) {
 }
 
 static void print_global_code(Grammar *g) {
-  int i;
+  uint i;
   int print_stdio_h = 1;
   printf("%%<");
   for (i = 0; i < g->ncode; i++) {
@@ -1475,7 +1477,7 @@ static void print_production(Production *p) {
   char *assoc[] = {"$", "#", "#"};
   char *speculative_final_closing = "\\n\"); ]"; /* closing[1] without final newline */
   char *next_or_rule = "\t|   ";
-  //  char *regex_production = "  ::=  ";
+  /*  char *regex_production = "  ::=  "; */
 
   uint variant = 0;
 
@@ -1483,11 +1485,13 @@ static void print_production(Production *p) {
   Lmore:
     r = p->rules.v[j];
     if (!j) {
-      //      if (p->regex) {
-      //	printf("%s%s%s", opening[variant], p->name, regex_production);
-      //      } else {
+      /*
+              if (p->regex) {
+                printf("%s%s%s", opening[variant], p->name, regex_production);
+              } else {
+      */
       printf("%s%s%s", opening[variant], p->name, middle[variant]);
-      //      }
+      /*      } */
     } else {
       if (variant == 0)
         printf("%s", next_or_rule);
@@ -1534,7 +1538,7 @@ static void print_declare(char *s, char *n) {
 }
 
 static void print_declarations(Grammar *g) {
-  int i;
+  uint i;
 
   if (g->tokenizer) printf("${declare tokenize}\n");
   for (i = 0; i < g->declarations.n; i++) {

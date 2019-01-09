@@ -208,7 +208,7 @@ typedef struct Grammar {
   Vec(Action *) actions;
   Code scanner;
   Code *code;
-  int ncode;
+  uint ncode;
   Vec(Declaration *) declarations;
   Vec(D_Pass *) passes;
   Vec(char *) all_pathnames;
@@ -253,7 +253,7 @@ void print_rdebug_grammar(Grammar *g, char *pathname);
 void print_states(Grammar *g);
 void print_rule(Rule *r);
 void print_term(Term *t);
-Production *lookup_production(Grammar *g, char *name, int len);
+Production *lookup_production(Grammar *g, char *name, uint len);
 
 /* for creating grammars */
 #define last_elem(_r) ((_r)->elems.v[(_r)->elems.n - 1])
@@ -281,6 +281,6 @@ void plus_EBNF(Grammar *g);        /* ditto */
 void rep_EBNF(Grammar *g, int minimum, int maximum);
 void initialize_productions(Grammar *g);
 void finalize_productions(Grammar *g);
-int state_for_declaration(Grammar *g, int iproduction);
+uint state_for_declaration(Grammar *g, uint iproduction);
 
 #endif

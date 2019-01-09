@@ -31,6 +31,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <string.h>
+#include <strings.h>
 
 #ifdef LEAK_DETECT
 #define GC_DEBUG
@@ -56,7 +57,8 @@
 #endif
 #endif
 
-// enough already with the signed/unsiged char issues
+/* enough already with the signed/unsiged char issues
+ */
 #define isspace_(_c) isspace((unsigned char)(_c))
 #define isdigit_(_c) isdigit((unsigned char)(_c))
 #define isxdigit_(_c) isxdigit((unsigned char)(_c))
