@@ -34,9 +34,9 @@ typedef struct Buf {
 typedef struct File {
   int binary;
   FILE *fp;
-  unsigned char *cur_str;
-  unsigned char **str;
-  unsigned int *str_len;
+  uint8 *cur_str;
+  uint8 **str;
+  uint *str_len;
   Buf tables;
   Buf strings;
   OffsetEntrySet entries;
@@ -75,9 +75,8 @@ static void write_chk(const void *ptr, size_t size, size_t nmemb, File *file) {
 }
 
 static void save_binary_tables(File *file) {
-  int i;
   BinaryTablesHead tables;
-  unsigned int len;
+  uint len, i;
 
   tables.n_relocs = file->relocations.n;
   tables.n_strings = file->str_relocations.n;
@@ -89,7 +88,7 @@ static void save_binary_tables(File *file) {
         (file->str_relocations.n * sizeof(void *));
 
   if (file->str) {
-    file->cur_str = *file->str = (unsigned char *)MALLOC(len);
+    file->cur_str = *file->str = (uint8 *)MALLOC(len);
     *file->str_len = len;
   }
 
@@ -101,7 +100,7 @@ static void save_binary_tables(File *file) {
 }
 
 static void free_tables(File *f) {
-  int i;
+  uint i;
   if (f->tables.start) FREE(f->tables.start);
   if (f->strings.start) FREE(f->strings.start);
   vec_free(&f->str_relocations);
@@ -123,7 +122,7 @@ static void init_buf(Buf *buf, int initial_size) {
   buf->cur = buf->start;
 }
 
-static void file_init(File *file, int binary, FILE *fp, unsigned char **str, unsigned int *str_len) {
+static void file_init(File *file, int binary, FILE *fp, uint8 **str, uint *str_len) {
   memset(file, 0, sizeof(File));
   file->binary = binary;
   file->fp = fp;
@@ -370,7 +369,7 @@ static void add_array_ptr_member_fn(File *fp, OffsetEntry *oe, char *format, int
 }
 
 typedef void (*CopyFuncType)(void *, int);
-static void add_array_member_fn(File *file, CopyFuncType copy, char *format, unsigned int data, int last) {
+static void add_array_member_fn(File *file, CopyFuncType copy, char *format, uint data, int last) {
   if (file->binary) {
     add_array_member_internal(file);
     copy((void *)(file->tables.cur), data);
@@ -430,8 +429,8 @@ static int scanner_size(State *s) {
 
 #define copy_func(name, type) \
   static void name(void *dest, int data) { (*(type *)(dest)) = (data); }
-copy_func(unsigned_char_copy, unsigned char) copy_func(unsigned_short_copy, unsigned short)
-    copy_func(unsigned_int_copy, unsigned int)
+copy_func(unsigned_char_copy, uint8) copy_func(unsigned_short_copy, unsigned short)
+    copy_func(unsigned_int_copy, uint)
 
         static CopyFuncType get_copy_func(int i) {
   switch (i) {
@@ -535,10 +534,12 @@ hash_fns_t trans_scanner_block_fns = {
     (hash_fn_t)trans_scanner_block_hash_fn, (cmp_fn_t)trans_scanner_block_cmp_fn, {0, 0}};
 
 static uint32 shift_hash_fn(Action *sa, hash_fns_t *fns) {
+  (void)fns;
   return sa->term->index + (sa->kind == ACTION_SHIFT_TRAILING ? 1000000 : 0);
 }
 
 static int shift_cmp_fn(Action *sa, Action *sb, hash_fns_t *fns) {
+  (void)fns;
   return (sa->term->index != sb->term->index) || (sa->kind != sb->kind);
 }
 
@@ -550,7 +551,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
   VecScannerBlock scanner_block_hash[4], *pscanner_block_hash;
   VecScannerBlock trans_scanner_block_hash[4], *ptrans_scanner_block_hash;
   VecAction shift_hash;
-  int nvsblocks, ivsblock, i, j, k, x, xx;
+  uint nvsblocks, ivsblock, i, j, xx;
   VecScanState *ss;
   char speculative_code[256];
   Term *t;
@@ -570,32 +571,32 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
       action_index = t->regex_production->rules.v[0]->action_index;
     }
     start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
-    add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->index + g->productions.n, symbol);
-    add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->scan_kind, shift_kind);
-    add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->op_assoc, op_assoc);
-    add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->op_priority, op_priority);
-    add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->term_priority, term_priority);
+    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->index + g->productions.n, symbol);
+    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->scan_kind, shift_kind);
+    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_assoc, op_assoc);
+    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_priority, op_priority);
+    add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->term_priority, term_priority);
     if (fp->binary) {
-      add_struct_member(fp, D_Shift, % d, action_index, action_index);
+      add_struct_member(fp, D_Shift, %d, action_index, action_index);
       add_struct_ptr_member(fp, D_Shift, "", &spec_code_entry, speculative_code);
     } else {
-      add_struct_member(fp, D_Shift, % d, 0, action_index);
+      add_struct_member(fp, D_Shift, %d, 0, action_index);
       fprintf(fp->fp, ", %s", speculative_code);
     }
     end_struct(fp, D_Shift, "\n");
     g->write_line++;
     if (g->terminals.v[i]->trailing_context) {
       start_struct(fp, D_Shift, make_name("d_tshift_%d_%s", i, tag), "");
-      add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->index + g->productions.n, symbol);
-      add_struct_member(fp, D_Shift, % d, D_SCAN_TRAILING, shift_kind);
-      add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->op_assoc, op_assoc);
-      add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->op_priority, op_priority);
-      add_struct_member(fp, D_Shift, % d, g->terminals.v[i]->term_priority, term_priority);
+      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->index + g->productions.n, symbol);
+      add_struct_member(fp, D_Shift, %d, D_SCAN_TRAILING, shift_kind);
+      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_assoc, op_assoc);
+      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->op_priority, op_priority);
+      add_struct_member(fp, D_Shift, %d, g->terminals.v[i]->term_priority, term_priority);
       if (fp->binary) {
-        add_struct_member(fp, D_Shift, % d, action_index, action_index);
+        add_struct_member(fp, D_Shift, %d, action_index, action_index);
         add_struct_ptr_member(fp, D_Shift, "", &spec_code_entry, speculative_code);
       } else {
-        add_struct_member(fp, D_Shift, % d, 0, action_index);
+        add_struct_member(fp, D_Shift, %d, 0, action_index);
         fprintf(fp->fp, ", %s", speculative_code);
       }
       end_struct(fp, D_Shift, "\n");
@@ -625,6 +626,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     ss = &s->scanner.states;
     /* build accepts differences */
     for (j = 0; j < s->scanner.transitions.n; j++) {
+      uint k;
       VecAction *va = &s->scanner.transitions.v[j]->accepts_diff;
       start_array(fp, D_Shift *, make_name("d_accepts_diff_%d_%d_%s", i, j, tag), "", 0, "");
       for (k = 0; k < va->n; k++) {
@@ -653,6 +655,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     ptrans_scanner_block_hash = &trans_scanner_block_hash[scanner_size(s) - 1];
     for (j = 0; j < ss->n; j++) {
       if (!s->same_shifts) {
+        int k, x;
         for (k = 0; k < g->scanner_blocks; k++) {
           vsblock[ivsblock].state_index = s->index;
           vsblock[ivsblock].scanner_index = j;
@@ -703,6 +706,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
         }
         /* output shifts */
         if (ss->v[j]->accepts.n) {
+          uint k;
           char tmp[256];
           sprintf(tmp, "d_shift_%d_%d_%s", i, j, tag);
           for (k = 0; k < ss->v[j]->accepts.n; k++) {
@@ -735,6 +739,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     }
   }
   for (i = 0; i < g->states.n; i++) {
+    int k;
     s = g->states.v[i];
     ss = &s->scanner.states;
     ivsblock = 0;
@@ -839,7 +844,8 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
   Vec(intptr_t) vgoto;
   State *s;
   uint8 *goto_valid = NULL;
-  int i, j, x, again, nvalid_bytes, sym, lowest_sym;
+  uint i, x, again, nvalid_bytes, sym, lowest_sym;
+  int j;
 
   nvalid_bytes = ((g->productions.n + g->terminals.n) + 7) / 8;
   goto_valid = MALLOC(nvalid_bytes);
@@ -868,10 +874,7 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
           x = elem_symbol(g, s->gotos.v[j]->elem);
           x -= lowest_sym;
           while (vgoto.n <= x) {
-            int qq = 0;
             vec_add(&vgoto, 0);
-            for (qq = 0; qq < vgoto.n; qq++)
-              if (vgoto.v[qq] == 239847234) printf("wow...\n");
           }
           if (vgoto.v[x]) {
             again = 1;
@@ -913,8 +916,8 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
       start_array(fp, D_RightEpsilonHint, make_name("d_right_epsilon_hints_%d_%s", i, tag), "", 0, "");
       for (j = 0; j < s->right_epsilon_hints.n; j++) {
         start_struct_in_array(fp);
-        add_struct_member(fp, D_RightEpsilonHint, % d, s->right_epsilon_hints.v[j]->depth, depth);
-        add_struct_member(fp, D_RightEpsilonHint, % d, s->right_epsilon_hints.v[j]->state->index, preceeding_state);
+        add_struct_member(fp, D_RightEpsilonHint, %d, s->right_epsilon_hints.v[j]->depth, depth);
+        add_struct_member(fp, D_RightEpsilonHint, %d, s->right_epsilon_hints.v[j]->state->index, preceeding_state);
         add_struct_ptr_member(
             fp, D_RightEpsilonHint, "&",
             get_offset(fp, "d_reduction_%d_%s", reduction_index(s->right_epsilon_hints.v[j]->rule), tag), reduction);
@@ -949,7 +952,7 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
 }
 
 static void write_scanner_code(File *file, Grammar *g, char *tag) {
-  int i, j, l;
+  uint i, j, l;
   Action *a;
   State *s;
   FILE *fp = file->fp;
@@ -1001,11 +1004,11 @@ static int find_symbol(Grammar *g, char *s, char *e, int kind) {
       Production *p;
       if ((p = lookup_production(g, s, e - s))) return p->index;
     } else if (kind == D_SYMBOL_STRING) {
-      int i;
+      uint i;
       int found = -1;
       for (i = 0; i < g->terminals.n; i++)
         if (g->terminals.v[i]->kind == TERM_STRING &&
-            ((g->terminals.v[i]->term_name && strlen(g->terminals.v[i]->term_name) == e - s &&
+            ((g->terminals.v[i]->term_name && strlen(g->terminals.v[i]->term_name) == (size_t)(e - s) &&
               !strncmp(s, g->terminals.v[i]->term_name, e - s)) ||
              (!g->terminals.v[i]->term_name && g->terminals.v[i]->string_len == (e - s) &&
               !strncmp(s, g->terminals.v[i]->string, e - s)))) {
@@ -1022,6 +1025,7 @@ static int find_symbol(Grammar *g, char *s, char *e, int kind) {
 
 static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, int line, char *pathname) {
   char *c;
+  int in_string = 0;
 
   if (!fp) {
     d_warn("trying to write code to binary file");
@@ -1033,7 +1037,6 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
   }
   fprintf(fp, "%s{ ", fname);
   c = code;
-  int in_string = 0;
   while (*c) {
     if (*c != '\\') {
       if (c[1] == '\'' || c[1] == '"') {
@@ -1044,7 +1047,7 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
       }
     }
     if (!in_string && *c == '/') {
-      // pass through c++ style comments
+      /* pass through c++ style comments */
       if (c[1] == '/') {
         while (*c && *c != '\n') {
           fputc(*c, fp);
@@ -1069,7 +1072,7 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
       if (*c == '#') {
         c++;
         if (isdigit_(*c)) {
-          int n = atoi(c);
+          uint n = atoi(c);
           fprintf(fp, "(d_get_number_of_children((D_PN(_children[%d], _offset))))", n);
           if (n > r->elems.n - 1) d_fail("$nXXXX greater than number of children at line %d", line);
           while (isdigit_(*c)) c++;
@@ -1083,7 +1086,7 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
         if (isdigit_(*c)) {
           int n = atoi(c);
           fprintf(fp, "(*(D_PN(_children[%d], _offset)))", n);
-          if (n > r->elems.n - 1) d_fail("$nXXXX greater than number of children at line %d", line);
+          if (n > (int)r->elems.n - 1) d_fail("$nXXXX greater than number of children at line %d", line);
           while (isdigit_(*c)) c++;
         } else
           fprintf(fp, "(*(D_PN(_ps, _offset)))");
@@ -1149,7 +1152,7 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
       c++;
     }
   }
-  fprintf(fp, "  return 0;");
+  fprintf(fp, "  (void)_children; (void)_n_children;  (void)_parser; return 0;");
   fprintf(fp, "}\n\n");
   g->write_line += 2;
   if (g->write_line_directives) {
@@ -1159,8 +1162,9 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
 }
 
 static void write_global_code(FILE *fp, Grammar *g, char *tag) {
-  int i;
+  uint i;
   char *c;
+  (void)tag;
 
   for (i = 0; i < g->ncode; i++) {
     if (g->write_line_directives) {
@@ -1230,7 +1234,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       g->write_line += 1;
     }
   }
-  for (i = 0; i < g->productions.n; i++) {
+  for (i = 0; i < (int)g->productions.n; i++) {
     p = g->productions.v[i];
     for (j = p->rules.n - 1; j >= 0; j--) {
       r = p->rules.v[j];
@@ -1250,7 +1254,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
         Lcontinue:;
         }
     }
-    for (j = 0; j < p->rules.n; j++) {
+    for (j = 0; j < (int)p->rules.n; j++) {
       r = p->rules.v[j];
       if (r->same_reduction) continue;
       if (r->speculative_code.code) {
@@ -1263,7 +1267,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
         sprintf(fname, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->final_code.code, fname, r->final_code.line, g->pathname);
       }
-      for (k = 0; k < r->pass_code.n; k++) {
+      for (k = 0; k < (int)r->pass_code.n; k++) {
         if (r->pass_code.v[k]) {
           char fname[256];
           sprintf(fname, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
@@ -1305,8 +1309,8 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       } else
         strcpy(pass_code, "NULL");
       start_struct(file, D_Reduction, make_name("d_reduction_%d_%s", r->index, tag), "");
-      add_struct_member(file, D_Reduction, % d, r->elems.n, nelements);
-      add_struct_member(file, D_Reduction, % d, r->prod->index, symbol);
+      add_struct_member(file, D_Reduction, %d, r->elems.n, nelements);
+      add_struct_member(file, D_Reduction, %d, r->prod->index, symbol);
       if (file->binary) {
         if (!r->prod->internal && r->action_index >= 0) {
           add_struct_ptr_member(file, D_Reduction, "", &spec_code_entry, speculative_code);
@@ -1340,6 +1344,7 @@ static uint32 er_hint_hash_fn(State *a, hash_fns_t *fns) {
   VecHint *sa = &a->error_recovery_hints;
   uint32 hash = 0, i;
   Term *ta;
+  (void)fns;
 
   for (i = 0; i < sa->n; i++) {
     ta = sa->v[i]->rule->elems.v[sa->v[i]->rule->elems.n - 1]->e.term;
@@ -1351,9 +1356,10 @@ static uint32 er_hint_hash_fn(State *a, hash_fns_t *fns) {
 }
 
 static int er_hint_cmp_fn(State *a, State *b, hash_fns_t *fns) {
-  int i;
+  uint i;
   VecHint *sa = &a->error_recovery_hints, *sb = &b->error_recovery_hints;
   Term *ta, *tb;
+  (void)fns;
   if (sa->n != sb->n) return 1;
   for (i = 0; i < sa->n; i++) {
     ta = sa->v[i]->rule->elems.v[sa->v[i]->rule->elems.n - 1]->e.term;
@@ -1368,7 +1374,7 @@ static int er_hint_cmp_fn(State *a, State *b, hash_fns_t *fns) {
 hash_fns_t er_hint_hash_fns = {(hash_fn_t)er_hint_hash_fn, (cmp_fn_t)er_hint_cmp_fn, {0, 0}};
 
 static void write_error_data(File *fp, Grammar *g, VecState *er_hash, char *tag) {
-  int i, j;
+  uint i, j;
   State *s;
   Term *t;
   State *h;
@@ -1386,8 +1392,8 @@ static void write_error_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
             t = s->error_recovery_hints.v[j]->rule->elems.v[s->error_recovery_hints.v[j]->rule->elems.n - 1]->e.term;
             ss = escape_string(t->string);
             start_struct_in_array(fp);
-            add_struct_member(fp, D_ErrorRecoveryHint, % d, s->error_recovery_hints.v[j]->depth, depth);
-            add_struct_member(fp, D_ErrorRecoveryHint, % d, s->error_recovery_hints.v[j]->rule->prod->index, symbol);
+            add_struct_member(fp, D_ErrorRecoveryHint, %d, s->error_recovery_hints.v[j]->depth, depth);
+            add_struct_member(fp, D_ErrorRecoveryHint, %d, s->error_recovery_hints.v[j]->rule->prod->index, symbol);
             add_struct_str_member(fp, D_ErrorRecoveryHint, ss, string);
             end_struct_in_array(fp, j == s->error_recovery_hints.n - 1 ? "" : ",\n");
             if (j != s->error_recovery_hints.n - 1) g->write_line += 1;
@@ -1403,7 +1409,7 @@ static void write_error_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
 static char *scan_kind_strings[] = {"D_SCAN_ALL", "D_SCAN_LONGEST", "D_SCAN_MIXED", NULL};
 
 static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag) {
-  int i;
+  uint i;
   State *s, *h, *shifts;
 
   print(fp, "\n");
@@ -1418,41 +1424,41 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_goto_valid_%d_%s", i, tag), goto_valid);
       else
         add_struct_ptr_member(fp, D_State, "", &null_entry, goto_valid);
-      add_struct_member(fp, D_State, % d, s->goto_table_offset, goto_table_offset);
+      add_struct_member(fp, D_State, %d, s->goto_table_offset, goto_table_offset);
       print_no_comma(fp, ", {");
       if (s->reduce_actions.n) {
-        add_struct_member(fp, D_State, % d, s->reduce_actions.n, reductions.n);
+        add_struct_member(fp, D_State, %d, s->reduce_actions.n, reductions.n);
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_reductions_%d_%s", i, tag), reductions.v);
       } else {
-        add_struct_member(fp, D_State, % d, 0, reductions.n);
+        add_struct_member(fp, D_State, %d, 0, reductions.n);
         add_struct_ptr_member(fp, D_State, "", &null_entry, reductions.v);
       }
       print(fp, "}, ");
       print_no_comma(fp, "{");
       if (s->right_epsilon_hints.n) {
-        add_struct_member(fp, D_State, % d, s->right_epsilon_hints.n, right_epsilon_hints.n);
+        add_struct_member(fp, D_State, %d, s->right_epsilon_hints.n, right_epsilon_hints.n);
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_right_epsilon_hints_%d_%s", i, tag),
                               right_epsilon_hints.v);
       } else {
-        add_struct_member(fp, D_State, % d, 0, right_epsilon_hints.n);
+        add_struct_member(fp, D_State, %d, 0, right_epsilon_hints.n);
         add_struct_ptr_member(fp, D_State, "", &null_entry, right_epsilon_hints.v);
       }
       print(fp, "}, ");
       print_no_comma(fp, "{");
       if (s->error_recovery_hints.n) {
         h = set_add_fn(er_hash, s, &er_hint_hash_fns);
-        add_struct_member(fp, D_State, % d, s->error_recovery_hints.n, error_recovery_hints.n);
+        add_struct_member(fp, D_State, %d, s->error_recovery_hints.n, error_recovery_hints.n);
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_error_recovery_hints_%d_%s", h->index, tag),
                               error_recovery_hints.v);
       } else {
-        add_struct_member(fp, D_State, % d, 0, error_recovery_hints.n);
+        add_struct_member(fp, D_State, %d, 0, error_recovery_hints.n);
         add_struct_ptr_member(fp, D_State, "", &null_entry, error_recovery_hints.v);
       }
       print(fp, "}");
       if (s->shift_actions.n || s->scanner_code || (g->scanner.code && s->goto_on_token))
-        add_struct_member(fp, D_State, % d, 1, shifts);
+        add_struct_member(fp, D_State, %d, 1, shifts);
       else
-        add_struct_member(fp, D_State, % d, 0, shifts);
+        add_struct_member(fp, D_State, %d, 0, shifts);
       if (g->scanner.code) {
         if (s->goto_on_token) {
           assert(!fp->binary);
@@ -1473,8 +1479,8 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       if (!fp->binary)
         fprintf(fp->fp, ", sizeof(%s) ", scanner_type(s));
       else
-        add_struct_member(fp, D_State, % d, scanner_size(s), scanner_size);
-      add_struct_member(fp, D_State, % d, s->accept ? 1 : 0, accept);
+        add_struct_member(fp, D_State, %d, scanner_size(s), scanner_size);
+      add_struct_member(fp, D_State, %d, s->accept ? 1 : 0, accept);
       add_struct_const_member(fp, D_State, scan_kind_strings[s->scan_kind], s->scan_kind, scan_kind);
       if ((shifts->scan_kind != D_SCAN_LONGEST || shifts->trailing_context) && shifts->scanner.states.n) {
         print_no_comma(fp, ", (void*)");
@@ -1489,9 +1495,9 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       else
         add_struct_ptr_member(fp, D_State, "", &null_entry, accepts_diff);
       if (s->reduces_to)
-        add_struct_member(fp, D_State, % d, s->reduces_to->index, reduces_to);
+        add_struct_member(fp, D_State, %d, s->reduces_to->index, reduces_to);
       else
-        add_struct_member(fp, D_State, % d, -1, reduces_to);
+        add_struct_member(fp, D_State, %d, -1, reduces_to);
       end_struct_in_array(fp, (i == g->states.n - 1 ? "\n" : ",\n"));
     }
     end_array(fp, "\n\n");
@@ -1506,7 +1512,7 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
 static int write_header(Grammar *g, char *base_pathname, char *tag) {
   char pathname[FILENAME_MAX];
   char ver[128];
-  int i, tokens = 0, states = 0, col;
+  uint i, tokens = 0, states = 0, col;
   FILE *hfp;
 
   for (i = 0; i < g->terminals.n; i++)
@@ -1566,7 +1572,7 @@ static int d_internal_values[] = {D_SYMBOL_NTERM, D_SYMBOL_EBNF, D_SYMBOL_INTERN
 static char *d_symbol[] = {"D_SYMBOL_STRING", "D_SYMBOL_REGEX", "D_SYMBOL_CODE", "D_SYMBOL_TOKEN"};
 static int d_symbol_values[] = {D_SYMBOL_STRING, D_SYMBOL_REGEX, D_SYMBOL_CODE, D_SYMBOL_TOKEN};
 static void write_symbol_data(File *fp, Grammar *g, char *tag) {
-  int i;
+  uint i;
   start_array(fp, D_Symbol, make_name("d_symbols_%s", tag), "", 0, "\n");
   g->write_line += 1;
   for (i = 0; i < g->productions.n; i++) {
@@ -1576,8 +1582,8 @@ static void write_symbol_data(File *fp, Grammar *g, char *tag) {
     internal_index = g->productions.v[i]->internal ? (is_EBNF(g->productions.v[i]->internal) ? 2 : 1) : 0;
     add_struct_const_member(fp, D_Symbol, d_internal[internal_index], d_internal_values[internal_index], kind);
     add_struct_str_member(fp, D_Symbol, g->productions.v[i]->name, name);
-    add_struct_member(fp, D_Symbol, % d, g->productions.v[i]->name_len, name_len);
-    add_struct_member(fp, D_Symbol, % d, state, start_symbol);
+    add_struct_member(fp, D_Symbol, %d, g->productions.v[i]->name_len, name_len);
+    add_struct_member(fp, D_Symbol, %d, state, start_symbol);
     end_struct_in_array(fp, ",\n");
     g->write_line += 1;
   }
@@ -1590,8 +1596,9 @@ static void write_symbol_data(File *fp, Grammar *g, char *tag) {
     add_struct_const_member(fp, D_Symbol, d_symbol[symbol_index], d_symbol_values[symbol_index], kind);
     add_struct_str_member(fp, D_Symbol, name, name);
     add_struct_member(
-        fp, D_Symbol, % d, (int)strlen(name),
+        fp, D_Symbol, %d, (int)strlen(name),
         name_len); /*BS strlen doesn't always works here, length can change when quoted string is compiled*/
+    add_struct_member(fp, D_Symbol, %d, -1, start_symbol);
     end_struct_in_array(fp, ",\n");
     g->write_line += 1;
     FREE(s);
@@ -1602,7 +1609,7 @@ static void write_symbol_data(File *fp, Grammar *g, char *tag) {
 }
 
 static void write_passes(File *fp, Grammar *g, char *tag) {
-  int i;
+  uint i;
   if (g->passes.n) {
     start_array(fp, D_Pass, make_name("d_passes_%s", tag), "", 0, "");
     g->write_line += 1;
@@ -1645,26 +1652,26 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   }
 
   start_struct(file, D_ParserTables, make_name("parser_tables_%s", tag), "\n");
-  add_struct_member(file, D_ParserTables, % d, g->states.n, nstates);
+  add_struct_member(file, D_ParserTables, %d, g->states.n, nstates);
   add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_states_%s", tag), state);
   add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_gotos_%s", tag), goto_table);
-  add_struct_member(file, D_ParserTables, % d, whitespace_production, whitespace_state);
-  add_struct_member(file, D_ParserTables, % d, g->productions.n + g->terminals.n, nsymbols);
+  add_struct_member(file, D_ParserTables, %d, whitespace_production, whitespace_state);
+  add_struct_member(file, D_ParserTables, %d, g->productions.n + g->terminals.n, nsymbols);
   add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_symbols_%s", tag), symbols);
   if (g->default_white_space) {
     assert(!file->binary);
     fprintf(file->fp, ", %s", g->default_white_space);
   } else
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, default_white_space);
-  add_struct_member(file, D_ParserTables, % d, g->passes.n, npasses);
+  add_struct_member(file, D_ParserTables, %d, g->passes.n, npasses);
   if (g->passes.n)
     add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_passes_%s", tag), passes);
   else
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
   if (g->save_parse_tree)
-    add_struct_member(file, D_ParserTables, % d, 1, save_parse_tree);
+    add_struct_member(file, D_ParserTables, %d, 1, save_parse_tree);
   else
-    add_struct_member(file, D_ParserTables, % d, 0, save_parse_tree);
+    add_struct_member(file, D_ParserTables, %d, 0, save_parse_tree);
   end_struct(file, D_ParserTables, "\n");
 
   if (file->binary) {
@@ -1678,8 +1685,8 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   if (file->fp) fclose(file->fp);
 }
 
-void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int binary, FILE *fp, unsigned char **str,
-                                  unsigned int *str_len) {
+void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int binary, FILE *fp, uint8 **str,
+                                  uint *str_len) {
   File file;
   if (!binary) {
     fp = fopen(g->write_pathname, "w");
@@ -1722,7 +1729,7 @@ int write_binary_tables_to_file(Grammar *g, FILE *fp) {
   return 0;
 }
 
-int write_binary_tables_to_string(Grammar *g, unsigned char **str, unsigned int *str_len) {
+int write_binary_tables_to_string(Grammar *g, uint8 **str, uint *str_len) {
   write_parser_tables_internal(g, g->pathname, *g->grammar_ident ? g->grammar_ident : NULL, 1, 0, str, str_len);
   return 0;
 }
