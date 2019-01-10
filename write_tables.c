@@ -429,10 +429,9 @@ static int scanner_size(State *s) {
 
 #define copy_func(name, type) \
   static void name(void *dest, int data) { (*(type *)(dest)) = (data); }
-copy_func(unsigned_char_copy, uint8) copy_func(unsigned_short_copy, unsigned short)
-    copy_func(unsigned_int_copy, uint)
+copy_func(unsigned_char_copy, uint8) copy_func(unsigned_short_copy, unsigned short) copy_func(unsigned_int_copy, uint)
 
-        static CopyFuncType get_copy_func(int i) {
+    static CopyFuncType get_copy_func(int i) {
   switch (i) {
     case 1:
       return unsigned_char_copy;
@@ -844,8 +843,7 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
   Vec(intptr_t) vgoto;
   State *s;
   uint8 *goto_valid = NULL;
-  uint i, x, again, nvalid_bytes, sym, lowest_sym;
-  int j;
+  uint i, j, x, again, nvalid_bytes, sym, lowest_sym;
 
   nvalid_bytes = ((g->productions.n + g->terminals.n) + 7) / 8;
   goto_valid = MALLOC(nvalid_bytes);
@@ -869,9 +867,10 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
       /* insert into vgoto */
       again = 1;
       while (again) {
+        int k = 0;
         again = 0;
-        for (j = 0; j < s->gotos.n; j++) {
-          x = elem_symbol(g, s->gotos.v[j]->elem);
+        for (k = 0; k < (int)s->gotos.n; k++) {
+          x = elem_symbol(g, s->gotos.v[k]->elem);
           x -= lowest_sym;
           while (vgoto.n <= x) {
             vec_add(&vgoto, 0);
@@ -879,15 +878,15 @@ static void write_goto_data(File *fp, Grammar *g, char *tag) {
           if (vgoto.v[x]) {
             again = 1;
             /* undo the damage */
-            for (--j; j >= 0; j--) {
-              x = elem_symbol(g, s->gotos.v[j]->elem);
+            for (--k; k >= 0; k--) {
+              x = elem_symbol(g, s->gotos.v[k]->elem);
               x -= lowest_sym;
               vgoto.v[x] = 0;
             }
             lowest_sym--;
             break;
           } else
-            vgoto.v[x] = s->gotos.v[j]->state->index + 1;
+            vgoto.v[x] = s->gotos.v[k]->state->index + 1;
         }
       }
       s->goto_table_offset = lowest_sym;
@@ -1229,7 +1228,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
     g->write_line += 1;
     fprintf(fp, "extern D_ReductionCode d_pass_code_%d_%d_%s[];\n", rdefault->prod->index, rdefault->index, tag);
     g->write_line += 1;
-    for (i = 0; i < rdefault->pass_code.n; i++) {
+    for (i = 0; i < (int)rdefault->pass_code.n; i++) {
       fprintf(fp, "int d_pass_code_%d_%d_%d_%s%s;\n", i, rdefault->prod->index, rdefault->index, tag, reduction_args);
       g->write_line += 1;
     }
@@ -1244,7 +1243,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
             r->op_assoc == p->rules.v[k]->op_assoc && r->rule_priority == p->rules.v[k]->rule_priority &&
             r->rule_assoc == p->rules.v[k]->rule_assoc && r->action_index == p->rules.v[k]->action_index) {
           if (r->pass_code.n != p->rules.v[k]->pass_code.n) continue;
-          for (l = 0; l < r->pass_code.n; l++) {
+          for (l = 0; l < (int)r->pass_code.n; l++) {
             if (!r->pass_code.v[l] && !p->rules.v[k]->pass_code.v[l]) continue;
             if (!r->pass_code.v[l] || !p->rules.v[k]->pass_code.v[l]) goto Lcontinue;
             if (r->pass_code.v[l]->code != p->rules.v[k]->pass_code.v[l]->code) goto Lcontinue;
@@ -1288,16 +1287,16 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
         strcpy(final_code, "NULL");
       pmax = r->pass_code.n;
       if (r->pass_code.n || (rdefault && rdefault->pass_code.n)) {
-        if (rdefault && rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
+        if (rdefault && (int)rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
         if (!r->pass_code.n)
           sprintf(pass_code, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
         else {
           sprintf(pass_code, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
           fprintf(fp, "D_ReductionCode %s[] = {", pass_code);
           for (k = 0; k < pmax; k++) {
-            if (r->pass_code.n > k && r->pass_code.v[k])
+            if ((int)r->pass_code.n > k && r->pass_code.v[k])
               fprintf(fp, "d_pass_code_%d_%d_%d_%s%s", k, r->prod->index, r->index, tag, k < pmax - 1 ? ", " : "");
-            else if (rdefault && rdefault->pass_code.n > k && rdefault->pass_code.v[k])
+            else if (rdefault && (int)rdefault->pass_code.n > k && rdefault->pass_code.v[k])
               fprintf(fp, "d_pass_code_%d_%d_%d_%s%s", k, rdefault->prod->index, rdefault->index, tag,
                       k < pmax - 1 ? ", " : "");
             else

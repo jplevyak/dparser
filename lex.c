@@ -83,14 +83,15 @@ static int nfacmp(const void *ai, const void *aj) {
 static void nfa_closure(DFAState *x) {
   uint i, j, k;
 
-  for (i = 0; i < x->states.n; i++)
+  for (i = 0; i < x->states.n; i++) {
+    NFAState *s = x->states.v[i];
     for (j = 0; j < x->states.v[i]->epsilon.n; j++) {
       for (k = 0; k < x->states.n; k++)
         if (x->states.v[i]->epsilon.v[j] == x->states.v[k]) goto Lbreak;
-      NFAState *s = x->states.v[i];
       vec_add(&x->states, s->epsilon.v[j]);
     Lbreak:;
     }
+  }
   qsort(x->states.v, x->states.n, sizeof(x->states.v[0]), nfacmp);
 }
 
