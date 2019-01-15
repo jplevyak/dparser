@@ -1,0 +1,1 @@
+include *.c *.h *.py python/*.c python/*.h python/*.py python/*.i README.md

@@ -193,6 +193,7 @@ static OffsetEntry *get_offset(File *fp, char *name, ...) {
   va_list ap;
   va_start(ap, name);
   n = vsnprintf(buf, sizeof(buf), name, ap);
+  (void)n;
   va_end(ap);
   assert(n < 256 && n >= 0);
   return search_for_offset(fp, buf);
