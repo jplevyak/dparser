@@ -14,9 +14,10 @@ module_swigc = Extension(
 
 setup(
         name="dparser",
-        version="1.31",
+        version="1.31.2",
         description='DParser for Python',
         py_modules=["dparser", "dparser_swigc"],
+        package_dir={"": 'python', 'dparser_swigc': 'python'},
         url='https://github.com/jplevyak/dparser',
         ext_modules=[module_swigc],
 )
