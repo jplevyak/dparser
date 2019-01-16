@@ -184,17 +184,17 @@ class Tables:
     def load_tables(self, grammar_str, filename, make_grammar_file):
         if make_grammar_file:
             with open(filename, 'wb') as fh:
-                fh.write(grammar_str.encode())
+                fh.write(grammar_str)
 
         if self.sig_changed(filename):
-            dparser_swigc.make_tables(grammar_str, filename)
+            dparser_swigc.make_tables(grammar_str, filename.encode())
             with open(filename + '.md5', 'wb') as fh:
                 fh.write(self.sig.digest())
 
         if self.tables:
             dparser_swigc.unload_parser_tables(self.tables)
-        self.tables = dparser_swigc.load_parser_tables(filename +
-                                                       ".d_parser.dat")
+        self.tables = dparser_swigc.load_parser_tables(
+                (filename + ".d_parser.dat").encode('utf-8'))
 
     def getTables(self):
         return self.tables
@@ -242,7 +242,7 @@ class Parser:
             parser_folder = os.path.dirname(sys.argv[0])
             if len(parser_folder) == 0:
                 parser_folder = os.getcwd()
-            parser_folder = parser_folder.replace('\\', '/')
+                parser_folder = parser_folder.replace('\\', '/')
 
         self.filename = os.path.join(parser_folder, file_prefix + ".g")
 
@@ -285,7 +285,7 @@ class Parser:
                     raise ("\nunknown argument name:\n\t" + var +
                            "\nin function:\n\t" + f.__name__)
             self.actions.append((f, arg_types, speculative))
-        grammar_str = ''.join(grammar_str)
+        grammar_str = ''.join(grammar_str).encode()
 
         self.tables.load_tables(grammar_str, self.filename, make_grammar_file)
 
@@ -307,15 +307,18 @@ class Parser:
               start_symbol=''):
 
         # workaround python3/2
-        #try:
-        #    basestring
-        #except NameError:
-        #    basestring = str
+        t = str
+        try:
+            t = basestring
+        except NameError:
+            pass
 
-        #if not isinstance(buf, basestring):
-        #    raise ParsingException(
-        #            "Message to parse is not a string: %r" % buf)
-        buf = buf.encode()
+        if not isinstance(buf, t):
+            raise ParsingException(
+                    "Message to parse is not a string: %r" % buf)
+
+        # dparser works with bytes
+        buf = buf.encode('utf-8')
 
         parser = dparser_swigc.make_parser(
             self.tables.getTables(), self, Reject, make_token, d_loc_t,
@@ -326,7 +329,7 @@ class Parser:
             print_debug_info, partial_parses, dont_compare_stacks,
             dont_use_greediness_for_disambiguation,
             dont_use_height_for_disambiguation,
-            start_symbol, self.takes_strings, self.takes_globals
+            start_symbol.encode('utf-8'), self.takes_strings, self.takes_globals
         )
         result = dparser_swigc.run_parser(parser, buf, buf_offset)
         return ParsedStructure(result)

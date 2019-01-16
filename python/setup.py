@@ -22,7 +22,7 @@ class smart_install_data(install_data):
 module_swigc = Extension(
         '_dparser_swigc',
         sources=['dparser_wrap.c', 'pydparser.c', 'make_tables.c'],
-        define_macros=[('SWIG_GLOBAL', None)],
+        define_macros=[('SWIG_GLOBAL', None), ('SWIG_PYTHON_STRICT_BYTE_CHAR', None)],
         libraries=['mkdparse', 'dparse'],
         library_dirs=['../'],
         extra_compile_args=['-Wall', '-ggdb3'])

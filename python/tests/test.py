@@ -13,7 +13,7 @@ def d_number(t):
 
 def skip_space(loc):
     while (loc.s < len(loc.buf) and
-           loc.buf[loc.s:loc.s+len('hello')] == 'hello'):
+           loc.buf[loc.s:loc.s+len('hello')] == 'hello'.encode()):
         loc.s = loc.s + len('hello')
 
 

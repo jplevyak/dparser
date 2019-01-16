@@ -1,4 +1,5 @@
 from dparser import Parser
+import os
 
 
 def d_add1(t):
@@ -34,3 +35,6 @@ def d_exp2(t):
 
 if Parser().parse('''3*(3+4)''').getStructure() != 21:
     print('fail')
+
+# python3 and/or swig have a problem cleaning up and will SEGV in this case.
+os._exit(0)
