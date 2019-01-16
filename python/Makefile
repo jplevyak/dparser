@@ -23,6 +23,7 @@ ifeq ($(wildcard $(PYTHON_PLATLIB)),)
 endif
 	@$(foreach test, $(TEST_SCRIPTS), \
 		echo "    running test $(test)" && \
+		echo PYTHONPATH="$(PYTHON_PLATLIB)" $(PYTHON) $(test) && \
 		PYTHONPATH="$(PYTHON_PLATLIB)" $(PYTHON) $(test) && \
 	) echo "All unit tests passed." || \
 	( echo "At least one unit test failed."; exit 2 )
