@@ -1,5 +1,5 @@
 ifndef PYTHON
-	PYTHON=$(shell which python)
+	PYTHON=$(shell which python3)
 endif
 
 all:

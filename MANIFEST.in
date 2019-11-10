@@ -1,1 +1,4 @@
-include *.c *.h *.py README.md python/*.py python/*.i python/*.c python/*.h
+exclude *
+exclude python/*
+include *.h *.c *.py README.md
+include python/dparser.i python/dparser.py python/make_tables.c python/pydparser.h python/pydparser.c python/swigpyrun.h
