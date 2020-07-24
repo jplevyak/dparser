@@ -90,14 +90,14 @@ endif
 
 CFLAGS += -pedantic
 
-AUX_FILES = dparser/Makefile dparser/COPYRIGHT dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
+AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
 TEST_FILES = dparser/parser_tests dparser/baseline $(TESTS:%=dparser/%)
 PYTHON_FILES = dparser/python/Makefile dparser/python/*.py dparser/python/*.c dparser/python/*.h dparser/python/*.i dparser/python/README dparser/python/*.html dparser/python/contrib/d* dparser/python/tests/*.py
 VERILOG_FILES = dparser/verilog/Makefile dparser/verilog/verilog.g dparser/verilog/README dparser/verilog/ambig.c \
 dparser/verilog/main.c dparser/verilog/vparse.c dparser/verilog/vparse.h dparser/verilog/verilog_tests
 TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) dparser/D_BUILD_VERSION \
-dparser/grammar.g dparser/sample.g dparser/my.g 
+dparser/grammar.g dparser/sample.g dparser/my.g
 
 LIB_SRCS = arg.c parse.c scan.c symtab.c util.c read_binary.c dparse_tree.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
@@ -168,7 +168,7 @@ deinstall:
 	rm $(MANPAGES:%=$(PREFIX)/man/man1/%)
 
 make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS) 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
 
 $(LIBDPARSE): $(LIB_OBJS)
 	ar crv $@ $^
@@ -207,7 +207,7 @@ D_BUILD_VERSION:
 	mv D_BUILD_VERSION.tmp D_BUILD_VERSION
 
 tar:
-	(cd ..;tar czf dparser-$(RELEASE)-src.tar.gz dparser/*.c dparser/*.h $(TAR_FILES)) 
+	(cd ..;tar czf dparser-$(RELEASE)-src.tar.gz dparser/*.c dparser/*.h $(TAR_FILES))
 
 bintar:
 	(cd ..;tar czf d-$(RELEASE)-$(OS_TYPE)-bin.tar.gz $(AUX_FILES) $(LIBRARIES:%=dparser/%) $(INCLUDES:%=dparser/%) $(EXECUTABLE_FILES:%=dparser/%))
