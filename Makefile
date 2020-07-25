@@ -88,7 +88,7 @@ ifdef D_PROFILE
 CFLAGS += -pg
 endif
 
-CFLAGS += -pedantic
+CFLAGS += -std=c11 -pedantic
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
