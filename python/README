@@ -2,11 +2,12 @@ This module was created by Brian Sabbey (sabbey at u.washington.edu).
 
 See index.html for details.
 
-Swig:
-	make swig
+To make:
+  make
 
-	made with SWIG Version 1.3
-	
+To make with clang-10:
+  CC=clang-10 LDSHARED="clang-10 -shared" make
+
 Thanks to:
 
 	Brennan Evans for more general unix support.

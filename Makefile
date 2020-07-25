@@ -11,11 +11,8 @@ MAJOR=1
 MINOR=31
 RELEASE=$(MAJOR).$(MINOR)
 
-CC = gcc
-
-ifndef PREFIX
-PREFIX=/usr/local
-endif
+CC ?= gcc
+PREFIX ?= /usr/local
 
 .PHONY: all gram test install myexample
 

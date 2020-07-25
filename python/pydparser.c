@@ -306,7 +306,7 @@ make_parser(long int idpt,
   ppi->takes_globals = takes_globals;
   ppi->symbol_list = NULL;
   if (start_symbol[0]) {
-    int i;
+    uint i;
     for (i = 0; i < dpt->parser_tables_gram->nsymbols; i++) {
       if (dpt->parser_tables_gram->symbols[i].kind == D_SYMBOL_NTERM && strcmp(dpt->parser_tables_gram->symbols[i].name, start_symbol) == 0) {
 	p->start_state = dpt->parser_tables_gram->symbols[i].start_symbol;
