@@ -96,15 +96,15 @@ typedef struct PNode {
   int priority;
   AssocKind op_assoc;
   int op_priority;
-  D_Reduction *reduction;
-  D_Shift *shift;
 #ifndef USE_GC
   uint32 refcount;
 #endif
-  VecPNode children;
   uint height; /* max tree height */
   uint8 evaluated;
   uint8 error_recovery;
+  D_Reduction *reduction;
+  D_Shift *shift;
+  VecPNode children;
   struct PNode *all_next;
   struct PNode *bucket_next;
   struct PNode *ambiguities;
@@ -124,16 +124,16 @@ typedef struct PNode {
   State Node - the 'state'.
 */
 typedef struct SNode {
-  D_State *state;
-  D_Scope *initial_scope;
-  void *initial_globals;
   d_loc_t loc;
-  uint depth; /* max stack depth (less loops) */
-  PNode *last_pn;
-  VecZNode zns;
 #ifndef USE_GC
   uint32 refcount;
 #endif
+  uint depth; /* max stack depth (less loops) */
+  D_State *state;
+  D_Scope *initial_scope;
+  void *initial_globals;
+  PNode *last_pn;
+  VecZNode zns;
   struct SNode *bucket_next;
   struct SNode *all_next;
 } SNode;
