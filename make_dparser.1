@@ -21,8 +21,8 @@ in a given state. This provides an easy way to build
 grammars for languages which use longest match lexical
 ambiguity resolution (e.g. ANSI-C, C++). (OFF by default)
 .IP "\-T"
-Toggle building of a tokenizer for START.  When ON, instead of generating 
-a unique scanner for each state (i.e. a 'scannerless' parser), 
+Toggle building of a tokenizer for START.  When ON, instead of generating
+a unique scanner for each state (i.e. a 'scannerless' parser),
 generate a single scanner (tokenizer) for the entire grammar.  This provides
 an easy way to build grammars for languages which assume a
 tokenizer (e.g. ANSI C). (OFF by default)
@@ -32,7 +32,7 @@ Write header, 0 : no, 1 : yes, \-1 : only if not empty.
 Token type, 0 : #define, 1 : enum.
 .IP "\-C"
 Toggle computing whitespace states.  If 'whitespace' is
-defined in the grammar, then use it as a subparser to 
+defined in the grammar, then use it as a subparser to
 consume whitespace. (ON by default)
 .IP "\-A"
 Toggle computing states for all non-terminals.  Ensures that there is a unique
@@ -48,11 +48,11 @@ for most grammars. (defaults to 4)
 files.
 .IP "\-p"
 Toggle setting of operator priority from rules.  Setting of operator
-priorities on operator tokens can increase the size of the tables but 
+priorities on operator tokens can increase the size of the tables but
 can permit unnecessary parse stacks to be pruned earlier. (OFF by default)
 .IP "\-r"
 Toggle use of right recursion for EBNF productions.  Do not change this
-unless you really know what you are doing. (OFF by default) 
+unless you really know what you are doing. (OFF by default)
 .IP "\-L"
 Toggle writing of line numbers.  Used to debug the parsing table
 generator itself. (ON by default)
@@ -96,12 +96,12 @@ D_MAKE_PARSER_DEBUG.
 The features are covered in the documentation.  See the README file.
 .SH FILES
 .PP
-None.	
+None.
 .SH NO WARRANTIES
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-COPYRIGHT for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+LICENSE.txt for more details.
 .SH SEE ALSO
 .PP
 .BR flex (1),

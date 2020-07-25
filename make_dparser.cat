@@ -95,8 +95,8 @@ FILES
 NO WARRANTIES
        This program is distributed in the hope that it  will  be  useful,  but
        WITHOUT  ANY  WARRANTY;  without  even  the  implied  warranty  of MER-
-       CHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   See  the  COPYRIGHT
-       for more details.
+       CHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See LICENSE.txt  for
+       more details.
 
 SEE ALSO
        flex(1), yacc(1), bison(1)

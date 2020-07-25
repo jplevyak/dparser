@@ -4,7 +4,7 @@ D_BUILD_VERSION
 *.d_parser.c
 tests/*.out
 tests/*.d_parser.c
-make_parser
+make_dparser
 test_parser
 sample_parser
 /.build
