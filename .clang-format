@@ -1,0 +1,7 @@
+BasedOnStyle: Google
+UseTab: Never
+DerivePointerAlignment: false
+PointerAlignment: Right
+Standard: Cpp11
+ColumnLimit: 120
+SortIncludes: false
