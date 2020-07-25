@@ -120,13 +120,18 @@ void set_to_vec(void *av);
       stack_push_internal((AbstractStack *)((_s)), (void *)(uintptr_t)(_x)); \
     else                                                                     \
       (*((_s)->cur)++ = (_x));                                               \
+                                                                             \
   } while (0)
 void *stack_push_internal(AbstractStack *, void *);
 
 int buf_read(const char *pathname, char **buf, int *len);
 char *sbuf_read(const char *pathname);
 
+#if defined(WIN32)
+#define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strnicmp(_x, _s, sizeof(_s) - 1))
+#else
 #define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strncasecmp(_x, _s, sizeof(_s) - 1))
+#endif
 
 void d_fail(const char *str, ...);
 void d_warn(const char *str, ...);

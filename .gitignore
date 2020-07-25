@@ -7,3 +7,6 @@ tests/*.d_parser.c
 make_parser
 test_parser
 sample_parser
+/.build
+/.vs
+/.install

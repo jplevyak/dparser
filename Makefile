@@ -167,8 +167,8 @@ deinstall:
 	rm $(INSTALL_LIBRARIES:%=$(PREFIX)/lib/%)
 	rm $(MANPAGES:%=$(PREFIX)/man/man1/%)
 
-make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS) 
+make_dparser: $(MAKE_PARSER_OBJS) $(LIBRARIES) version.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(LIBDPARSE): $(LIB_OBJS)
 	ar crv $@ $^
