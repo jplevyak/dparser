@@ -1153,7 +1153,7 @@ static SNode *goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
   new_ps->last_pn = pn;
 
   DBG(printf("goto %d (%s) -> %d %p\n", (int)(ps->state - p->t->state), p->t->symbols[pn->parse_node.symbol].name,
-             state_index, (void*)new_ps));
+             state_index, (void *)new_ps));
   if (ps != new_ps && new_ps->depth < ps->depth + 1) new_ps->depth = ps->depth + 1;
   /* find/create ZNode */
   z = set_find_znode(&new_ps->zns, pn);
@@ -1279,7 +1279,7 @@ static void shift_all(Parser *p, char *pos) {
     r = &p->shift_results[i];
     if (!r->shift) continue;
     p->shifts++;
-    DBG(printf("shift %d %p %d (%s)\n", (int)(r->snode->state - p->t->state), (void*)r->snode, r->shift->symbol,
+    DBG(printf("shift %d %p %d (%s)\n", (int)(r->snode->state - p->t->state), (void *)r->snode, r->shift->symbol,
                p->t->symbols[r->shift->symbol].name));
     new_pn = add_PNode(p, r->shift->symbol, &r->snode->loc, r->loc.s, r->snode->last_pn, NULL, NULL, r->shift);
     if (new_pn) {
@@ -1364,7 +1364,7 @@ static void reduce_one(Parser *p, Reduction *r) {
     if ((pn = add_PNode(p, r->reduction->symbol, &sn->loc, sn->loc.s, sn->last_pn, r->reduction, 0, 0)))
       goto_PNode(p, &sn->loc, pn, sn);
   } else {
-    DBG(printf("reduce %d %p %d\n", (int)(r->snode->state - p->t->state), (void*)sn, n));
+    DBG(printf("reduce %d %p %d\n", (int)(r->snode->state - p->t->state), (void *)sn, n));
     vec_clear(&paths);
     build_paths(r->znode, &paths, n);
     for (i = 0; i < paths.n; i++) {
@@ -1610,7 +1610,7 @@ static PNode *commit_tree(Parser *p, PNode *pn) {
       continue;
     }
   }
-  if (pn->reduction) DBG(printf("commit %p (%s)\n", (void*)pn, p->t->symbols[pn->parse_node.symbol].name));
+  if (pn->reduction) DBG(printf("commit %p (%s)\n", (void *)pn, p->t->symbols[pn->parse_node.symbol].name));
   if (pn->reduction && pn->reduction->final_code)
     pn->reduction->final_code(pn, (void **)&pn->children.v[0], pn->children.n,
                               (intptr_t) & ((PNode *)(NULL))->parse_node, (D_Parser *)p);
