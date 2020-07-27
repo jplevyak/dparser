@@ -2,6 +2,9 @@
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
 
+#ifndef _util_H_
+#define _util_H_
+
 #define INITIAL_SET_SIZE_INDEX 2
 
 #define INITIAL_VEC_SHIFT 3
@@ -151,3 +154,5 @@ extern int d_verbose_level;
 extern int d_debug_level;
 extern int test_level;
 extern int d_rdebug_grammar_level;
+
+#endif

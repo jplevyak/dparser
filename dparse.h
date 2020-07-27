@@ -8,8 +8,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-#include "dparse_tables.h"
-#include "dsymtab.h"
 
 struct D_Parser;
 struct D_ParserTables;

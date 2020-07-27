@@ -18,7 +18,7 @@ module_swigc = Extension(
                  'python/make_tables.c', 'arg.c', 'lex.c', 'parse.c',
                  'dparse_tree.c', 'lr.c', 'read_binary.c',
                  'util.c', 'gram.c', 'mkdparse.c', 'scan.c',
-                 'write_tables.c', 'grammar.g.c', 'symtab.c'],
+                 'write_tables.c', 'grammar.g.c', 'dsymtab.c'],
         swig_opts=['-modern', '-I..'],
         include_dirs=[".", 'python'],
         define_macros=[('SWIG_GLOBAL', None),

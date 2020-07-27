@@ -1,8 +1,12 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-#include "gramgram.h"
 #include "d.h"
+#include "util.h"
+#include "dparse_tables.h"
+#include "gram.h"
+#include "arg.h"
+#include "write_tables.h"
 #include "mkdparse.h"
 
 static void help(ArgumentState *arg_state, char *arg_unused);

@@ -1,6 +1,7 @@
 D_BUILD_VERSION
 *.o
 *.a
+*.swp
 *.d_parser.c
 tests/*.out
 tests/*.d_parser.c

@@ -59,7 +59,7 @@ add_library(dparse STATIC
   arg.c 
   parse.c 
   scan.c 
-  symtab.c 
+  dsymtab.c 
   util.c 
   read_binary.c 
   dparse_tree.c
