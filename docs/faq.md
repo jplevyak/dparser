@@ -28,16 +28,20 @@ See the regex-productions `LP` `RP` `LB` `RB` `LC` `RC` in
 The basic syntax of DParser and ANTLR grammars is very similar.  In fact, the
 DParser example ANSI-C grammar was ported from ANTLR in less than an hour.
 Beyond that there are a number of differences:
-* ANTLR has been developed for over a decade while DParser is relatively young.
-* Internally, DParser is a table-driven parser while ANTLR generates directly
-  executable parsers.
 * DParser is a `GLR` parser based on the Tomita algorithm while ANTLR is
   modified `LL(k)`.
+* Internally, DParser is a table-driven parser while ANTLR generates directly
+  executable parsers.
 * DParser is scannerless while ANTLR uses token streams.
+* ANTLR has more predictable performance and is generally faster.
 
 In terms of power, both DParser and ANTLR are very powerful.  In theory DParser
-can handle any context free grammar, though not necessarily in linear time.  In
-practice ANTLR is likely to be faster (mostly because it is more mature).
+can handle any context free grammar, though not necessarily in linear time, and
+by eliminating a separate tokenizer, DParser simplifies grammar composition.
+
+In practice DParser explores all parses with minimal lookahead which can be
+expensive if the parse is (temporarily) ambiguous.  Conversely, ANTLR looks ahead
+to avoid unnecessary work.
 
 Beyond that you would really have to ask Terence Parr who is more of a hard
-core parsing theory guru than I am.
+core parsing theory guru.

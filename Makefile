@@ -113,7 +113,7 @@ endif
 MAKE_PARSER_SRCS = make_dparser.c
 MAKE_PARSER_OBJS = $(MAKE_PARSER_SRCS:%.c=%.o)
 
-SAMPLE_GRAMMAR = sample.g
+SAMPLE_GRAMMAR ?= sample.g
 BASE_SAMPLE_PARSER_SRCS = sample_parser.c
 SAMPLE_PARSER_SRCS = sample_parser.c $(SAMPLE_GRAMMAR).d_parser.c
 SAMPLE_PARSER_OBJS = $(SAMPLE_PARSER_SRCS:%.c=%.o)
