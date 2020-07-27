@@ -2,6 +2,12 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
+#include <ctype.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"
@@ -42,7 +48,7 @@ static NFAState *new_NFAState(LexState *ls) {
   return n;
 }
 
-static DFAState *new_DFAState() {
+static DFAState *new_DFAState(void) {
   DFAState *n = MALLOC(sizeof(DFAState));
   memset(n, 0, sizeof(DFAState));
   return n;
@@ -73,7 +79,7 @@ static void free_VecNFAState(VecNFAState *nfas) {
   vec_free(nfas);
 }
 
-static ScanState *new_ScanState() {
+static ScanState *new_ScanState(void) {
   ScanState *n = MALLOC(sizeof(ScanState));
   memset(n, 0, sizeof(ScanState));
   return n;
@@ -486,7 +492,7 @@ static void build_state_scanner(Grammar *g, LexState *ls, State *s) {
   ls->scanners++;
 }
 
-static LexState *new_LexState() {
+static LexState *new_LexState(void) {
   LexState *ls = MALLOC(sizeof(LexState));
   memset(ls, 0, sizeof(LexState));
   vec_clear(&ls->allnfas);

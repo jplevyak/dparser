@@ -4,6 +4,13 @@
 #ifndef _dparse_H_
 #define _dparse_H_
 
+/*
+ * FIXME
+ * This file has a bunch of prototypes for functions.
+ * Many of them are defined in parse.c -- why aren't these prototypes in
+ * parse.h then???
+ */
+
 #include <stdlib.h>
 #if defined(__cplusplus)
 extern "C" {
@@ -78,7 +85,8 @@ void d_pass(D_Parser *p, D_ParseNode *pn, int pass_number);
 
 int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v);
 
-char *d_dup_pathname_str(const char *str);
+D_ParseNode *ambiguity_count_fn(D_Parser *pp, int n, D_ParseNode **v);
+D_ParseNode *ambiguity_abort_fn(D_Parser *pp, int n, D_ParseNode **v);
 
 #if defined(__cplusplus)
 }

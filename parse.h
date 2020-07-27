@@ -4,10 +4,6 @@
 #ifndef _parse_H_
 #define _parse_H_
 
-#define NO_DPN ((D_ParseNode *)0x1)
-#define DPN_TO_PN(_dpn) ((PNode *)(((char *)dpn) - (intptr_t)(&((PNode *)0)->parse_node)))
-#define is_epsilon_PNode(_pn) ((_pn)->parse_node.start_loc.s == (_pn)->parse_node.end)
-
 /* #define TRACK_PNODES 1 */
 
 struct PNode;
@@ -146,7 +142,5 @@ typedef struct ZNode {
   VecSNode sns;
 } ZNode;
 #define znode_next(_z) (*(ZNode **)&((_z)->pn))
-
-D_ParseNode *ambiguity_count_fn(D_Parser *pp, int n, D_ParseNode **v);
 
 #endif

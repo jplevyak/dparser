@@ -116,9 +116,9 @@ code with braces `{` `}`.
 
 Example:
 ```Yacc
-{ void dr_s() { printf("Dr. S\n"); } }
+{ void dr_s(void) { printf("Dr. S\n"); } }
 S: 'the' 'cat' 'and' 'the' 'hat' { dr_s(); } | T;
-{ void twain() { printf("Mark Twain\n"); }
+{ void twain(void) { printf("Mark Twain\n"); }
 T: 'Huck' 'Finn' { twain(); };
 ```
 

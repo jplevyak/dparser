@@ -2,6 +2,10 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"
@@ -11,11 +15,12 @@
 #include "lr.h"
 #include "gram.h"
 
+/* for creating grammars */
+#define last_elem(_r) ((_r)->elems.v[(_r)->elems.n - 1])
+
 extern D_ParserTables parser_tables_dparser_gram;
 
 static char *action_types[] = {"ACCEPT", "SHIFT", "REDUCE"};
-
-static void print_state(State *s);
 
 Production *new_production(Grammar *g, char *name) {
   Production *p;
@@ -31,7 +36,7 @@ Production *new_production(Grammar *g, char *name) {
   return p;
 }
 
-static Elem *new_elem() {
+static Elem *new_elem(void) {
   Elem *e = MALLOC(sizeof(Elem));
   memset(e, 0, sizeof(Elem));
   return e;
@@ -48,7 +53,7 @@ Rule *new_rule(Grammar *g, Production *p) {
   return r;
 }
 
-static Term *new_term() {
+static Term *new_term(void) {
   Term *term = MALLOC(sizeof(Term));
   memset(term, 0, sizeof(Term));
   return term;
@@ -84,7 +89,7 @@ static Elem *new_term_string(Grammar *g, char *s, char *e, Rule *r) {
   return elem;
 }
 
-char *escape_string_for_regex(const char *s) {
+static char *escape_string_for_regex(const char *s) {
   char *ss = (char *)MALLOC((strlen(s) + 1) * 2), *sss = ss;
   for (; *s; s++) {
     switch (*s) {
@@ -397,8 +402,7 @@ void add_pass(Grammar *g, char *start, char *end, uint kind, uint line) {
   }
 }
 
-void add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end, char *code_start, char *code_end,
-                   uint pass_line, uint code_line) {
+void add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end, char *code_start, char *code_end, uint pass_line, uint code_line) {
   D_Pass *p = find_pass(g, pass_start, pass_end);
   if (!p) d_fail("unknown pass '%s' line %d", dup_str(pass_start, pass_end), pass_line);
   while (r->pass_code.n <= p->index) vec_add(&r->pass_code, NULL);
@@ -527,7 +531,7 @@ void initialize_productions(Grammar *g) {
   pp->internal = INTERNAL_HIDDEN;
 }
 
-void finish_productions(Grammar *g) {
+static void finish_productions(Grammar *g) {
   Production *pp = g->productions.v[0];
   Rule *rr = new_rule(g, pp);
   vec_add(&rr->elems, new_elem_nterm(NULL, rr));
@@ -696,7 +700,7 @@ void print_term(Term *t) {
   if (s) FREE(s);
 }
 
-void print_elem(Elem *ee) {
+static void print_elem(Elem *ee) {
   if (ee->kind == ELEM_TERM)
     print_term(ee->e.term);
   else if (ee->kind == ELEM_UNRESOLVED)
@@ -705,7 +709,7 @@ void print_elem(Elem *ee) {
     printf("%s ", ee->e.nterm->name);
 }
 
-struct EnumStr {
+static struct EnumStr {
   uint e;
   char *s;
 } assoc_strings[] = {{ASSOC_NONE, "$none"},
@@ -1018,7 +1022,7 @@ typedef struct {
   struct State *diff_state;
 } EqState;
 
-void build_eq(Grammar *g) {
+static void build_eq(Grammar *g) {
   uint i, j, k, changed = 1, x, xx;
   State *s, *ss;
   EqState *eq, *e, *ee;
@@ -1438,7 +1442,8 @@ static void print_term_escaped(Term *t, int double_escaped) {
   } else if (t->kind == TERM_REGEX) {
     char *quote = double_escaped ? "\\\"" : "\"";
     s = t->string ? escape_string(t->string) : NULL;
-    /* char *s = t->string; // ? escape_string(t->string) : NULL; */
+    /* char *s = t->string; */
+    /* char *s = t->string ? escape_string(t->string) : NULL; */
     printf("%s%s%s ", quote, double_escaped ? escape_string(s) : s, quote);
     if (t->ignore_case) printf("/i ");
     if (t->term_priority) printf("%sterm %d ", double_escaped ? "#" : "$", t->term_priority);

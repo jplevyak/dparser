@@ -54,6 +54,8 @@ D_Scope *equiv_D_Scope(D_Scope *scope);
 D_Scope *global_D_Scope(D_Scope *scope);
 D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope);
 void free_D_Scope(D_Scope *st, int force);
+void print_scope(D_Scope *st);
+
 D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym);
 #define NEW_D_SYM(_st, _name, _end) new_D_Sym(_st, _name, _end, sizeof(D_Sym))
 D_Sym *find_D_Sym(D_Scope *st, char *name, char *end);
@@ -67,6 +69,6 @@ D_Sym *update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym);
 D_Sym *current_D_Sym(D_Scope *st, D_Sym *sym);
 D_Sym *find_D_Sym_in_Scope(D_Scope *st, D_Scope *cur, char *name, char *end);
 D_Sym *next_D_Sym_in_Scope(D_Scope **st, D_Sym **sym);
-void print_scope(D_Scope *st);
+void print_sym(D_Sym *s);
 
 #endif

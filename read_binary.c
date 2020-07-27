@@ -2,6 +2,10 @@
   Copyright 2002-2008 John Plevyak, All Rights Reserved
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"
@@ -16,8 +20,7 @@ static void read_chk(void *ptr, size_t size, size_t nmemb, FILE *fp, unsigned ch
   }
 }
 
-BinaryTables *read_binary_tables_internal(FILE *fp, unsigned char *str, D_ReductionCode spec_code,
-                                          D_ReductionCode final_code) {
+static BinaryTables *read_binary_tables_internal(FILE *fp, unsigned char *str, D_ReductionCode spec_code, D_ReductionCode final_code) {
   BinaryTablesHead tables;
   int i;
   BinaryTables *binary_tables = MALLOC(sizeof(BinaryTables));
@@ -75,8 +78,7 @@ BinaryTables *read_binary_tables_from_file(FILE *fp, D_ReductionCode spec_code, 
   return read_binary_tables_internal(fp, 0, spec_code, final_code);
 }
 
-BinaryTables *read_binary_tables_from_string(unsigned char *str, D_ReductionCode spec_code,
-                                             D_ReductionCode final_code) {
+BinaryTables *read_binary_tables_from_string(unsigned char *str, D_ReductionCode spec_code, D_ReductionCode final_code) {
   return read_binary_tables_internal(0, str, spec_code, final_code);
 }
 

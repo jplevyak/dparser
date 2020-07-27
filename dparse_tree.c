@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "d.h"
+#include "util.h"
 #include "dparse_tables.h"
 #include "dparse.h"
 #include "dparse_tree.h"
-
-char *dup_str(char *s, char *e); /* defined in util.h */
 
 /* tunables */
 

@@ -4,36 +4,24 @@
 #ifndef _d_H_
 #define _d_H_
 
+#if !defined(__FreeBSD__) || (__FreeBSD_version >= 500000)
+#include <stdint.h>
+#include <inttypes.h>
+#endif
+
+#if 0
+/*
+ * FIXME
+ * I believe this uses https://www.linkdata.se/sourcecode/memwatch/ which
+ * doesn't seem to have been updated since 2003?
+ */
 #define __USE_MINGW_ANSI_STDIO 1
 #ifdef MEMWATCH
 #define MEMWATCH_STDIO 1
 #include "../../src/memwatch-2.67/memwatch.h"
 #define MEM_GROW_MACRO
 #endif
-#include <assert.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#if !defined(__FreeBSD__) || (__FreeBSD_version >= 500000)
-#include <inttypes.h>
 #endif
-#include <limits.h>
-#include <sys/types.h>
-#if !defined(__MINGW32__) && !defined(WIN32)
-#include <sys/mman.h>
-#include <sys/uio.h>
-#endif
-#if !defined(WIN32)
-#include <unistd.h>
-#include <sys/time.h>
-#include <dirent.h>
-#endif
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <time.h>
-#include <ctype.h>
-#include <string.h>
-#include <strings.h>
 
 #ifdef LEAK_DETECT
 #define GC_DEBUG

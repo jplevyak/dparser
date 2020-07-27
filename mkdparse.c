@@ -15,6 +15,10 @@ static void mkdparse_internal(Grammar *g, char *grammar_pathname, char *str) {
   if (build_grammar(g) < 0) d_fail("unable to load grammar '%s'", grammar_pathname);
 }
 
-void mkdparse(Grammar *g, char *grammar_pathname) { mkdparse_internal(g, grammar_pathname, 0); }
+void mkdparse(Grammar *g, char *grammar_pathname) {
+    mkdparse_internal(g, grammar_pathname, 0);
+}
 
-void mkdparse_from_string(Grammar *g, char *str) { mkdparse_internal(g, 0, str); }
+void mkdparse_from_string(Grammar *g, char *str) {
+    mkdparse_internal(g, 0, str);
+}

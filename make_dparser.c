@@ -1,6 +1,9 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
+#include <stdio.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"

@@ -1,6 +1,8 @@
 /*
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "d.h"
 #include "util.h"

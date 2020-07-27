@@ -3,6 +3,9 @@
 */
 
 {
+#include <stdio.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dsymtab.h"

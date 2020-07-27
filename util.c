@@ -2,6 +2,22 @@
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
 
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/*
+ * FIXME
+ * I am not sure if anything else is necessary to make this work in Windows; I
+ * suspect it didn't already due to the use of open().
+ */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "d.h"
 #include "util.h"
 
