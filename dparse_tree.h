@@ -22,8 +22,6 @@
 #ifndef _parsetree_H_
 #define _parsetree_H_
 
-#include "dparse.h"
-
 /* `print_node_fn_t' type defines a class of callback functions that
    the `print_parsetree' function uses to print a node   */
 

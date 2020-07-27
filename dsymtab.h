@@ -21,6 +21,12 @@ typedef struct D_Sym {
   D_UserSym user;
 } D_Sym;
 
+typedef struct D_SymHash {
+  int index;
+  int grow;
+  Vec(D_Sym *) syms;
+} D_SymHash;
+
 #define D_SCOPE_INHERIT 0
 #define D_SCOPE_RECURSIVE 1
 #define D_SCOPE_PARALLEL 2
@@ -50,7 +56,6 @@ D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope);
 void free_D_Scope(D_Scope *st, int force);
 D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym);
 #define NEW_D_SYM(_st, _name, _end) new_D_Sym(_st, _name, _end, sizeof(D_Sym))
-void free_D_Sym(D_Sym *sym);
 D_Sym *find_D_Sym(D_Scope *st, char *name, char *end);
 D_Sym *find_global_D_Sym(D_Scope *st, char *name, char *end);
 /* use for first update in a production to update scope */

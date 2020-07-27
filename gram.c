@@ -2,8 +2,14 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
-#include "gramgram.h"
 #include "d.h"
+#include "util.h"
+#include "dparse_tables.h"
+#include "dparse.h"
+#include "gram.h"
+#include "lex.h"
+#include "lr.h"
+#include "gram.h"
 
 extern D_ParserTables parser_tables_dparser_gram;
 

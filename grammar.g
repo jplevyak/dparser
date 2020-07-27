@@ -4,6 +4,9 @@
 {
 #include "gramgram.h"
 #include "d.h"
+#include "util.h"
+#include "dparse_tables.h"
+#include "gram.h"
 }
 
 grammar: top_level_statement*;
@@ -14,7 +17,7 @@ include_statement: 'include' regex {
   char *grammar_pathname = dup_str($n1.start_loc.s+1, $n1.end-1);
   if (parse_grammar($g, grammar_pathname, 0) < 0)
     d_fail("unable to parse grammar '%s'", grammar_pathname);
-  FREE(grammar_pathname);    
+  FREE(grammar_pathname);
 };
 
 global_code
@@ -43,12 +46,12 @@ global_code
   ;
 
 pass_types
-  : 
+  :
   | pass_type pass_types { $$.kind = $0.kind | $1.kind; }
   ;
 
-pass_type 
-  : 'preorder' { $$.kind |= D_PASS_PRE_ORDER; } 
+pass_type
+  : 'preorder' { $$.kind |= D_PASS_PRE_ORDER; }
   | 'postorder' { $$.kind |= D_PASS_POST_ORDER; }
   | 'manual' { $$.kind |= D_PASS_MANUAL; }
   | 'for_all'  { $$.kind |= D_PASS_FOR_ALL; }
@@ -56,7 +59,7 @@ pass_type
   ;
 
 declarationtype
-  : 'tokenize' { $$.kind = DECLARE_TOKENIZE; } 
+  : 'tokenize' { $$.kind = DECLARE_TOKENIZE; }
   | 'longest_match' { $$.kind = DECLARE_LONGEST_MATCH; }
   | 'whitespace' { $$.kind = DECLARE_WHITESPACE; }
   | 'all_matches' { $$.kind = DECLARE_ALL_MATCHES; }
@@ -68,17 +71,17 @@ declarationtype
 
 token_identifier: identifier { new_token($g, $n0.start_loc.s, $n0.end); };
 
-production 
-  : production_name ':' rules ';' 
+production
+  : production_name ':' rules ';'
   | production_name regex_production rules ';'
   | ';';
-regex_production : '::=' { 
-  $g->p->regex = 1; 
-}; 
+regex_production : '::=' {
+  $g->p->regex = 1;
+};
 
 production_name : (identifier | '_') { $g->p = new_production($g, dup_str($n0.start_loc.s, $n0.end)); } ;
 
-rules : rule ('|' rule)*; 
+rules : rule ('|' rule)*;
 
 rule : new_rule ((element element_modifier*)* simple_element element_modifier*)? rule_modifier* rule_code {
   vec_add(&$g->p->rules, $g->r);
@@ -129,27 +132,27 @@ new_subrule : {
   $g->r = 0;
 };
 
-element_modifier 
-  : '$term' integer { 
-      if ($g->e->kind != ELEM_TERM) 
+element_modifier
+  : '$term' integer {
+      if ($g->e->kind != ELEM_TERM)
         d_fail("terminal priority on non-terminal");
-      $g->e->e.term->term_priority = strtol($n1.start_loc.s, NULL, 0); 
+      $g->e->e.term->term_priority = strtol($n1.start_loc.s, NULL, 0);
     }
-  | '$name' (string|regex) { 
-      if ($g->e->kind != ELEM_TERM) 
+  | '$name' (string|regex) {
+      if ($g->e->kind != ELEM_TERM)
 	d_fail("terminal name on non-terminal");
-      $g->e->e.term->term_name = dup_str($n1.start_loc.s+1, $n1.end-1); 
+      $g->e->e.term->term_name = dup_str($n1.start_loc.s+1, $n1.end-1);
     }
-  | '/i' { 
-      if ($g->e->kind != ELEM_TERM) 
+  | '/i' {
+      if ($g->e->kind != ELEM_TERM)
 	d_fail("ignore-case (/i) on non-terminal");
-      $g->e->e.term->ignore_case = 1; 
+      $g->e->e.term->ignore_case = 1;
     }
   | '?' { conditional_EBNF($g); }
   | '*' { star_EBNF($g); }
-  | '+' { plus_EBNF($g); } 
-  | '@' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), -1); } 
-  | '@' integer ':' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), strtol($n3.start_loc.s, NULL, 0)); } 
+  | '+' { plus_EBNF($g); }
+  | '@' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), -1); }
+  | '@' integer ':' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), strtol($n3.start_loc.s, NULL, 0)); }
   ;
 
 rule_modifier : rule_assoc rule_priority | external_action;
@@ -167,9 +170,9 @@ rule_assoc
   | '$left' { $g->r->rule_assoc = ASSOC_NARY_LEFT; }
   ;
 
-rule_priority : integer { 
-  if ($g->r->op_assoc) $g->r->op_priority = strtol($n0.start_loc.s, NULL, 0); 
-  else $g->r->rule_priority = strtol($n0.start_loc.s, NULL, 0); 
+rule_priority : integer {
+  if ($g->r->op_assoc) $g->r->op_priority = strtol($n0.start_loc.s, NULL, 0);
+  else $g->r->rule_priority = strtol($n0.start_loc.s, NULL, 0);
 };
 
 external_action
@@ -196,7 +199,7 @@ pass_code : identifier ':' curly_code {
 
 curly_code: '{' balanced_code* '}';
 bracket_code: '[' balanced_code* ']';
-balanced_code 
+balanced_code
   : '(' balanced_code* ')' | '[' balanced_code* ']' | '{' balanced_code* '}'
   | string | identifier | regex | integer | symbols;
 symbols : "[!~`@#$%^&*\-_+=|:;\\<,>.?/]";

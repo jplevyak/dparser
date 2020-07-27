@@ -1,12 +1,8 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
-
 #ifndef _gram_H_
 #define _gram_H_
-
-#define EOF_SENTINAL "\377"
-#define NO_PROD 0xFFFFFFFF
 
 struct Production;
 struct Rule;
@@ -80,10 +76,10 @@ typedef struct State {
   struct Rule *reduces_to_then_with;
 } State;
 
-#define ASSOC_LEFT 0x0001
-#define ASSOC_RIGHT 0x0002
-#define ASSOC_NARY 0x0004
-#define ASSOC_UNARY 0x0008
+#define ASSOC_LEFT   0x0001
+#define ASSOC_RIGHT  0x0002
+#define ASSOC_NARY   0x0004
+#define ASSOC_UNARY  0x0008
 #define ASSOC_BINARY 0x0010
 
 typedef enum AssocKind {

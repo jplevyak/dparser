@@ -86,17 +86,6 @@ typedef int16_t int16;
 typedef uint16_t uint16;
 typedef unsigned int uint;
 
-#include "dparse.h"
-#include "arg.h"
-#include "util.h"
-#include "gram.h"
-#include "lr.h"
-#include "lex.h"
-#include "scan.h"
-#include "parse.h"
-#include "write_tables.h"
-#include "read_binary.h"
-
 #ifdef D_DEBUG
 #define DBG(_x)            \
   if (d_debug_level > 1) { \

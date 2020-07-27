@@ -2,8 +2,10 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
-#include "gramgram.h"
 #include "d.h"
+#include "util.h"
+#include "dparse_tables.h"
+#include "gram.h"
 #include "mkdparse.h"
 
 static void mkdparse_internal(Grammar *g, char *grammar_pathname, char *str) {

@@ -4,6 +4,10 @@
 
 {
 #include "d.h"
+#include "util.h"
+#include "dsymtab.h"
+#include "dparse_tables.h"
+#include "gram.h"
 }
 
 ${declare longest_match program}
@@ -12,12 +16,12 @@ program : statement*;
 
 statement : external | definition | expression ';' ;
 
-definition : identifier ':' expression ';' 
+definition : identifier ':' expression ';'
 {
   D_Sym *s;
   char *ts = dup_str($n0.start_loc.s, $n0.end);
   ${scope} = new_D_Scope(${scope});
-  s = NEW_D_SYM(${scope}, $n0.start_loc.s, $n0.end); 
+  s = NEW_D_SYM(${scope}, $n0.start_loc.s, $n0.end);
   printf("def Sym '%s' line %d: %X\n", ts,  $n0.start_loc.line, (int)(uintptr_t)s);
   d_free(ts);
   $$ = s;
@@ -25,7 +29,7 @@ definition : identifier ':' expression ';'
 
 external
 	: 'extern' external_type identifier ';'
-	| 'extern' external_type identifier 
+	| 'extern' external_type identifier
 	'(' (external_type (',' external_type)*)? ')' ';'
 	;
 
@@ -44,7 +48,7 @@ expression
  	    printf("ref Sym '%s' line %d: not found\n",
                    ts, $n0.start_loc.line);
           d_free(ts);
-	}	
+	}
 	| pre_operator expression
 	| expression post_operator
 	| expression binary_operator expression
@@ -144,7 +148,7 @@ string: "\"[^\"]*\"";
 integer: "-?([0-9]|0(x|X))[0-9]*(u|U|b|B|w|W|L|l)*" $term -1;
 float: "[\-+]?([0-9]+\.[0-9]*|\.[0-9]+)([eE][\-+]?[0-9]+)?" $term -2;
 
-{ 
+{
   char *reserved_words[] = { "if", "else", "extern", "sizeof", "int", "uint",
     "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64",
     "float", "float32", "float64", NULL };
@@ -154,7 +158,7 @@ float: "[\-+]?([0-9]+\.[0-9]*|\.[0-9]+)([eE][\-+]?[0-9]+)?" $term -2;
     return 0;
   }
 }
-identifier: "[a-zA-Z_][a-zA-Z_0-9]*" $term -3 [ 
+identifier: "[a-zA-Z_][a-zA-Z_0-9]*" $term -3 [
   char *ts = dup_str($n0.start_loc.s, $n0.end);
   if (is_one_of(ts, reserved_words)) {
     d_free(ts);

@@ -8,7 +8,7 @@
 #define DPN_TO_PN(_dpn) ((PNode *)(((char *)dpn) - (intptr_t)(&((PNode *)0)->parse_node)))
 #define is_epsilon_PNode(_pn) ((_pn)->parse_node.start_loc.s == (_pn)->parse_node.end)
 
-/* #define TRACK_PNODES	1 */
+/* #define TRACK_PNODES 1 */
 
 struct PNode;
 struct SNode;

@@ -3,6 +3,16 @@
 */
 
 #include "d.h"
+#include "util.h"
+#include "dsymtab.h"
+#include "dparse_tables.h"
+#include "dparse.h"
+#include "gram.h"
+#include "scan.h"
+#include "parse.h"
+#include "arg.h"
+#include "read_binary.h"
+#include "write_tables.h"
 #include "mkdparse.h"
 
 extern D_ParserTables parser_tables_dparser_gram;

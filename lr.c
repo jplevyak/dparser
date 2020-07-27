@@ -3,6 +3,10 @@
 */
 
 #include "d.h"
+#include "util.h"
+#include "dparse_tables.h"
+#include "gram.h"
+#include "lr.h"
 
 #define INITIAL_ALLITEMS 3359
 
