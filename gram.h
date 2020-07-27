@@ -251,9 +251,6 @@ void print_rule(Rule *r);
 void print_term(Term *t);
 Production *lookup_production(Grammar *g, char *name, uint len);
 
-/* for creating grammars */
-#define last_elem(_r) ((_r)->elems.v[(_r)->elems.n - 1])
-
 Rule *new_rule(Grammar *g, Production *p);
 Elem *new_elem_nterm(Production *p, Rule *r);
 void new_declaration(Grammar *g, Elem *e, uint kind);
@@ -268,15 +265,13 @@ Production *new_internal_production(Grammar *g, Production *p);
 Elem *dup_elem(Elem *e, Rule *r);
 void add_declaration(Grammar *g, char *start, char *end, uint kind, uint line);
 void add_pass(Grammar *g, char *start, char *end, uint kind, uint line);
-void add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end, char *code_start, char *code_end, uint line,
-                   uint pass_line);
+void add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end, char *code_start, char *code_end, uint line, uint pass_line);
 D_Pass *find_pass(Grammar *g, char *start, char *end);
 void conditional_EBNF(Grammar *g); /* applied to g->e,g->r,g->p */
 void star_EBNF(Grammar *g);        /* ditto */
 void plus_EBNF(Grammar *g);        /* ditto */
 void rep_EBNF(Grammar *g, int minimum, int maximum);
 void initialize_productions(Grammar *g);
-void finalize_productions(Grammar *g);
 uint state_for_declaration(Grammar *g, uint iproduction);
 
 #endif

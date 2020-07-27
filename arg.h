@@ -4,14 +4,6 @@
 #ifndef _arg_H_
 #define _arg_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef __alpha
-#define atoll atol
-#endif
-
 /* Argument Handling
  */
 struct ArgumentState;

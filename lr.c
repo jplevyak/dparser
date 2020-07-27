@@ -2,13 +2,14 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"
 #include "gram.h"
 #include "lr.h"
-
-#define INITIAL_ALLITEMS 3359
 
 #define item_hash(_i) \
   (((uint)(_i)->rule->index << 8) + ((uint)((_i)->kind != ELEM_END ? (_i)->index : (_i)->rule->elems.n)))
@@ -28,7 +29,7 @@ static int itemcmp(const void *ai, const void *aj) {
   return (i > j) ? 1 : ((i < j) ? -1 : 0);
 }
 
-static State *new_state() {
+static State *new_state(void) {
   State *s = MALLOC(sizeof(State));
   memset(s, 0, sizeof(State));
   return s;
@@ -229,7 +230,9 @@ static int actioncmp(const void *aa, const void *bb) {
   return ((i > j) ? 1 : ((i < j) ? -1 : 0));
 }
 
-void sort_VecAction(VecAction *v) { qsort(v->v, v->n, sizeof(Action *), actioncmp); }
+void sort_VecAction(VecAction *v) {
+    qsort(v->v, v->n, sizeof(Action *), actioncmp);
+}
 
 static void build_actions(Grammar *g) {
   uint x, y, z;

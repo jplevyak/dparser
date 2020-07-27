@@ -4,13 +4,21 @@
 #include "d.h"
 #include "arg.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#ifndef __alpha
+#define atoll atol
+#endif
+
 static char *SPACES = "                                                                               ";
 static char *arg_types_keys = (char *)"ISDfF+TL";
 static char *arg_types_desc[] = {(char *)"int     ", (char *)"string  ", (char *)"double  ",
                                  (char *)"set off ", (char *)"set on  ", (char *)"incr    ",
                                  (char *)"toggle  ", (char *)"int64   ", (char *)"        "};
 
-void process_arg(ArgumentState *arg_state, int i, char ***argv) {
+static void process_arg(ArgumentState *arg_state, int i, char ***argv) {
   char *arg = NULL;
   ArgumentDescription *desc = arg_state->desc;
   if (desc[i].type) {

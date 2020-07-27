@@ -2,6 +2,8 @@
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
 
+#include <string.h>
+
 #include "d.h"
 #include "dparse_tables.h"
 #include "scan.h"

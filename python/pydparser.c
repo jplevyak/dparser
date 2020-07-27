@@ -9,7 +9,7 @@
 static int my_final_action(void *new_ps, void **children, int n_children, int pn_offset,
 			   struct D_Parser *parser);
 static int my_speculative_action(void *new_ps, void **children, int n_children, int pn_offset,
-				 struct D_Parser *parser); 
+				 struct D_Parser *parser);
 static PyObject *make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string);
 
 typedef struct D_ParserPyInterface {
@@ -28,14 +28,14 @@ typedef struct D_ParserPyInterface {
   int takes_globals;
   char *buf_start;         /* for converting from char* to string index */
   PyObject *py_buf_start;
-  /* for deallocation purposes */ 
-  int num_parse_tree_viewers;    
-  D_ParseNode *top_node; 
+  /* for deallocation purposes */
+  int num_parse_tree_viewers;
+  D_ParseNode *top_node;
   int parsing;
 
 } D_ParserPyInterface;
 
-static void 
+static void
 free_node_fn(D_ParseNode *d) {
   Py_XDECREF((PyObject*)d->user.t);
   Py_XDECREF((PyObject*)d->user.s);
@@ -52,7 +52,7 @@ free_node_fn(D_ParseNode *d) {
 }
 
 /* swig can't handle these I don't think.*/
-void 
+void
 my_d_loc_t_s_set(d_loc_t *dlt, D_Parser *dp, int val) {
   D_ParserPyInterface *ppi = d_interface(dp);
   dlt->s = val + ppi->buf_start;
@@ -64,25 +64,25 @@ my_d_loc_t_s_get(d_loc_t *dlt, D_Parser *dp) {
   return dlt->s - ppi->buf_start;
 }
 
-void 
+void
 my_D_ParseNode_end_set(D_ParseNode *dpn, D_Parser *dp, int val) {
   D_ParserPyInterface *ppi = d_interface(dp);
   dpn->end = val + ppi->buf_start;
 }
 
-void 
+void
 my_D_ParseNode_end_skip_set(D_ParseNode *dpn, D_Parser *dp, int val) {
   D_ParserPyInterface *ppi = d_interface(dp);
   dpn->end_skip = val + ppi->buf_start;
 }
 
-int 
+int
 my_D_ParseNode_end_get(D_ParseNode *dpn, D_Parser *dp) {
   D_ParserPyInterface *ppi = d_interface(dp);
   return dpn->end - ppi->buf_start;
 }
 
-int 
+int
 my_D_ParseNode_end_skip_get(D_ParseNode *dpn, D_Parser *dp) {
   D_ParserPyInterface *ppi = d_interface(dp);
   return dpn->end_skip - ppi->buf_start;
@@ -105,7 +105,7 @@ my_D_ParseNode_symbol_get(D_ParseNode *dpn, D_Parser *dp) {
   return str;
 }
 
-static PyObject * 
+static PyObject *
 new_loc_inst(D_Parser* dp, d_loc_t* dlt) {
   PyObject * buf;
   D_ParserPyInterface *ppi = d_interface(dp);
@@ -139,7 +139,7 @@ make_py_node(D_Parser *dp, D_ParseNode *dpn) {
   return node_inst;
 }
 
-void 
+void
 remove_parse_tree_viewer(D_Parser* dp) {
   D_ParserPyInterface *ppi = d_interface(dp);
   ppi->num_parse_tree_viewers--;
@@ -157,7 +157,7 @@ add_parse_tree_viewer(D_Parser* dp) {
   ppi->num_parse_tree_viewers++;
 }
 
-static void 
+static void
 my_syntax_error_fn(struct D_Parser *dp) {
   PyObject *arglist;
   PyObject *result;
@@ -173,8 +173,8 @@ my_syntax_error_fn(struct D_Parser *dp) {
   Py_DECREF(loc_inst);
 }
 
-static void 
-my_initial_white_space_fn(struct D_Parser *dp, 
+static void
+my_initial_white_space_fn(struct D_Parser *dp,
 			 d_loc_t *loc, void **p_globals) {
   PyObject *arglist;
   PyObject *result;
@@ -244,7 +244,7 @@ make_parser(long int idpt,
 	    PyObject *syntax_error_fn,
 	    PyObject *ambiguity_fn,
 	    int dont_fixup_internal_productions,
-            int fixup_EBNF_productions, 
+            int fixup_EBNF_productions,
 	    int dont_merge_epsilon_trees,
 	    int commit_actions_interval,
 	    int error_recovery,
@@ -261,7 +261,7 @@ make_parser(long int idpt,
   D_Parser *p = new_D_Parser(dpt->parser_tables_gram, sizeof(D_ParseNode_User));
   p->fixup_EBNF_productions = fixup_EBNF_productions;
   p->save_parse_tree = 1;
-  p->initial_scope = NULL; 
+  p->initial_scope = NULL;
   p->dont_fixup_internal_productions = dont_fixup_internal_productions;
   p->dont_merge_epsilon_trees = dont_merge_epsilon_trees;
   p->commit_actions_interval = commit_actions_interval;
@@ -271,7 +271,7 @@ make_parser(long int idpt,
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
   p->error_recovery = error_recovery;
   p->free_node_fn = free_node_fn;
-  ppi = malloc(sizeof(D_ParserPyInterface)); 
+  ppi = malloc(sizeof(D_ParserPyInterface));
   memset(ppi, 0, sizeof(D_ParserPyInterface));
   ((Parser*)p)->pinterface1 = ppi;
   /* d_interface(p) = ppi; */
@@ -322,7 +322,7 @@ make_parser(long int idpt,
   return p;
 }
 
-void 
+void
 del_parser(D_Parser *dp) {
   D_ParserPyInterface *ppi;
   ppi = d_interface(dp);
@@ -496,8 +496,8 @@ print_debug_info(D_ParseNode *dd, PyObject *tuple, int speculative, int pdi) {
 }
 
 static PyObject*
-take_action(PyObject *arg_types, PyObject *children_list, int speculative, 
-	    D_ParseNode *dd, PyObject *string_list, int n_children, 
+take_action(PyObject *arg_types, PyObject *children_list, int speculative,
+	    D_ParseNode *dd, PyObject *string_list, int n_children,
 	    struct D_Parser *parser, void **children, int pn_offset,
 	    PyObject *action) {
   int i;
@@ -581,7 +581,7 @@ my_action(void *new_ps, void **children, int n_children, int pn_offset,
     tuple = PyList_GetItem(ppi->actions, action_index);
     PyArg_ParseTuple(tuple, "OOi", &action, &arg_types, &takes_speculative);
   }
-  
+
   if (ppi->takes_globals) {
     inc_global_state(parser, dd);
   }
@@ -610,11 +610,11 @@ my_action(void *new_ps, void **children, int n_children, int pn_offset,
 	  printf("freeing2:%d\n", dd->user.s);*/
     Py_XDECREF(dd->user.s);
     dd->user.t = Py_None;
-    //    printf("dd1:%d\n", dd);
+    /* printf("dd1:%d\n", dd); */
     dd->user.s = NULL;
     Py_XDECREF(string_list);
     /*    printf("setting:%d\n", string_list);*/
-    //dd->user.s = string_list;
+    /* dd->user.s = string_list; */
 
     return 0;
   }
@@ -630,7 +630,7 @@ my_action(void *new_ps, void **children, int n_children, int pn_offset,
   /* this function owns children_list */
 
   if (action_index != -1) {
-    result = take_action(arg_types, children_list, speculative, dd, string_list, 
+    result = take_action(arg_types, children_list, speculative, dd, string_list,
 			 n_children, parser, children, pn_offset, action);
     Py_DECREF(children_list);
   } else {
@@ -653,20 +653,20 @@ my_action(void *new_ps, void **children, int n_children, int pn_offset,
   Py_XDECREF(dd->user.s);
   /*  if(dd->user.s)
       printf("setting2:%d\n", string_list);*/
-  //  printf("dd2:%d\n", dd);
+  /* printf("dd2:%d\n", dd); */
   dd->user.t = result;
-  dd->user.s = string_list;  
+  dd->user.s = string_list;
 
   return 0;
 }
 
-static int 
+static int
 my_final_action(void *new_ps, void **children, int n_children, int pn_offset,
 		struct D_Parser *parser) {
   return my_action(new_ps, children, n_children, pn_offset, parser, 0);
 }
 
-static int 
+static int
 my_speculative_action(void *new_ps, void **children, int n_children, int pn_offset,
 		      struct D_Parser *parser) {
   return my_action(new_ps, children, n_children, pn_offset, parser, 1);
@@ -677,7 +677,7 @@ d_version(char *v) {
   v[0] = 0;
 }
 
-long int 
+long int
 load_parser_tables(char *tables_name) {
   return (long int)read_binary_tables(tables_name, my_speculative_action, my_final_action);
 }

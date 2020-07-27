@@ -6,15 +6,11 @@
 #define _util_H_
 
 #define INITIAL_SET_SIZE_INDEX 2
-
-#define INITIAL_VEC_SHIFT 3
-#define INITIAL_VEC_SIZE (1 << INITIAL_VEC_SHIFT)
-#define INITIAL_VEC_SIZE (1 << INITIAL_VEC_SHIFT)
-#define INTEGRAL_VEC_SIZE 3
-#define INTEGRAL_STACK_SIZE 8
-#define TRICK_VEC_SIZE (INITIAL_VEC_SIZE - INTEGRAL_VEC_ELEMENTS)
-
-#define SET_MAX_SEQUENTIAL 5
+#define INITIAL_VEC_SHIFT      3
+#define INITIAL_VEC_SIZE      (1 << INITIAL_VEC_SHIFT)
+#define INTEGRAL_VEC_SIZE      3
+#define INTEGRAL_STACK_SIZE    8
+#define SET_MAX_SEQUENTIAL     5
 
 #define IS_BIT_SET(_v, _s) ((_v)[(_s) / 8] & 1 << ((_s) % 8))
 #define SET_BIT(_v, _s) (_v)[(_s) / 8] |= (1 << ((_s) % 8))
@@ -46,17 +42,6 @@ typedef struct AbstractStack {
     _x *cur;                         \
     _x initial[INTEGRAL_STACK_SIZE]; \
   }
-
-#define vec_move(_a, _b)                                 \
-  do {                                                   \
-    (_a)->n = (_b)->n;                                   \
-    if ((_b)->v == (_b)->e) {                            \
-      memcpy(&(_a)->e[0], &(_b)->e[0], sizeof((_a)->e)); \
-      (_a)->v = (_a)->e;                                 \
-    } else                                               \
-      (_a)->v = (_b)->v;                                 \
-    vec_clear(_b);                                       \
-  } while (0)
 
 struct hash_fns_t;
 typedef uint32 (*hash_fn_t)(void *, struct hash_fns_t *);
@@ -114,7 +99,6 @@ void set_to_vec(void *av);
   } while (0)
 #define stack_head(_s) ((_s)->cur[-1])
 #define is_stack_empty(_s) ((_s)->cur == (_s)->start)
-#define stack_empty(_s) ((_s)->cur = (_s)->start)
 #define stack_depth(_s) ((_s)->cur - (_s)->start)
 #define stack_pop(_s) (*--((_s)->cur))
 #define stack_push(_s, _x)                                                   \
@@ -130,14 +114,9 @@ void *stack_push_internal(AbstractStack *, void *);
 int buf_read(const char *pathname, char **buf, int *len);
 char *sbuf_read(const char *pathname);
 
-#if defined(WIN32)
-#define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strnicmp(_x, _s, sizeof(_s) - 1))
-#else
-#define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strncasecmp(_x, _s, sizeof(_s) - 1))
-#endif
-
 void d_fail(const char *str, ...);
 void d_warn(const char *str, ...);
+char *d_dup_pathname_str(const char *str);
 char *dup_str(const char *str, const char *end);
 uint strhashl(const char *s, int len);
 void d_free(void *);

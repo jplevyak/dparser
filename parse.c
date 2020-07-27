@@ -2,6 +2,12 @@
   Copyright 2002-2008 John Plevyak, All Rights Reserved
 */
 
+#include <assert.h>
+#include <ctype.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "d.h"
 #include "util.h"
 #include "dsymtab.h"
@@ -10,6 +16,10 @@
 #include "gram.h"
 #include "scan.h"
 #include "parse.h"
+
+#define NO_DPN ((D_ParseNode *)0x1)
+#define DPN_TO_PN(_dpn) ((PNode *)(((char *)dpn) - (intptr_t)(&((PNode *)0)->parse_node)))
+#define is_epsilon_PNode(_pn) ((_pn)->parse_node.start_loc.s == (_pn)->parse_node.end)
 
 /* tunables */
 #define DEFAULT_COMMIT_ACTIONS_INTERVAL 100
@@ -60,7 +70,7 @@ typedef Stack(int) StackInt;
 static int exhaustive_parse(Parser *p, int state);
 static void free_PNode(Parser *p, PNode *pn);
 
-void print_paren(Parser *pp, PNode *p) {
+static void print_paren(Parser *pp, PNode *p) {
   uint i;
   char *c;
   LATEST(pp, p);
@@ -77,7 +87,7 @@ void print_paren(Parser *pp, PNode *p) {
   }
 }
 
-void xprint_paren(Parser *pp, PNode *p) {
+static void xprint_paren(Parser *pp, PNode *p) {
   uint i;
   char *c;
   LATEST(pp, p);
@@ -99,18 +109,23 @@ void xprint_paren(Parser *pp, PNode *p) {
   }
 }
 
-void xPP(Parser *pp, PNode *p) {
+#if 0
+/*
+ * These are apparently unused?
+ */
+static void xPP(Parser *pp, PNode *p) {
   xprint_paren(pp, p);
   printf("\n");
 }
-void PP(Parser *pp, PNode *p) {
+static void PP(Parser *pp, PNode *p) {
   print_paren(pp, p);
   printf("\n");
 }
 
-#define D_ParseNode_to_PNode(_apn) ((PNode *)(D_PN(_apn, -(intptr_t) & ((PNode *)(NULL))->parse_node)))
-
 #define PNode_to_D_ParseNode(_apn) ((D_ParseNode *)&((PNode *)(_apn))->parse_node)
+#endif
+
+#define D_ParseNode_to_PNode(_apn) ((PNode *)(D_PN(_apn, -(intptr_t) & ((PNode *)(NULL))->parse_node)))
 
 D_ParseNode *d_get_child(D_ParseNode *apn, int child) {
   PNode *pn = D_ParseNode_to_PNode(apn);
@@ -148,7 +163,7 @@ char *d_ws_after(D_Parser *ap, D_ParseNode *apn) {
 
 #define SNODE_HASH(_s, _sc, _g) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))) + ((uintptr_t)(_g)))
 
-SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *g) {
+static SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *g) {
   SNodeHash *ph = &p->snode_hash;
   SNode *sn;
   uint h = SNODE_HASH(state, sc, g);
@@ -158,7 +173,7 @@ SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *g) {
   return NULL;
 }
 
-void insert_SNode_internal(Parser *p, SNode *sn) {
+static void insert_SNode_internal(Parser *p, SNode *sn) {
   SNodeHash *ph = &p->snode_hash;
   uint h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_globals), i;
   SNode *t;
@@ -297,7 +312,7 @@ static void free_SNode(Parser *p, struct SNode *s) {
 #define PNODE_HASH(_si, _ei, _s, _sc, _g) \
   ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)) + (((uintptr_t)_g)))
 
-PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, void *g, uint *hash) {
+static PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, void *g, uint *hash) {
   PNodeHash *ph = &p->pnode_hash;
   PNode *pn;
   uint h = PNODE_HASH(start, end_skip, symbol, sc, g);
@@ -312,7 +327,7 @@ PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *s
   return NULL;
 }
 
-void insert_PNode_internal(Parser *p, PNode *pn) {
+static void insert_PNode_internal(Parser *p, PNode *pn) {
   PNodeHash *ph = &p->pnode_hash;
   uint h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope,
                       pn->initial_globals),
@@ -930,8 +945,7 @@ static int cmp_pnodes(Parser *p, PNode *x, PNode *y) {
   return r;
 }
 
-static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r,
-                         VecZNode *path, D_Shift *sh, D_Scope *scope) {
+static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh, D_Scope *scope) {
   int i;
   uint l = sizeof(PNode) + p->user.sizeof_user_parse_node;
   PNode *new_pn = p->free_pnodes;
@@ -1024,8 +1038,7 @@ static int PNode_equal(Parser *p, PNode *pn, D_Reduction *r, VecZNode *path, D_S
 }
 
 /* find/create PNode */
-static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r, VecZNode *path,
-                        D_Shift *sh) {
+static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh) {
   D_Scope *scope = equiv_D_Scope(pn->parse_node.scope);
   uint hash;
   PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, pn->parse_node.globals, &hash), *new_pn;
@@ -1508,7 +1521,9 @@ static void free_ParseTreeBelow(Parser *p, PNode *pn) {
   }
 }
 
-void free_D_ParseTreeBelow(D_Parser *p, D_ParseNode *dpn) { free_ParseTreeBelow((Parser *)p, DPN_TO_PN(dpn)); }
+void free_D_ParseTreeBelow(D_Parser *p, D_ParseNode *dpn) {
+    free_ParseTreeBelow((Parser *)p, DPN_TO_PN(dpn));
+}
 
 D_ParseNode *ambiguity_count_fn(D_Parser *pp, int n, D_ParseNode **v) {
   Parser *p = (Parser *)pp;
@@ -1881,7 +1896,7 @@ static int exhaustive_parse(Parser *p, int state) {
 }
 
 /* doesn't include nl */
-char _wspace[256] = {
+static char _wspace[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 /* zero padded */
 };
@@ -1968,7 +1983,7 @@ Ldone:
   return;
 }
 
-void null_white_space(D_Parser *p, d_loc_t *loc, void **p_globals) {
+static void null_white_space(D_Parser *p, d_loc_t *loc, void **p_globals) {
   (void)p;
   (void)loc;
   (void)p_globals;
@@ -2017,7 +2032,7 @@ static void copy_user_configurables(Parser *pp, Parser *p) {
          ((char *)&pp->user.syntax_errors - (char *)&pp->user.start_state));
 }
 
-Parser *new_subparser(Parser *p) {
+static Parser *new_subparser(Parser *p) {
   Parser *pp = (Parser *)new_D_Parser(p->t, p->user.sizeof_user_parse_node);
   copy_user_configurables(pp, p);
   pp->end = p->end;

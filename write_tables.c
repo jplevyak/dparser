@@ -1,6 +1,15 @@
 /*
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
+#include <assert.h>
+#include <ctype.h>
+#include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+
 #include "d.h"
 #include "util.h"
 #include "dparse_tables.h"
@@ -10,7 +19,13 @@
 #include "read_binary.h"
 #include "write_tables.h"
 
-void myfprintf(FILE *f, const char *format, ...) {
+#if defined(WIN32)
+#define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strnicmp(_x, _s, sizeof(_s) - 1))
+#else
+#define STREQ(_x, _n, _s) ((_n == sizeof(_s) - 1) && !strncasecmp(_x, _s, sizeof(_s) - 1))
+#endif
+
+static void myfprintf(FILE *f, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
 
@@ -55,21 +70,21 @@ typedef struct File {
   int d_parser_tables_loc;
 } File;
 
-OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
-OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code") - 1, -2};
-OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code") - 1, -3};
+static OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
+static OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code") - 1, -2};
+static OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code") - 1, -3};
 
-uint32 offset_hash_fn(OffsetEntry *entry, struct hash_fns_t *fn) {
+static uint32 offset_hash_fn(OffsetEntry *entry, struct hash_fns_t *fn) {
   (void)fn;
   return strhashl(entry->name, entry->len);
 }
 
-int offset_cmp_fn(OffsetEntry *a, OffsetEntry *b, struct hash_fns_t *fn) {
+static int offset_cmp_fn(OffsetEntry *a, OffsetEntry *b, struct hash_fns_t *fn) {
   (void)fn;
   return strcmp(a->name, b->name);
 }
 
-hash_fns_t offset_fns = {(hash_fn_t)offset_hash_fn, (cmp_fn_t)offset_cmp_fn, {0, 0}};
+static hash_fns_t offset_fns = {(hash_fn_t)offset_hash_fn, (cmp_fn_t)offset_cmp_fn, {0, 0}};
 
 static void write_chk(const void *ptr, size_t size, size_t nmemb, File *file) {
   if (file->fp) {
@@ -325,8 +340,7 @@ static void start_struct_in_array(File *fp) {
   }
 }
 
-static void start_array_fn(File *fp, int type_size, char *type_prefix, char *type_str, char *name, char *length_str,
-                           int length_data, char *whitespace) {
+static void start_array_fn(File *fp, int type_size, char *type_prefix, char *type_str, char *name, char *length_str, int length_data, char *whitespace) {
   new_offset(fp, name);
   if (fp->binary) {
     start_array_internal(fp, length_data, type_size);
@@ -438,7 +452,7 @@ static int scanner_size(State *s) {
   static void name(void *dest, int data) { (*(type *)(dest)) = (data); }
 copy_func(unsigned_char_copy, uint8) copy_func(unsigned_short_copy, unsigned short) copy_func(unsigned_int_copy, uint)
 
-    static CopyFuncType get_copy_func(int i) {
+static CopyFuncType get_copy_func(int i) {
   switch (i) {
     case 1:
       return unsigned_char_copy;
@@ -509,7 +523,7 @@ static int scanner_block_cmp_fn(ScannerBlock *a, ScannerBlock *b, hash_fns_t *fn
   return 0;
 }
 
-hash_fns_t scanner_block_fns = {(hash_fn_t)scanner_block_hash_fn, (cmp_fn_t)scanner_block_cmp_fn, {0, 0}};
+static hash_fns_t scanner_block_fns = {(hash_fn_t)scanner_block_hash_fn, (cmp_fn_t)scanner_block_cmp_fn, {0, 0}};
 
 static uint32 trans_scanner_block_hash_fn(ScannerBlock *b, hash_fns_t *fns) {
   uint32 hash = 0;
@@ -536,7 +550,7 @@ static int trans_scanner_block_cmp_fn(ScannerBlock *a, ScannerBlock *b, hash_fns
   return 0;
 }
 
-hash_fns_t trans_scanner_block_fns = {
+static hash_fns_t trans_scanner_block_fns = {
     (hash_fn_t)trans_scanner_block_hash_fn, (cmp_fn_t)trans_scanner_block_cmp_fn, {0, 0}};
 
 static uint32 shift_hash_fn(Action *sa, hash_fns_t *fns) {
@@ -549,7 +563,7 @@ static int shift_cmp_fn(Action *sa, Action *sb, hash_fns_t *fns) {
   return (sa->term->index != sb->term->index) || (sa->kind != sb->kind);
 }
 
-hash_fns_t shift_fns = {(hash_fn_t)shift_hash_fn, (cmp_fn_t)shift_cmp_fn, {0, 0}};
+static hash_fns_t shift_fns = {(hash_fn_t)shift_hash_fn, (cmp_fn_t)shift_cmp_fn, {0, 0}};
 
 static void write_scanner_data(File *fp, Grammar *g, char *tag) {
   State *s;
@@ -1377,7 +1391,7 @@ static int er_hint_cmp_fn(State *a, State *b, hash_fns_t *fns) {
   return 0;
 }
 
-hash_fns_t er_hint_hash_fns = {(hash_fn_t)er_hint_hash_fn, (cmp_fn_t)er_hint_cmp_fn, {0, 0}};
+static hash_fns_t er_hint_hash_fns = {(hash_fn_t)er_hint_hash_fn, (cmp_fn_t)er_hint_cmp_fn, {0, 0}};
 
 static void write_error_data(File *fp, Grammar *g, VecState *er_hash, char *tag) {
   uint i, j;
@@ -1633,7 +1647,7 @@ static void write_passes(File *fp, Grammar *g, char *tag) {
   }
 }
 
-void write_parser_tables(Grammar *g, char *tag, File *file) {
+static void write_parser_tables(Grammar *g, char *tag, File *file) {
   int whitespace_production = 0;
   VecState er_hash;
   Production *p;
@@ -1691,8 +1705,7 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   if (file->fp) fclose(file->fp);
 }
 
-void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int binary, FILE *fp, uint8 **str,
-                                  uint *str_len) {
+static void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int binary, FILE *fp, uint8 **str, uint *str_len) {
   File file;
   if (!binary) {
     fp = fopen(g->write_pathname, "w");
