@@ -14,6 +14,8 @@ typedef struct My_ParseNode {
   _s = NEW_D_SYM(_scope, _start, _end);					\
 } while (0)
 
+#include "dsymtab.h"
+
 }
 
 statement: expression ';' ;

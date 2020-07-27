@@ -3,7 +3,7 @@
 */
 
 {
-#include "d.h"
+#include "dsymtab.h"
 }
 
 ${declare longest_match program}

@@ -22,6 +22,8 @@ typedef struct ANSIC_Sym {
   int is_typename;
 } ANSIC_Sym;
 #define D_UserSym ANSIC_Sym
+
+#include "dsymtab.h"
 }
 
 ${declare tokenize}

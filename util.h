@@ -5,6 +5,8 @@
 #ifndef _util_H_
 #define _util_H_
 
+#include "d.h"
+
 #define INITIAL_SET_SIZE_INDEX 2
 
 #define INITIAL_VEC_SHIFT 3

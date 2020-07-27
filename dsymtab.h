@@ -4,6 +4,8 @@
 #ifndef _dsymtab_H_
 #define _dsymtab_H_
 
+#include "util.h"
+
 #ifndef D_UserSym
 #define D_UserSym unsigned int
 #endif

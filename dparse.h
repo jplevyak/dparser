@@ -4,6 +4,8 @@
 #ifndef _dparse_H_
 #define _dparse_H_
 
+#include "dparse_tables.h"
+
 #include <stdlib.h>
 #if defined(__cplusplus)
 extern "C" {

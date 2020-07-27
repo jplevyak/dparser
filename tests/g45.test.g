@@ -1,6 +1,7 @@
 {
 #include "stdio.h"
 #include "dparse.h"
+#include "dsymtab.h"
 D_Scope *saved = 0;
 }
 
