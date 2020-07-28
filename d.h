@@ -66,8 +66,6 @@
 #define isxdigit_(_c) isxdigit((unsigned char)(_c))
 #define isprint_(_c) isprint((unsigned char)(_c))
 
-#define D_VERSION ((D_MAJOR_VERSION << 24) + (D_MINOR_VERSION << 16) + D_BUILD_VERSION)
-
 /* Compilation Options
  */
 

@@ -4,7 +4,7 @@
 #setenv VALGRIND 'valgrind -q '
 setenv VALGRIND ' '
 
-cp D_BUILD_VERSION Makefile *.c *.h grammar.g tests
+cp Makefile *.c *.h grammar.g tests
 cd tests
 $MAKE -s make_dparser
 $MAKE gram
