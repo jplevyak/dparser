@@ -46,16 +46,16 @@ global_code
   ;
 
 pass_types
-  :
+  : { $$.kind = 0; }
   | pass_type pass_types { $$.kind = $0.kind | $1.kind; }
   ;
 
 pass_type
-  : 'preorder' { $$.kind |= D_PASS_PRE_ORDER; }
-  | 'postorder' { $$.kind |= D_PASS_POST_ORDER; }
-  | 'manual' { $$.kind |= D_PASS_MANUAL; }
-  | 'for_all'  { $$.kind |= D_PASS_FOR_ALL; }
-  | 'for_undefined' { $$.kind |= D_PASS_FOR_UNDEFINED; }
+  : 'preorder' { $$.kind = D_PASS_PRE_ORDER; }
+  | 'postorder' { $$.kind = D_PASS_POST_ORDER; }
+  | 'manual' { $$.kind = D_PASS_MANUAL; }
+  | 'for_all'  { $$.kind = D_PASS_FOR_ALL; }
+  | 'for_undefined' { $$.kind = D_PASS_FOR_UNDEFINED; }
   ;
 
 declarationtype

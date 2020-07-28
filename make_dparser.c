@@ -58,7 +58,7 @@ static ArgumentState arg_state = {0, 0, "program", arg_desc};
 extern D_ParserTables parser_tables_dparser_gram;
 
 static void help(ArgumentState *arg_state, char *arg_unused) {
-  char ver[30];
+  char ver[60];
   d_version(ver);
   fprintf(stderr, "Make DParser Version %s ", ver);
   fprintf(stderr, "Copyright (c) 2002-2004 John Plevyak\n");

@@ -933,7 +933,8 @@ static int cmp_pnodes(Parser *p, PNode *x, PNode *y) {
 static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r,
                          VecZNode *path, D_Shift *sh, D_Scope *scope) {
   int i;
-  uint l = sizeof(PNode) + p->user.sizeof_user_parse_node;
+  uint l = sizeof(PNode) - sizeof(d_voidp)  // -sizeof default D_ParseNode_User (voidp).
+           + p->user.sizeof_user_parse_node;
   PNode *new_pn = p->free_pnodes;
   if (!new_pn)
     new_pn = MALLOC(l);

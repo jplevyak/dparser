@@ -113,11 +113,11 @@ typedef struct PNode {
   char *ws_after;
   D_Scope *initial_scope;
   void *initial_globals;
-  D_ParseNode parse_node; /* public fields */
 #ifdef TRACK_PNODES
   struct PNode *xnext;
   struct PNode *xprev;
 #endif
+  D_ParseNode parse_node; /* public fields */
 } PNode;
 
 /*

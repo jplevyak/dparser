@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "dparse_tables.h"
+
 extern D_Symbol d_symbols_gram[];
 char *xdup(char *s, char *e) {
   char *ss = malloc( e - s + 2 );
