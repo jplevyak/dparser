@@ -4,6 +4,7 @@
 
 #include "d.h"
 #include "util.h"
+#include "gramgram.h"  // must appear before dparser.h
 #include "dparse_tables.h"
 #include "dparse.h"
 #include "gram.h"
