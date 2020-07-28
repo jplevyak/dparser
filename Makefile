@@ -1,4 +1,4 @@
-# Makefile for DParser
+# Makefile for D_Parser
 
 #D_DEBUG=1
 D_OPTIMIZE=1
