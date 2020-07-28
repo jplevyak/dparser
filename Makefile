@@ -53,19 +53,13 @@ ifeq ($(OS_TYPE),Linux)
 endif
 endif
 ifdef D_LEAK_DETECT
-CFLAGS += -DLEAK_DETECT  ${GC_CFLAGS}
+CFLAGS += -DLEAK_DETECT ${GC_CFLAGS}
 LIBS += -lleak
 endif
 
 ifdef D_USE_FREELISTS
 CFLAGS += -DUSE_FREELISTS
 endif
-
-D_BUILD_VERSION = $(shell git show-ref 2> /dev/null | head -1 | cut -d ' ' -f 1)
-ifeq ($(D_BUILD_VERSION),)
-  D_BUILD_VERSION = $(shell cat D_BUILD_VERSION)
-endif
-CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR) -DD_BUILD_VERSION=\"$(D_BUILD_VERSION)\"
 
 CFLAGS += -Wall
 # debug flags
@@ -86,6 +80,7 @@ CFLAGS += -pg
 endif
 
 CFLAGS += -std=c11 -pedantic
+CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
@@ -93,7 +88,7 @@ TEST_FILES = dparser/parser_tests dparser/baseline $(TESTS:%=dparser/%)
 PYTHON_FILES = dparser/python/Makefile dparser/python/*.py dparser/python/*.c dparser/python/*.h dparser/python/*.i dparser/python/README dparser/python/*.html dparser/python/contrib/d* dparser/python/tests/*.py
 VERILOG_FILES = dparser/verilog/Makefile dparser/verilog/verilog.g dparser/verilog/README dparser/verilog/ambig.c \
 dparser/verilog/main.c dparser/verilog/vparse.c dparser/verilog/vparse.h dparser/verilog/verilog_tests
-TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) dparser/D_BUILD_VERSION \
+TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) \
 dparser/grammar.g dparser/sample.g dparser/my.g
 
 LIB_SRCS = arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c
@@ -140,7 +135,7 @@ endif
 
 ALL_SRCS = $(MAKE_PARSER_SRCS) $(BASE_SAMPLE_PARSER_SRCS) $(LIB_SRCS) $(MK_LIB_SRCS)
 
-all: $(EXECS) $(LIBRARIES) D_BUILD_VERSION make_dparser.cat
+all: $(EXECS) $(LIBRARIES) make_dparser.cat
 
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
@@ -197,11 +192,6 @@ gram: make_dparser
 make_dparser.cat: make_dparser.1
 	rm -f make_dparser.cat
 	nroff -man make_dparser.1 | sed -e 's/.//g' > make_dparser.cat
-
-D_BUILD_VERSION:
-	rm -f D_BUILD_VERSION.tmp
-	echo $(D_BUILD_VERSION) > D_BUILD_VERSION.tmp
-	mv D_BUILD_VERSION.tmp D_BUILD_VERSION
 
 tar:
 	(cd ..;tar czf dparser-$(RELEASE)-src.tar.gz dparser/*.c dparser/*.h $(TAR_FILES))
