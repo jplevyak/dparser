@@ -3,11 +3,6 @@
 */
 
 #include "d.h"
-#include "util.h"
-#include "dparse_tables.h"
-#include "gram.h"
-#include "lr.h"
-#include "lex.h"
 
 typedef struct NFAState {
   uint index;

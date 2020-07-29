@@ -3,8 +3,6 @@
 */
 
 #include "d.h"
-#include "util.h"
-#include "dsymtab.h"
 
 #define INITIAL_SYMHASH_SIZE 3137
 
@@ -35,6 +33,12 @@
   'down' and 'down_next' are used to hold enclosing scopes, or in the
   case of the top level, sibling scopes (created by commmit).
 */
+
+typedef struct D_SymHash {
+  int index;
+  int grow;
+  Vec(D_Sym *) syms;
+} D_SymHash;
 
 static void free_D_Sym(D_Sym *s) { FREE(s); }
 

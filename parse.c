@@ -3,13 +3,6 @@
 */
 
 #include "d.h"
-#include "util.h"
-#include "dsymtab.h"
-#include "dparse_tables.h"
-#include "dparse.h"
-#include "gram.h"
-#include "scan.h"
-#include "parse.h"
 
 /* tunables */
 #define DEFAULT_COMMIT_ACTIONS_INTERVAL 100

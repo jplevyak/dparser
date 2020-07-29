@@ -8,14 +8,6 @@ typedef struct user_pyobjects {
 #define D_ParseNode_User user_pyobjects
 #define D_ParseNode_Globals PyObject
 #include "../d.h"
-#include "../dparse_tables.h"
-#include "../dparse.h"
-#include "../util.h"
-#include "../dsymtab.h"
-#include "../scan.h"
-#include "../gram.h"
-#include "../parse.h"
-#include "../read_binary.h"
 #endif
 
 void my_d_loc_t_s_set(d_loc_t *dlt, D_Parser *dp, int val);

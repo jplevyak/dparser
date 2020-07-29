@@ -4,10 +4,6 @@
 
 {
 #include "d.h"
-#include "util.h"
-#include "dsymtab.h"
-#include "dparse_tables.h"
-#include "gram.h"
 }
 
 ${declare longest_match program}

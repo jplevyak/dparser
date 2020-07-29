@@ -2,7 +2,6 @@
  Copyright 1994-2004 John Plevyak, All Rights Reserved
 */
 #include "d.h"
-#include "arg.h"
 
 static char *SPACES = "                                                                               ";
 static char *arg_types_keys = (char *)"ISDfF+TL";

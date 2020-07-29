@@ -3,14 +3,6 @@
 */
 
 #include "d.h"
-#include "util.h"
-#include "dsymtab.h"
-#include "dparse_tables.h"
-#include "dparse.h"
-#include "gram.h"
-#include "scan.h"
-#include "parse.h"
-#include "arg.h"
 
 #define SIZEOF_MY_PARSE_NODE 100 /* permit test cases up to this size */
 

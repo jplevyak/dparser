@@ -5,6 +5,8 @@
 #ifndef _scan_H_
 #define _scan_H_
 
+#include "d.h"
+
 typedef struct ShiftResult {
   struct SNode *snode;
   D_Shift *shift;

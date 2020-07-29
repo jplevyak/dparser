@@ -4,8 +4,6 @@
 #ifndef _dsymtab_H_
 #define _dsymtab_H_
 
-#include "util.h"
-
 #ifndef D_UserSym
 #define D_UserSym unsigned int
 #endif
@@ -22,12 +20,6 @@ typedef struct D_Sym {
   struct D_Sym *next;
   D_UserSym user;
 } D_Sym;
-
-typedef struct D_SymHash {
-  int index;
-  int grow;
-  Vec(D_Sym *) syms;
-} D_SymHash;
 
 #define D_SCOPE_INHERIT 0
 #define D_SCOPE_RECURSIVE 1

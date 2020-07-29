@@ -3,8 +3,6 @@
 */
 
 #include "d.h"
-#include "dparse_tables.h"
-#include "scan.h"
 
 int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
   d_loc_t loc = *aloc, last_loc = *aloc;

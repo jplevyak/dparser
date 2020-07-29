@@ -2,13 +2,7 @@
   Copyright 2002-2006 John Plevyak, All Rights Reserved
 */
 #include "d.h"
-#include "util.h"
 #include "dparse_tables.h"
-#include "gram.h"
-#include "lr.h"
-#include "lex.h"
-#include "read_binary.h"
-#include "write_tables.h"
 
 void myfprintf(FILE *f, const char *format, ...) {
   va_list ap;

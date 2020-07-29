@@ -4,9 +4,6 @@
 {
 #include "gramgram.h"
 #include "d.h"
-#include "util.h"
-#include "dparse_tables.h"
-#include "gram.h"
 }
 
 grammar: top_level_statement*;

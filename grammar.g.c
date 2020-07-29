@@ -7,11 +7,8 @@
 
 #include "gramgram.h"
 #include "d.h"
-#include "util.h"
-#include "dparse_tables.h"
-#include "gram.h"
 
-#line 15 "grammar.g.d_parser.c"
+#line 12 "grammar.g.d_parser.c"
 #include "dparse.h"
 
 D_Reduction d_reduction_0_dparser_gram = {1, 0, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
@@ -19,7 +16,7 @@ D_Reduction d_reduction_1_dparser_gram = {1, 1, NULL, NULL, 0, 0, 0, 0, 0, 0, NU
 D_Reduction d_reduction_2_dparser_gram = {2, 2, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_3_dparser_gram = {0, 2, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_4_dparser_gram = {1, 3, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
-#line 16 "grammar.g"
+#line 13 "grammar.g"
 int d_final_reduction_code_4_7_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   char *grammar_pathname = dup_str((*(D_PN(_children[1], _offset))).start_loc.s+1, (*(D_PN(_children[1], _offset))).end-1);
   if (parse_grammar((D_PN(_ps, _offset)->globals), grammar_pathname, 0) < 0)
@@ -27,27 +24,27 @@ int d_final_reduction_code_4_7_dparser_gram(void *_ps, void **_children, int _n_
   FREE(grammar_pathname);
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 31 "grammar.g.d_parser.c"
+#line 28 "grammar.g.d_parser.c"
 D_Reduction d_reduction_7_dparser_gram = {2, 4, NULL, d_final_reduction_code_4_7_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 25 "grammar.g"
+#line 22 "grammar.g"
 int d_final_reduction_code_5_8_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  add_global_code((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s+2, (*(D_PN(_children[2], _offset))).end-2, (*(D_PN(_children[0], _offset))).start_loc.line);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 36 "grammar.g.d_parser.c"
+#line 33 "grammar.g.d_parser.c"
 D_Reduction d_reduction_8_dparser_gram = {3, 5, NULL, d_final_reduction_code_5_8_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 26 "grammar.g"
+#line 23 "grammar.g"
 int d_final_reduction_code_5_9_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  add_global_code((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s+1, (*(D_PN(_children[0], _offset))).end-1, (*(D_PN(_children[0], _offset))).start_loc.line);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 41 "grammar.g.d_parser.c"
+#line 38 "grammar.g.d_parser.c"
 D_Reduction d_reduction_9_dparser_gram = {1, 5, NULL, d_final_reduction_code_5_9_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 27 "grammar.g"
+#line 24 "grammar.g"
 int d_final_reduction_code_5_10_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       (D_PN(_ps, _offset)->globals)->scanner.code = dup_str((*(D_PN(_children[1], _offset))).start_loc.s, (*(D_PN(_children[1], _offset))).end);
       (D_PN(_ps, _offset)->globals)->scanner.line = (*(D_PN(_children[0], _offset))).start_loc.line;
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 49 "grammar.g.d_parser.c"
+#line 46 "grammar.g.d_parser.c"
 D_Reduction d_reduction_10_dparser_gram = {3, 5, NULL, d_final_reduction_code_5_10_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 31 "grammar.g"
+#line 28 "grammar.g"
 int d_final_reduction_code_5_11_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       if (!d_get_number_of_children(&(*(D_PN(_children[2], _offset)))))
      	add_declaration((D_PN(_ps, _offset)->globals), (*(D_PN(_children[2], _offset))).start_loc.s, (*(D_PN(_children[2], _offset))).end,  (D_PN(_children[1], _offset)->user).kind, (*(D_PN(_children[2], _offset))).start_loc.line);
@@ -60,15 +57,15 @@ int d_final_reduction_code_5_11_dparser_gram(void *_ps, void **_children, int _n
       }
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 64 "grammar.g.d_parser.c"
+#line 61 "grammar.g.d_parser.c"
 D_Reduction d_reduction_11_dparser_gram = {4, 5, NULL, d_final_reduction_code_5_11_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_12_dparser_gram = {3, 5, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
-#line 43 "grammar.g"
+#line 40 "grammar.g"
 int d_final_reduction_code_5_13_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       add_pass((D_PN(_ps, _offset)->globals), (*(D_PN(_children[1], _offset))).start_loc.s, (*(D_PN(_children[1], _offset))).end,  (D_PN(_children[2], _offset)->user).kind, (*(D_PN(_children[1], _offset))).start_loc.line);
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 72 "grammar.g.d_parser.c"
+#line 69 "grammar.g.d_parser.c"
 D_Reduction d_reduction_13_dparser_gram = {4, 5, NULL, d_final_reduction_code_5_13_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_14_dparser_gram = {2, 6, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_15_dparser_gram = {1, 6, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
@@ -78,111 +75,111 @@ D_Reduction d_reduction_18_dparser_gram = {2, 8, NULL, NULL, 0, 0, 0, 0, -1, 0, 
 D_Reduction d_reduction_19_dparser_gram = {1, 8, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_20_dparser_gram = {2, 9, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_21_dparser_gram = {0, 9, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
-#line 49 "grammar.g"
+#line 46 "grammar.g"
 int d_final_reduction_code_10_22_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = 0;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 85 "grammar.g.d_parser.c"
+#line 82 "grammar.g.d_parser.c"
 D_Reduction d_reduction_22_dparser_gram = {0, 10, NULL, d_final_reduction_code_10_22_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 50 "grammar.g"
+#line 47 "grammar.g"
 int d_final_reduction_code_10_23_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = (D_PN(_children[0], _offset)->user).kind | (D_PN(_children[1], _offset)->user).kind;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 90 "grammar.g.d_parser.c"
+#line 87 "grammar.g.d_parser.c"
 D_Reduction d_reduction_23_dparser_gram = {2, 10, NULL, d_final_reduction_code_10_23_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 54 "grammar.g"
+#line 51 "grammar.g"
 int d_final_reduction_code_11_24_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = D_PASS_PRE_ORDER;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 95 "grammar.g.d_parser.c"
+#line 92 "grammar.g.d_parser.c"
 D_Reduction d_reduction_24_dparser_gram = {1, 11, NULL, d_final_reduction_code_11_24_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 55 "grammar.g"
+#line 52 "grammar.g"
 int d_final_reduction_code_11_25_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = D_PASS_POST_ORDER;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 100 "grammar.g.d_parser.c"
+#line 97 "grammar.g.d_parser.c"
 D_Reduction d_reduction_25_dparser_gram = {1, 11, NULL, d_final_reduction_code_11_25_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 56 "grammar.g"
+#line 53 "grammar.g"
 int d_final_reduction_code_11_26_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = D_PASS_MANUAL;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 105 "grammar.g.d_parser.c"
+#line 102 "grammar.g.d_parser.c"
 D_Reduction d_reduction_26_dparser_gram = {1, 11, NULL, d_final_reduction_code_11_26_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 57 "grammar.g"
+#line 54 "grammar.g"
 int d_final_reduction_code_11_27_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = D_PASS_FOR_ALL;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 110 "grammar.g.d_parser.c"
+#line 107 "grammar.g.d_parser.c"
 D_Reduction d_reduction_27_dparser_gram = {1, 11, NULL, d_final_reduction_code_11_27_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 58 "grammar.g"
+#line 55 "grammar.g"
 int d_final_reduction_code_11_28_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = D_PASS_FOR_UNDEFINED;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 115 "grammar.g.d_parser.c"
+#line 112 "grammar.g.d_parser.c"
 D_Reduction d_reduction_28_dparser_gram = {1, 11, NULL, d_final_reduction_code_11_28_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 62 "grammar.g"
+#line 59 "grammar.g"
 int d_final_reduction_code_12_29_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_TOKENIZE;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 120 "grammar.g.d_parser.c"
+#line 117 "grammar.g.d_parser.c"
 D_Reduction d_reduction_29_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_29_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 63 "grammar.g"
+#line 60 "grammar.g"
 int d_final_reduction_code_12_30_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_LONGEST_MATCH;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 125 "grammar.g.d_parser.c"
+#line 122 "grammar.g.d_parser.c"
 D_Reduction d_reduction_30_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_30_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 64 "grammar.g"
+#line 61 "grammar.g"
 int d_final_reduction_code_12_31_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_WHITESPACE;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 130 "grammar.g.d_parser.c"
+#line 127 "grammar.g.d_parser.c"
 D_Reduction d_reduction_31_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_31_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 65 "grammar.g"
+#line 62 "grammar.g"
 int d_final_reduction_code_12_32_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_ALL_MATCHES;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 135 "grammar.g.d_parser.c"
+#line 132 "grammar.g.d_parser.c"
 D_Reduction d_reduction_32_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_32_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 66 "grammar.g"
+#line 63 "grammar.g"
 int d_final_reduction_code_12_33_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_SET_OP_PRIORITY;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 140 "grammar.g.d_parser.c"
+#line 137 "grammar.g.d_parser.c"
 D_Reduction d_reduction_33_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_33_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 67 "grammar.g"
+#line 64 "grammar.g"
 int d_final_reduction_code_12_34_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_STATES_FOR_ALL_NTERMS;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 145 "grammar.g.d_parser.c"
+#line 142 "grammar.g.d_parser.c"
 D_Reduction d_reduction_34_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_34_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 68 "grammar.g"
+#line 65 "grammar.g"
 int d_final_reduction_code_12_35_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_STATE_FOR;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 150 "grammar.g.d_parser.c"
+#line 147 "grammar.g.d_parser.c"
 D_Reduction d_reduction_35_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_35_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 69 "grammar.g"
+#line 66 "grammar.g"
 int d_final_reduction_code_12_36_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->user).kind = DECLARE_SAVE_PARSE_TREE;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 155 "grammar.g.d_parser.c"
+#line 152 "grammar.g.d_parser.c"
 D_Reduction d_reduction_36_dparser_gram = {1, 12, NULL, d_final_reduction_code_12_36_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 72 "grammar.g"
+#line 69 "grammar.g"
 int d_final_reduction_code_13_37_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  new_token((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 160 "grammar.g.d_parser.c"
+#line 157 "grammar.g.d_parser.c"
 D_Reduction d_reduction_37_dparser_gram = {1, 13, NULL, d_final_reduction_code_13_37_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_38_dparser_gram = {4, 14, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_40_dparser_gram = {1, 14, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
-#line 78 "grammar.g"
+#line 75 "grammar.g"
 int d_final_reduction_code_15_41_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   (D_PN(_ps, _offset)->globals)->p->regex = 1;
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 169 "grammar.g.d_parser.c"
+#line 166 "grammar.g.d_parser.c"
 D_Reduction d_reduction_41_dparser_gram = {1, 15, NULL, d_final_reduction_code_15_41_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 82 "grammar.g"
+#line 79 "grammar.g"
 int d_final_reduction_code_16_42_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->p = new_production((D_PN(_ps, _offset)->globals), dup_str((*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end));   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 174 "grammar.g.d_parser.c"
+#line 171 "grammar.g.d_parser.c"
 D_Reduction d_reduction_42_dparser_gram = {1, 16, NULL, d_final_reduction_code_16_42_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_43_dparser_gram = {1, 17, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_45_dparser_gram = {2, 18, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_46_dparser_gram = {2, 19, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_47_dparser_gram = {0, 19, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_48_dparser_gram = {2, 20, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
-#line 86 "grammar.g"
+#line 83 "grammar.g"
 int d_final_reduction_code_21_49_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   vec_add(&(D_PN(_ps, _offset)->globals)->p->rules, (D_PN(_ps, _offset)->globals)->r);
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 186 "grammar.g.d_parser.c"
+#line 183 "grammar.g.d_parser.c"
 D_Reduction d_reduction_49_dparser_gram = {4, 21, NULL, d_final_reduction_code_21_49_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_50_dparser_gram = {2, 22, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_51_dparser_gram = {0, 22, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
@@ -196,37 +193,37 @@ D_Reduction d_reduction_58_dparser_gram = {0, 26, NULL, NULL, 0, 0, 0, 0, -1, 0,
 D_Reduction d_reduction_59_dparser_gram = {2, 27, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_60_dparser_gram = {2, 28, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_61_dparser_gram = {0, 28, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
-#line 90 "grammar.g"
+#line 87 "grammar.g"
 int d_final_reduction_code_29_62_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r = new_rule((D_PN(_ps, _offset)->globals), (D_PN(_ps, _offset)->globals)->p);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 203 "grammar.g.d_parser.c"
+#line 200 "grammar.g.d_parser.c"
 D_Reduction d_reduction_62_dparser_gram = {0, 29, NULL, d_final_reduction_code_29_62_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 93 "grammar.g"
+#line 90 "grammar.g"
 int d_final_reduction_code_30_63_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->e = new_string((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end, (D_PN(_ps, _offset)->globals)->r);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 208 "grammar.g.d_parser.c"
+#line 205 "grammar.g.d_parser.c"
 D_Reduction d_reduction_63_dparser_gram = {1, 30, NULL, d_final_reduction_code_30_63_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 94 "grammar.g"
+#line 91 "grammar.g"
 int d_final_reduction_code_30_64_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->e = new_string((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end, (D_PN(_ps, _offset)->globals)->r);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 213 "grammar.g.d_parser.c"
+#line 210 "grammar.g.d_parser.c"
 D_Reduction d_reduction_64_dparser_gram = {1, 30, NULL, d_final_reduction_code_30_64_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 95 "grammar.g"
+#line 92 "grammar.g"
 int d_final_reduction_code_30_65_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->e = new_utf8_char((D_PN(_ps, _offset)->globals), (*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end, (D_PN(_ps, _offset)->globals)->r);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 218 "grammar.g.d_parser.c"
+#line 215 "grammar.g.d_parser.c"
 D_Reduction d_reduction_65_dparser_gram = {1, 30, NULL, d_final_reduction_code_30_65_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 96 "grammar.g"
+#line 93 "grammar.g"
 int d_final_reduction_code_30_66_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->e = new_ident((*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end, (D_PN(_ps, _offset)->globals)->r);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 223 "grammar.g.d_parser.c"
+#line 220 "grammar.g.d_parser.c"
 D_Reduction d_reduction_66_dparser_gram = {1, 30, NULL, d_final_reduction_code_30_66_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 97 "grammar.g"
+#line 94 "grammar.g"
 int d_final_reduction_code_30_67_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->e = new_code((D_PN(_ps, _offset)->globals), (*(D_PN(_children[1], _offset))).start_loc.s, (*(D_PN(_children[1], _offset))).end, (D_PN(_ps, _offset)->globals)->r);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 228 "grammar.g.d_parser.c"
+#line 225 "grammar.g.d_parser.c"
 D_Reduction d_reduction_67_dparser_gram = {3, 30, NULL, d_final_reduction_code_30_67_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 98 "grammar.g"
+#line 95 "grammar.g"
 int d_final_reduction_code_30_68_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       (D_PN(_ps, _offset)->globals)->e = new_elem_nterm((D_PN(_ps, _offset)->globals)->p, (D_PN(_children[1], _offset)->user).r);
       (D_PN(_ps, _offset)->globals)->p = (D_PN(_children[1], _offset)->user).p;
@@ -234,12 +231,12 @@ int d_final_reduction_code_30_68_dparser_gram(void *_ps, void **_children, int _
       vec_add(&(D_PN(_ps, _offset)->globals)->r->elems, (D_PN(_ps, _offset)->globals)->e);
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 238 "grammar.g.d_parser.c"
+#line 235 "grammar.g.d_parser.c"
 D_Reduction d_reduction_68_dparser_gram = {4, 30, NULL, d_final_reduction_code_30_68_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_69_dparser_gram = {2, 31, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_70_dparser_gram = {1, 31, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_71_dparser_gram = {1, 32, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
-#line 108 "grammar.g"
+#line 105 "grammar.g"
 int d_final_reduction_code_32_72_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       Production *p = new_internal_production((D_PN(_ps, _offset)->globals), NULL);
       Rule *r = new_rule((D_PN(_ps, _offset)->globals), p);
@@ -250,9 +247,9 @@ int d_final_reduction_code_32_72_dparser_gram(void *_ps, void **_children, int _
       vec_add(&(D_PN(_ps, _offset)->globals)->r->elems, (D_PN(_ps, _offset)->globals)->e);
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 254 "grammar.g.d_parser.c"
+#line 251 "grammar.g.d_parser.c"
 D_Reduction d_reduction_72_dparser_gram = {1, 32, NULL, d_final_reduction_code_32_72_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 117 "grammar.g"
+#line 114 "grammar.g"
 int d_final_reduction_code_32_73_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       Production *p = new_internal_production((D_PN(_ps, _offset)->globals), NULL);
       Rule *r = new_rule((D_PN(_ps, _offset)->globals), p);
@@ -263,9 +260,9 @@ int d_final_reduction_code_32_73_dparser_gram(void *_ps, void **_children, int _
       vec_add(&(D_PN(_ps, _offset)->globals)->r->elems, (D_PN(_ps, _offset)->globals)->e);
     (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 267 "grammar.g.d_parser.c"
+#line 264 "grammar.g.d_parser.c"
 D_Reduction d_reduction_73_dparser_gram = {1, 32, NULL, d_final_reduction_code_32_73_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 128 "grammar.g"
+#line 125 "grammar.g"
 int d_final_reduction_code_33_74_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   (D_PN(_ps, _offset)->user).p = (D_PN(_ps, _offset)->globals)->p;
   (D_PN(_ps, _offset)->user).r = (D_PN(_ps, _offset)->globals)->r;
@@ -273,130 +270,130 @@ int d_final_reduction_code_33_74_dparser_gram(void *_ps, void **_children, int _
   (D_PN(_ps, _offset)->globals)->r = 0;
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 277 "grammar.g.d_parser.c"
+#line 274 "grammar.g.d_parser.c"
 D_Reduction d_reduction_74_dparser_gram = {0, 33, NULL, d_final_reduction_code_33_74_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 136 "grammar.g"
+#line 133 "grammar.g"
 int d_final_reduction_code_34_75_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
         d_fail("terminal priority on non-terminal");
       (D_PN(_ps, _offset)->globals)->e->e.term->term_priority = strtol((*(D_PN(_children[1], _offset))).start_loc.s, NULL, 0);
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 286 "grammar.g.d_parser.c"
+#line 283 "grammar.g.d_parser.c"
 D_Reduction d_reduction_75_dparser_gram = {2, 34, NULL, d_final_reduction_code_34_75_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 141 "grammar.g"
+#line 138 "grammar.g"
 int d_final_reduction_code_34_76_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
 	d_fail("terminal name on non-terminal");
       (D_PN(_ps, _offset)->globals)->e->e.term->term_name = dup_str((*(D_PN(_children[1], _offset))).start_loc.s+1, (*(D_PN(_children[1], _offset))).end-1);
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 295 "grammar.g.d_parser.c"
+#line 292 "grammar.g.d_parser.c"
 D_Reduction d_reduction_76_dparser_gram = {2, 34, NULL, d_final_reduction_code_34_76_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 146 "grammar.g"
+#line 143 "grammar.g"
 int d_final_reduction_code_34_77_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
       if ((D_PN(_ps, _offset)->globals)->e->kind != ELEM_TERM)
 	d_fail("ignore-case (/i) on non-terminal");
       (D_PN(_ps, _offset)->globals)->e->e.term->ignore_case = 1;
       (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 304 "grammar.g.d_parser.c"
+#line 301 "grammar.g.d_parser.c"
 D_Reduction d_reduction_77_dparser_gram = {1, 34, NULL, d_final_reduction_code_34_77_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 151 "grammar.g"
+#line 148 "grammar.g"
 int d_final_reduction_code_34_78_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  conditional_EBNF((D_PN(_ps, _offset)->globals));   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 309 "grammar.g.d_parser.c"
+#line 306 "grammar.g.d_parser.c"
 D_Reduction d_reduction_78_dparser_gram = {1, 34, NULL, d_final_reduction_code_34_78_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 152 "grammar.g"
+#line 149 "grammar.g"
 int d_final_reduction_code_34_79_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  star_EBNF((D_PN(_ps, _offset)->globals));   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 314 "grammar.g.d_parser.c"
+#line 311 "grammar.g.d_parser.c"
 D_Reduction d_reduction_79_dparser_gram = {1, 34, NULL, d_final_reduction_code_34_79_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 153 "grammar.g"
+#line 150 "grammar.g"
 int d_final_reduction_code_34_80_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  plus_EBNF((D_PN(_ps, _offset)->globals));   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 319 "grammar.g.d_parser.c"
+#line 316 "grammar.g.d_parser.c"
 D_Reduction d_reduction_80_dparser_gram = {1, 34, NULL, d_final_reduction_code_34_80_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 154 "grammar.g"
+#line 151 "grammar.g"
 int d_final_reduction_code_34_81_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  rep_EBNF((D_PN(_ps, _offset)->globals), strtol((*(D_PN(_children[1], _offset))).start_loc.s, NULL, 0), -1);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 324 "grammar.g.d_parser.c"
+#line 321 "grammar.g.d_parser.c"
 D_Reduction d_reduction_81_dparser_gram = {2, 34, NULL, d_final_reduction_code_34_81_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 155 "grammar.g"
+#line 152 "grammar.g"
 int d_final_reduction_code_34_82_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  rep_EBNF((D_PN(_ps, _offset)->globals), strtol((*(D_PN(_children[1], _offset))).start_loc.s, NULL, 0), strtol((*(D_PN(_children[3], _offset))).start_loc.s, NULL, 0));   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 329 "grammar.g.d_parser.c"
+#line 326 "grammar.g.d_parser.c"
 D_Reduction d_reduction_82_dparser_gram = {4, 34, NULL, d_final_reduction_code_34_82_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_83_dparser_gram = {1, 35, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_85_dparser_gram = {2, 36, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_86_dparser_gram = {1, 36, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
-#line 161 "grammar.g"
+#line 158 "grammar.g"
 int d_final_reduction_code_37_87_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->op_assoc = ASSOC_UNARY_RIGHT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 337 "grammar.g.d_parser.c"
+#line 334 "grammar.g.d_parser.c"
 D_Reduction d_reduction_87_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_87_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 162 "grammar.g"
+#line 159 "grammar.g"
 int d_final_reduction_code_37_88_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->op_assoc = ASSOC_UNARY_LEFT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 342 "grammar.g.d_parser.c"
+#line 339 "grammar.g.d_parser.c"
 D_Reduction d_reduction_88_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_88_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 163 "grammar.g"
+#line 160 "grammar.g"
 int d_final_reduction_code_37_89_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->op_assoc = ASSOC_BINARY_RIGHT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 347 "grammar.g.d_parser.c"
+#line 344 "grammar.g.d_parser.c"
 D_Reduction d_reduction_89_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_89_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 164 "grammar.g"
+#line 161 "grammar.g"
 int d_final_reduction_code_37_90_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->op_assoc = ASSOC_BINARY_LEFT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 352 "grammar.g.d_parser.c"
+#line 349 "grammar.g.d_parser.c"
 D_Reduction d_reduction_90_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_90_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 165 "grammar.g"
+#line 162 "grammar.g"
 int d_final_reduction_code_37_91_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_UNARY_RIGHT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 357 "grammar.g.d_parser.c"
+#line 354 "grammar.g.d_parser.c"
 D_Reduction d_reduction_91_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_91_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 166 "grammar.g"
+#line 163 "grammar.g"
 int d_final_reduction_code_37_92_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_UNARY_LEFT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 362 "grammar.g.d_parser.c"
+#line 359 "grammar.g.d_parser.c"
 D_Reduction d_reduction_92_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_92_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 167 "grammar.g"
+#line 164 "grammar.g"
 int d_final_reduction_code_37_93_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_BINARY_RIGHT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 367 "grammar.g.d_parser.c"
+#line 364 "grammar.g.d_parser.c"
 D_Reduction d_reduction_93_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_93_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 168 "grammar.g"
+#line 165 "grammar.g"
 int d_final_reduction_code_37_94_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_BINARY_LEFT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 372 "grammar.g.d_parser.c"
+#line 369 "grammar.g.d_parser.c"
 D_Reduction d_reduction_94_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_94_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 169 "grammar.g"
+#line 166 "grammar.g"
 int d_final_reduction_code_37_95_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_NARY_RIGHT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 377 "grammar.g.d_parser.c"
+#line 374 "grammar.g.d_parser.c"
 D_Reduction d_reduction_95_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_95_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 170 "grammar.g"
+#line 167 "grammar.g"
 int d_final_reduction_code_37_96_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->rule_assoc = ASSOC_NARY_LEFT;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 382 "grammar.g.d_parser.c"
+#line 379 "grammar.g.d_parser.c"
 D_Reduction d_reduction_96_dparser_gram = {1, 37, NULL, d_final_reduction_code_37_96_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 173 "grammar.g"
+#line 170 "grammar.g"
 int d_final_reduction_code_38_97_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   if ((D_PN(_ps, _offset)->globals)->r->op_assoc) (D_PN(_ps, _offset)->globals)->r->op_priority = strtol((*(D_PN(_children[0], _offset))).start_loc.s, NULL, 0);
   else (D_PN(_ps, _offset)->globals)->r->rule_priority = strtol((*(D_PN(_children[0], _offset))).start_loc.s, NULL, 0);
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 390 "grammar.g.d_parser.c"
+#line 387 "grammar.g.d_parser.c"
 D_Reduction d_reduction_97_dparser_gram = {1, 38, NULL, d_final_reduction_code_38_97_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 179 "grammar.g"
+#line 176 "grammar.g"
 int d_final_reduction_code_39_98_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->action_index = (D_PN(_ps, _offset)->globals)->action_index++;   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 395 "grammar.g.d_parser.c"
+#line 392 "grammar.g.d_parser.c"
 D_Reduction d_reduction_98_dparser_gram = {1, 39, NULL, d_final_reduction_code_39_98_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 180 "grammar.g"
+#line 177 "grammar.g"
 int d_final_reduction_code_39_99_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) {  (D_PN(_ps, _offset)->globals)->r->action_index = strtol((*(D_PN(_children[1], _offset))).start_loc.s, NULL, 0);   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 400 "grammar.g.d_parser.c"
+#line 397 "grammar.g.d_parser.c"
 D_Reduction d_reduction_99_dparser_gram = {3, 39, NULL, d_final_reduction_code_39_99_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_100_dparser_gram = {3, 40, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_101_dparser_gram = {2, 41, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
@@ -405,29 +402,29 @@ D_Reduction d_reduction_103_dparser_gram = {1, 42, NULL, NULL, 0, 0, 0, 0, -1, 0
 D_Reduction d_reduction_104_dparser_gram = {0, 42, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_105_dparser_gram = {1, 43, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
 D_Reduction d_reduction_106_dparser_gram = {0, 43, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};
-#line 185 "grammar.g"
+#line 182 "grammar.g"
 int d_final_reduction_code_44_107_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   (D_PN(_ps, _offset)->globals)->r->speculative_code.code = dup_str((*(D_PN(_children[0], _offset))).start_loc.s + 1, (*(D_PN(_children[0], _offset))).end - 1);
   (D_PN(_ps, _offset)->globals)->r->speculative_code.line = (*(D_PN(_children[0], _offset))).start_loc.line;
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 415 "grammar.g.d_parser.c"
+#line 412 "grammar.g.d_parser.c"
 D_Reduction d_reduction_107_dparser_gram = {1, 44, NULL, d_final_reduction_code_44_107_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 190 "grammar.g"
+#line 187 "grammar.g"
 int d_final_reduction_code_45_108_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   (D_PN(_ps, _offset)->globals)->r->final_code.code = dup_str((*(D_PN(_children[0], _offset))).start_loc.s + 1, (*(D_PN(_children[0], _offset))).end - 1);
   (D_PN(_ps, _offset)->globals)->r->final_code.line = (*(D_PN(_children[0], _offset))).start_loc.line;
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 423 "grammar.g.d_parser.c"
+#line 420 "grammar.g.d_parser.c"
 D_Reduction d_reduction_108_dparser_gram = {1, 45, NULL, d_final_reduction_code_45_108_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
-#line 195 "grammar.g"
+#line 192 "grammar.g"
 int d_final_reduction_code_46_109_dparser_gram(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser) { 
   add_pass_code((D_PN(_ps, _offset)->globals), (D_PN(_ps, _offset)->globals)->r, (*(D_PN(_children[0], _offset))).start_loc.s, (*(D_PN(_children[0], _offset))).end, (*(D_PN(_children[2], _offset))).start_loc.s+1,
     (*(D_PN(_children[2], _offset))).end-1, (*(D_PN(_children[0], _offset))).start_loc.line, (*(D_PN(_children[2], _offset))).start_loc.line);
   (void)_children; (void)_n_children;  (void)_parser; return 0;}
 
-#line 431 "grammar.g.d_parser.c"
+#line 428 "grammar.g.d_parser.c"
 D_Reduction d_reduction_109_dparser_gram = {3, 46, NULL, d_final_reduction_code_46_109_dparser_gram, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_110_dparser_gram = {3, 47, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL};
 D_Reduction d_reduction_111_dparser_gram = {2, 48, NULL, NULL, 0, 0, 0, 0, -1, 0, NULL};

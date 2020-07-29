@@ -1,5 +1,5 @@
 {
-#include "dparse_tables.h"
+#include "d.h"
 
 extern char *ops;
 extern void *ops_cache;

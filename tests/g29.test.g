@@ -10,8 +10,6 @@ typedef struct My_ParseNode {
   struct D_Scope *scope;
 } My_ParseNode;
 #define D_ParseNode_User My_ParseNode
-
-#include "dsymtab.h"
 }
 
 translation_unit: statement*;

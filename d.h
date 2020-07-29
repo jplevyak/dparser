@@ -93,8 +93,17 @@ typedef unsigned int uint;
 #define DBG(_x)
 #endif
 
-void d_version(char *);
+#include "dparse.h"
+#include "arg.h"
+#include "util.h"
+#include "gram.h"
+#include "lr.h"
+#include "lex.h"
+#include "scan.h"
+#include "parse.h"
+#include "write_tables.h"
+#include "read_binary.h"
 
-#define USE_SCANNER 1
+void d_version(char *);
 
 #endif

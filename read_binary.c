@@ -3,9 +3,6 @@
 */
 
 #include "d.h"
-#include "util.h"
-#include "dparse_tables.h"
-#include "read_binary.h"
 
 static void read_chk(void *ptr, size_t size, size_t nmemb, FILE *fp, unsigned char **str) {
   if (fp) {

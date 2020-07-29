@@ -1,10 +1,6 @@
 #include "../gramgram.h"
 #include "../d.h"
-#include "../dparse_tables.h"
 #include "../mkdparse.h"
-#include "../util.h"
-#include "../gram.h"
-#include "../write_tables.h"
 
 int make_tables(char *grammar_string, char *grammar_pathname) {
   Grammar *g;
