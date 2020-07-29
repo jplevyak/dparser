@@ -1664,7 +1664,13 @@ static void syntax_error_report_fn(struct D_Parser *ap) {
   Parser *p = (Parser *)ap;
   char *fn = d_dup_pathname_str(p->user.loc.pathname);
   char *after = 0;
-  ZNode *z = p->snode_hash.last_all ? p->snode_hash.last_all->zns.v[0] : 0;
+  SNode *s = p->snode_hash.last_all, *best_s = s;
+  ZNode *z;
+  while (s) {
+    if (s->loc.s > best_s->loc.s) best_s = s;
+    s = s->all_next;
+  }
+  z = best_s ? best_s->zns.v[0] : 0;
   while (z && z->pn->parse_node.start_loc.s == z->pn->parse_node.end)
     z = (z->sns.v && z->sns.v[0]->zns.v) ? z->sns.v[0]->zns.v[0] : 0;
   if (z && z->pn->parse_node.start_loc.s != z->pn->parse_node.end)

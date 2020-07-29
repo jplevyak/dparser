@@ -14,7 +14,7 @@
 :159: syntax error after '}}
 	'
 :160: syntax error after ')'
-:161: syntax error after 'LeftButton || button == Key.RightButton) ) {
+:161: syntax error after 'RightButton) ) {
 			if(!dragged) '
 :162: syntax error after '}'
 :163: syntax error after '}'
