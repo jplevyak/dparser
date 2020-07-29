@@ -77,7 +77,7 @@ class D_ParseNodePtr:
     def __getattr__(self, name):
         if name == "symbol":
             return dparser_swigc.my_D_ParseNode_symbol_get(
-                    self.this, self.d_parser).decode('string_escape')
+                    self.this, self.d_parser)
         elif name == "end":
             return dparser_swigc.my_D_ParseNode_end_get(
                     self.this, self.d_parser)
