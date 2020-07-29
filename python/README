@@ -8,6 +8,9 @@ To make:
 To make with clang-10:
   CC=clang-10 LDSHARED="clang-10 -shared" make
 
+To install:
+  sudo DESTDIR=/ make install
+
 Thanks to:
 
 	Brennan Evans for more general unix support.
