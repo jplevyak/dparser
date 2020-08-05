@@ -82,7 +82,7 @@ endif
 CFLAGS += -std=c11 -pedantic
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
-AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/index.html dparser/manual.html dparser/faq.html dparser/make_dparser.1 dparser/make_dparser.cat
+AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
 TEST_FILES = dparser/parser_tests dparser/baseline $(TESTS:%=dparser/%)
 PYTHON_FILES = dparser/python/Makefile dparser/python/*.py dparser/python/*.c dparser/python/*.h dparser/python/*.i dparser/python/README dparser/python/*.html dparser/python/contrib/d* dparser/python/tests/*.py
