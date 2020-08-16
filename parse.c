@@ -190,6 +190,7 @@ static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, vo
   else
     p->free_snodes = sn->all_next;
   sn->depth = 0;
+  sn->in_error_recovery_queue = 0;
   vec_clear(&sn->zns);
 #ifndef USE_GC
   sn->refcount = 0;
@@ -1653,11 +1654,27 @@ static const char *find_substr(const char *str, const char *s) {
   return NULL;
 }
 
+static int is_z_pn_empty(ZNode *z) { return z->pn->parse_node.start_loc.s == z->pn->parse_node.end; }
+
 static void syntax_error_report_fn(struct D_Parser *ap) {
   Parser *p = (Parser *)ap;
   char *fn = d_dup_pathname_str(p->user.loc.pathname);
   char *after = 0;
-  ZNode *z = p->snode_hash.last_all ? p->snode_hash.last_all->zns.v[0] : 0;
+  SNode *sn = p->snode_hash.last_all;
+  ZNode *z = 0;
+  // Find the farthest non-empty error location.
+  while (sn) {
+    for (int i = 0; i < sn->zns.n; i++) {
+      ZNode *zz = sn->zns.v[i];
+      if (!zz) continue;
+      if (!z || (is_z_pn_empty(z) && !is_z_pn_empty(zz))) {
+        z = zz;
+        continue;
+      }
+      if (z->pn->parse_node.start_loc.s < zz->pn->parse_node.start_loc.s) z = zz;
+    }
+    sn = sn->all_next;
+  }
   if (z && z->pn->parse_node.start_loc.s != z->pn->parse_node.end)
     after = dup_str(z->pn->parse_node.start_loc.s, z->pn->parse_node.end);
   if (after)
@@ -1691,7 +1708,12 @@ static int error_recovery(Parser *p) {
     p->user.syntax_error_fn((D_Parser *)p);
   }
   for (sn = p->snode_hash.last_all; sn; sn = sn->all_next) {
-    if (tail < ERROR_RECOVERY_QUEUE_SIZE - 1) q[tail++] = sn;
+    if (sn->in_error_recovery_queue) continue;
+    sn->in_error_recovery_queue = 1;
+    if (tail < ERROR_RECOVERY_QUEUE_SIZE - 1)
+      q[tail++] = sn;
+    else
+      fprintf(stderr, "exceeded error recovery queue size\n");
   }
   s = p->snode_hash.last_all->loc.s;
   while (tail > head) {
@@ -1713,9 +1735,16 @@ static int error_recovery(Parser *p) {
     for (i = 0; i < sn->zns.n; i++)
       if (sn->zns.v[i])
         for (j = 0; j < sn->zns.v[i]->sns.n; j++) {
-          if (tail < ERROR_RECOVERY_QUEUE_SIZE - 1) q[tail++] = sn->zns.v[i]->sns.v[j];
+          SNode *x = sn->zns.v[i]->sns.v[j];
+          if (x->in_error_recovery_queue) continue;
+          x->in_error_recovery_queue = 1;
+          if (tail < ERROR_RECOVERY_QUEUE_SIZE - 1)
+            q[tail++] = x;
+          else
+            fprintf(stderr, "exceeded error recovery queue size\n");
         }
   }
+  for (int i = 0; i < tail; i++) q[i]->in_error_recovery_queue = 0;
   if (best_sn) {
     D_Reduction *rr = MALLOC(sizeof(*rr));
     Reduction *r = MALLOC(sizeof(*r));
@@ -1730,11 +1759,10 @@ static int error_recovery(Parser *p) {
     rr->symbol = best_er->symbol;
     update_line(best_loc.s, best_s, &best_loc.line);
     best_loc.s = (char *)best_s;
-    for (i = 0; i < best_sn->zns.n; i++)
-      if (best_sn->zns.v[i]) {
-        best_pn = best_sn->zns.v[i]->pn;
-        break;
-      }
+    for (i = 0; i < best_sn->zns.n; i++) {
+      ZNode *zn = best_sn->zns.v[i];
+      if (zn && (!best_pn || best_pn->parse_node.start_loc.s < zn->pn->parse_node.start_loc.s)) best_pn = zn->pn;
+    }
     best_pn->parse_node.white_space((D_Parser *)p, &best_loc, (void **)&best_pn->parse_node.globals);
     new_pn = add_PNode(p, 0, &p->user.loc, best_loc.s, best_pn, 0, 0, 0);
     new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope, new_pn->initial_globals);

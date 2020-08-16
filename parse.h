@@ -128,7 +128,8 @@ typedef struct SNode {
 #ifndef USE_GC
   uint32 refcount;
 #endif
-  uint depth; /* max stack depth (less loops) */
+  uint32 depth : 31; /* max stack depth (less loops) */
+  uint32 in_error_recovery_queue : 1;
   D_State *state;
   D_Scope *initial_scope;
   void *initial_globals;
