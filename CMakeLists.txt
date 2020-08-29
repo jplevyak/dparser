@@ -110,6 +110,7 @@ install(
   DESTINATION include
 )
 configure_file(dparser-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake @ONLY)
+configure_file(dparser-generate.cmake ${CMAKE_CURRENT_BINARY_DIR}/dparser-generate.cmake COPYONLY)
 install(
   FILES dparser-generate.cmake ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake
   DESTINATION lib/cmake/dparser
