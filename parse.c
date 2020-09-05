@@ -2139,8 +2139,12 @@ D_ParseNode *dparse(D_Parser *ap, char *buf, int buf_len) {
       res = NO_DPN;
     unref_sn(p, p->accept);
     p->accept = NULL;
-  } else
-    p->accept = NULL;
+  } else {
+    if (p->accept) {
+      unref_sn(p, p->accept);
+      p->accept = NULL;
+    }
+  }
   free_parser_working_data(p);
   free_whitespace_parser(p);
   return res;
