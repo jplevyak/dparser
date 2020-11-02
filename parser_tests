@@ -1,45 +1,49 @@
-#!/bin/tcsh 
+#!/bin/bash
+shopt -s extglob
 
 # unset D_USE_FREELISTS for best valgrind results
 # setenv VALGRIND 'valgrind -q '
-setenv VALGRIND ' '
+VALGRIND=
 
 cp Makefile *.c *.h grammar.g tests
 cd tests
-$MAKE -s make_dparser
-$MAKE gram
-$MAKE -s make_dparser
-set failed = 0
-foreach g (*.test.g)
+make -s make_dparser
+make gram
+make -s make_dparser
+failed=0
+grammars=*.test.g
+for g in $grammars ; do
   rm -f sample_parser
-  if (-e $g.flags) then
-    set flags = `cat $g.flags`
+  if [ -f "$g.flags" ] ; then
+    flags=$(cat $g.flags)
   else
-    set flags = 
-  endif
+    flags=
+  fi
   $VALGRIND ./make_dparser $flags $g
-  $MAKE -s sample_parser SAMPLE_GRAMMAR=$g:t
-  foreach t ( $g.[0-9] $g.[0-9][0-9] )
-    if (-e $t.flags) then
-      set flags = `cat $t.flags`
+  make -s sample_parser SAMPLE_GRAMMAR=$(basename $g)
+  files="$g."+([0-9])
+  for t in $files ; do
+    if test -f "$t.flags" ; then
+      flags=$(cat $t.flags)
     else
-      set flags = 
-    endif
-    $VALGRIND ./sample_parser $flags -v $t >&! $t.out
+      flags=
+    fi
+    $VALGRIND ./sample_parser $flags -v $t &> $t.out
     diff $t.out $t.check
-    if ($?) then
+    result=$?
+    if [ $result -ne 0 ]; then
       echo $t "******** FAILED ********"
-      set failed = `expr $failed + 1`
+      failed=$((failed + 1))
     else
       echo $t "PASSED"
-    endif
-  end
-end
+    fi
+  done
+done
 echo "---------------------------------------"
-if (! $failed) then
+if [ $failed -eq 0 ] ; then
   echo "ALL tests PASSED"
 else
   echo "********" $failed "test(s) FAILED *********"
-endif
+fi
 rm -f sample_parser D_BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
 cd ..
