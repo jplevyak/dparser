@@ -861,8 +861,8 @@ static int cmp_greediness(Parser *p, PNode *x, PNode *y) {
   vec_clear(&pvy);
   get_unshared_pnodes(p, x, y, &pvx, &pvy);
   /* set_to_vec(&pvx); set_to_vec(&pvy); */
-  qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
-  qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
+  if (pvx.v != NULL) qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
+  if (pvy.v != NULL) qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
   while (1) {
     if (pvx.n <= ix || pvy.n <= iy) RET(0);
     x = pvx.v[ix];
