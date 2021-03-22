@@ -538,7 +538,13 @@ static int reduce_actions(Parser *p, PNode *pn, D_Reduction *r) {
     pn->priority = r->rule_priority;
   }
   if (r->speculative_code) {
-    return r->speculative_code(pn, (void **)&pn->children.v[0], pn->children.n,
+    void ** v0;
+    if (pn->children.v == NULL) {
+      v0 = NULL;
+    } else {
+      v0 = (void **)&pn->children.v[0];
+    }
+    return r->speculative_code(pn, v0, pn->children.n,
                                (intptr_t) ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)), (D_Parser *)p);
   }
   return 0;
@@ -969,7 +975,13 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
       memset(&dummy, 0, sizeof(dummy));
       dummy.action_index = sh->action_index;
       new_pn->reduction = &dummy;
-      if (sh->speculative_code(new_pn, (void **)&new_pn->children.v[0], new_pn->children.n,
+      void ** v0;
+      if (new_pn->children.v == NULL) {
+	v0 = NULL;
+      } else {
+	v0 = (void **)&new_pn->children.v[0];
+      }
+      if (sh->speculative_code(new_pn, v0, new_pn->children.n,
                                (intptr_t) ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)), (D_Parser *)p)) {
         free_PNode(p, new_pn);
         return NULL;
@@ -1615,9 +1627,16 @@ static PNode *commit_tree(Parser *p, PNode *pn) {
     }
   }
   if (pn->reduction) DBG(printf("commit %p (%s)\n", (void *)pn, p->t->symbols[pn->parse_node.symbol].name));
-  if (pn->reduction && pn->reduction->final_code)
-    pn->reduction->final_code(pn, (void **)&pn->children.v[0], pn->children.n,
+  if (pn->reduction && pn->reduction->final_code) {
+    void ** v0;
+    if (pn->children.v == NULL) {
+       v0 = NULL;
+    } else {
+      v0 = (void **)&pn->children.v[0];
+    }
+    pn->reduction->final_code(pn, v0, pn->children.n,
                               (intptr_t)((long)sizeof(PNode) - (long)sizeof(D_ParseNode))  , (D_Parser *)p);
+  }
   if (pn->evaluated) {
     if (!p->user.save_parse_tree && !internal) free_ParseTreeBelow(p, pn);
   }
