@@ -267,9 +267,22 @@ array of structs:
     }                                                                          \
   } while (0)
 #define add_struct_str_member(file, struct_type, string, member_name) \
-  add_struct_str_member_fn(file, (char **)&((struct_type *)(file)->tables.cur)->member_name, string)
+  if (file != NULL) {							\
+    if ((struct_type *)(file)->tables.cur != NULL) {			\
+      add_struct_str_member_fn(file, (char **)&((struct_type *)(file)->tables.cur)->member_name, string); \
+    } else {								\
+      add_struct_str_member_fn(file, NULL, string);			\
+    }									\
+  }
 #define add_struct_ptr_member(file, struct_type, ampersand, entry, member_name) \
-  add_struct_ptr_member_fn(file, (void **)&((struct_type *)(file)->tables.cur)->member_name, entry, ampersand "%s")
+  if (file != NULL) {							\
+    if ((struct_type *)(file)->tables.cur != NULL) {			\
+      add_struct_ptr_member_fn(file, (void **)&((struct_type *)(file)->tables.cur)->member_name, entry, ampersand "%s"); \
+    } else {								\
+      add_struct_ptr_member_fn(file, NULL, entry, ampersand "%s");	\
+    }									\
+  }
+
 #define add_array_member(file, type, format, data, last)       \
   do {                                                         \
     if ((file)->binary) {                                      \
@@ -1420,10 +1433,11 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       s = g->states.v[i];
       shifts = s->same_shifts ? s->same_shifts : s;
       start_struct_in_array(fp);
-      if (s->gotos.n)
+      if (s->gotos.n) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_goto_valid_%d_%s", i, tag), goto_valid);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, goto_valid);
+      }
       add_struct_member(fp, D_State, "%d", s->goto_table_offset, goto_table_offset);
       print_no_comma(fp, ", {");
       if (s->reduce_actions.n) {
@@ -1466,10 +1480,11 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
         } else {
           add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
         }
-      } else if (s->scanner_code)
+      } else if (s->scanner_code) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scan_code_%d_%s", i, tag), scanner_code);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
+      }
       if (s->scanner.states.n) {
         print_no_comma(fp, ", (void*)");
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scanner_%d_%s", shifts->index, tag), scanner_table);
@@ -1489,15 +1504,17 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, transition_table);
       }
-      if ((shifts->scan_kind != D_SCAN_LONGEST || shifts->trailing_context) && shifts->scanner.states.n)
+      if ((shifts->scan_kind != D_SCAN_LONGEST || shifts->trailing_context) && shifts->scanner.states.n) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_accepts_diff_%d_%s", shifts->index, tag),
                               accepts_diff);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, accepts_diff);
-      if (s->reduces_to)
+      }
+      if (s->reduces_to) {
         add_struct_member(fp, D_State, "%d", s->reduces_to->index, reduces_to);
-      else
+      } else {
         add_struct_member(fp, D_State, "%d", -1, reduces_to);
+      }
       end_struct_in_array(fp, (i == g->states.n - 1 ? "\n" : ",\n"));
     }
     end_array(fp, "\n\n");
@@ -1661,17 +1678,20 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   if (g->default_white_space) {
     assert(!file->binary);
     fprintf(file->fp, ", %s", g->default_white_space);
-  } else
+  } else {
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, default_white_space);
+  }
   add_struct_member(file, D_ParserTables, "%d", g->passes.n, npasses);
-  if (g->passes.n)
+  if (g->passes.n){
     add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_passes_%s", tag), passes);
-  else
+  } else {
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
-  if (g->save_parse_tree)
+  }
+  if (g->save_parse_tree) {
     add_struct_member(file, D_ParserTables, "%d", 1, save_parse_tree);
-  else
+  } else {
     add_struct_member(file, D_ParserTables, "%d", 0, save_parse_tree);
+  }
   end_struct(file, D_ParserTables, "\n");
 
   if (file->binary) {
