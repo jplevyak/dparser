@@ -1272,7 +1272,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       if (r->same_reduction) continue;
       if (r->speculative_code.code) {
         char fname[256];
-        snprintf(fname, 266, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
       }
       if (r->final_code.code) {
