@@ -1290,7 +1290,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       if (r->speculative_code.code)
         snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->speculative_code.code)
-        snprintf(speculative_code, 266, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+        snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(speculative_code, "NULL");
       if (r->final_code.code)
