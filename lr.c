@@ -72,7 +72,7 @@ static State *build_closure(Grammar *g, State *s) {
         insert_item(s, pp->rules.v[k]->elems.v ? pp->rules.v[k]->elems.v[0] : pp->rules.v[k]->end);
     }
   }
-  qsort(s->items.v, s->items.n, sizeof(Item *), itemcmp);
+  if (s->items.v != NULL) qsort(s->items.v, s->items.n, sizeof(Item *), itemcmp);
   s->hash = 0;
   for (j = 0; j < s->items.n; j++) s->hash += item_hash(s->items.v[j]);
   return maybe_add_state(g, s);
@@ -154,7 +154,7 @@ static void sort_Gotos(Grammar *g) {
 
   for (i = 0; i < g->states.n; i++) {
     VecGoto *vg = &g->states.v[i]->gotos;
-    qsort(vg->v, vg->n, sizeof(Goto *), gotocmp);
+    if (vg->v != NULL) qsort(vg->v, vg->n, sizeof(Goto *), gotocmp);
   }
 }
 
@@ -225,7 +225,7 @@ static int actioncmp(const void *aa, const void *bb) {
   return ((i > j) ? 1 : ((i < j) ? -1 : 0));
 }
 
-void sort_VecAction(VecAction *v) { qsort(v->v, v->n, sizeof(Action *), actioncmp); }
+void sort_VecAction(VecAction *v) { if (v->v != NULL) qsort(v->v, v->n, sizeof(Action *), actioncmp); }
 
 static void build_actions(Grammar *g) {
   uint x, y, z;
@@ -302,7 +302,7 @@ static void build_right_epsilon_hints(Grammar *g) {
       }
     Lnext:;
     }
-    if (s->right_epsilon_hints.n > 1)
+    if (s->right_epsilon_hints.n > 1 && s->right_epsilon_hints.v != NULL)
       qsort(s->right_epsilon_hints.v, s->right_epsilon_hints.n, sizeof(Hint *), hintcmp);
   }
 }
@@ -333,7 +333,7 @@ static void build_error_recovery(Grammar *g) {
       Ldone:;
       }
     }
-    qsort(s->error_recovery_hints.v, s->error_recovery_hints.n, sizeof(Hint *), hintcmp);
+    if (s->error_recovery_hints.v != NULL) qsort(s->error_recovery_hints.v, s->error_recovery_hints.n, sizeof(Hint *), hintcmp);
   }
 }
 

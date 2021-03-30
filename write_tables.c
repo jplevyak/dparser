@@ -267,9 +267,22 @@ array of structs:
     }                                                                          \
   } while (0)
 #define add_struct_str_member(file, struct_type, string, member_name) \
-  add_struct_str_member_fn(file, (char **)&((struct_type *)(file)->tables.cur)->member_name, string)
+  if (file != NULL) {							\
+    if ((struct_type *)(file)->tables.cur != NULL) {			\
+      add_struct_str_member_fn(file, (char **)&((struct_type *)(file)->tables.cur)->member_name, string); \
+    } else {								\
+      add_struct_str_member_fn(file, NULL, string);			\
+    }									\
+  }
 #define add_struct_ptr_member(file, struct_type, ampersand, entry, member_name) \
-  add_struct_ptr_member_fn(file, (void **)&((struct_type *)(file)->tables.cur)->member_name, entry, ampersand "%s")
+  if (file != NULL) {							\
+    if ((struct_type *)(file)->tables.cur != NULL) {			\
+      add_struct_ptr_member_fn(file, (void **)&((struct_type *)(file)->tables.cur)->member_name, entry, ampersand "%s"); \
+    } else {								\
+      add_struct_ptr_member_fn(file, NULL, entry, ampersand "%s");	\
+    }									\
+  }
+
 #define add_array_member(file, type, format, data, last)       \
   do {                                                         \
     if ((file)->binary) {                                      \
@@ -562,7 +575,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     t = g->terminals.v[i];
     if (t->regex_production && t->regex_production->rules.v[0]->speculative_code.code) {
       assert(!fp->binary);
-      sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", t->regex_production->index,
+      snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", t->regex_production->index,
               t->regex_production->rules.v[0]->index, tag);
     } else {
       strcpy(speculative_code, "NULL");
@@ -708,7 +721,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
         if (ss->v[j]->accepts.n) {
           uint k;
           char tmp[256];
-          sprintf(tmp, "d_shift_%d_%d_%s", i, j, tag);
+          snprintf(tmp, 255, "d_shift_%d_%d_%s", i, j, tag);
           for (k = 0; k < ss->v[j]->accepts.n; k++) {
             Action *a = ss->v[j]->accepts.v[k], *aa;
             if (ss->v[j]->accepts.n == 1) {
@@ -1117,9 +1130,9 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
             if (!*e || ss == e) d_fail("bad ${...} at line %d", line);
             n = dup_str(ss, e);
             if (!*y)
-              sprintf(x, "(D_PN(_children[%s], _offset))", n);
+              snprintf(x, 4095, "(D_PN(_children[%s], _offset))", n);
             else
-              sprintf(x, "d_get_child(%s, %s)", y, n);
+              snprintf(x, 4095, "d_get_child(%s, %s)", y, n);
             if (*e == ',') e++;
             if (isspace_(*e)) e++;
             i = !i;
@@ -1259,40 +1272,40 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       if (r->same_reduction) continue;
       if (r->speculative_code.code) {
         char fname[256];
-        sprintf(fname, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
       }
       if (r->final_code.code) {
         char fname[256];
-        sprintf(fname, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->final_code.code, fname, r->final_code.line, g->pathname);
       }
       for (k = 0; k < (int)r->pass_code.n; k++) {
         if (r->pass_code.v[k]) {
           char fname[256];
-          sprintf(fname, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
+          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
           write_code(fp, g, r, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
         }
       }
       if (r->speculative_code.code)
-        sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
+        snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->speculative_code.code)
-        sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+        snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(speculative_code, "NULL");
       if (r->final_code.code)
-        sprintf(final_code, "d_final_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
+        snprintf(final_code, 255, "d_final_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->final_code.code)
-        sprintf(final_code, "d_final_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+        snprintf(final_code, 255, "d_final_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(final_code, "NULL");
       pmax = r->pass_code.n;
       if (r->pass_code.n || (rdefault && rdefault->pass_code.n)) {
         if (rdefault && (int)rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
         if (!r->pass_code.n)
-          sprintf(pass_code, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+          snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
         else {
-          sprintf(pass_code, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
+          snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
           fprintf(fp, "D_ReductionCode %s[] = {", pass_code);
           for (k = 0; k < pmax; k++) {
             if ((int)r->pass_code.n > k && r->pass_code.v[k])
@@ -1420,10 +1433,11 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       s = g->states.v[i];
       shifts = s->same_shifts ? s->same_shifts : s;
       start_struct_in_array(fp);
-      if (s->gotos.n)
+      if (s->gotos.n) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_goto_valid_%d_%s", i, tag), goto_valid);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, goto_valid);
+      }
       add_struct_member(fp, D_State, "%d", s->goto_table_offset, goto_table_offset);
       print_no_comma(fp, ", {");
       if (s->reduce_actions.n) {
@@ -1466,10 +1480,11 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
         } else {
           add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
         }
-      } else if (s->scanner_code)
+      } else if (s->scanner_code) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scan_code_%d_%s", i, tag), scanner_code);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
+      }
       if (s->scanner.states.n) {
         print_no_comma(fp, ", (void*)");
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scanner_%d_%s", shifts->index, tag), scanner_table);
@@ -1489,15 +1504,17 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
       } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, transition_table);
       }
-      if ((shifts->scan_kind != D_SCAN_LONGEST || shifts->trailing_context) && shifts->scanner.states.n)
+      if ((shifts->scan_kind != D_SCAN_LONGEST || shifts->trailing_context) && shifts->scanner.states.n) {
         add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_accepts_diff_%d_%s", shifts->index, tag),
                               accepts_diff);
-      else
+      } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, accepts_diff);
-      if (s->reduces_to)
+      }
+      if (s->reduces_to) {
         add_struct_member(fp, D_State, "%d", s->reduces_to->index, reduces_to);
-      else
+      } else {
         add_struct_member(fp, D_State, "%d", -1, reduces_to);
+      }
       end_struct_in_array(fp, (i == g->states.n - 1 ? "\n" : ",\n"));
     }
     end_array(fp, "\n\n");
@@ -1661,17 +1678,20 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   if (g->default_white_space) {
     assert(!file->binary);
     fprintf(file->fp, ", %s", g->default_white_space);
-  } else
+  } else {
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, default_white_space);
+  }
   add_struct_member(file, D_ParserTables, "%d", g->passes.n, npasses);
-  if (g->passes.n)
+  if (g->passes.n){
     add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_passes_%s", tag), passes);
-  else
+  } else {
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, passes);
-  if (g->save_parse_tree)
+  }
+  if (g->save_parse_tree) {
     add_struct_member(file, D_ParserTables, "%d", 1, save_parse_tree);
-  else
+  } else {
     add_struct_member(file, D_ParserTables, "%d", 0, save_parse_tree);
+  }
   end_struct(file, D_ParserTables, "\n");
 
   if (file->binary) {

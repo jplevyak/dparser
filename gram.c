@@ -403,10 +403,16 @@ void add_pass_code(Grammar *g, Rule *r, char *pass_start, char *pass_end, char *
 
 Production *new_internal_production(Grammar *g, Production *p) {
   char *n = p ? p->name : " _synthetic";
-  char *name = MALLOC(strlen(n) + 21);
+  int maxLen = strlen(n) + 21;
+  char *name = MALLOC(maxLen);
+  if (name == NULL) {
+    d_fail("could not allocate enough memory for a new_internal_production");
+    return NULL;
+  }
+  maxLen--;
   Production *pp = NULL, *tp = NULL, *ttp;
   uint i, found = 0;
-  sprintf(name, "%s__%d", n, g->productions.n);
+  snprintf(name, maxLen, "%s__%d", n, g->productions.n);
   pp = new_production(g, name);
   pp->internal = INTERNAL_HIDDEN;
   pp->regex = p ? p->regex : 0;
