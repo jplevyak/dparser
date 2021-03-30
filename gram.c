@@ -405,6 +405,10 @@ Production *new_internal_production(Grammar *g, Production *p) {
   char *n = p ? p->name : " _synthetic";
   int maxLen = strlen(n) + 21;
   char *name = MALLOC(maxLen);
+  if (name == NULL) {
+    d_fail("could not allocate enough memory for a new_internal_production");
+    return NULL;
+  }
   maxLen--;
   Production *pp = NULL, *tp = NULL, *ttp;
   uint i, found = 0;
