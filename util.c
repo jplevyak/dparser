@@ -69,7 +69,11 @@ char *sbuf_read(const char *pathname) {
   char *buf;
   int len;
 
-  if (buf_read(pathname, &buf, &len) < 0) return NULL;
+  if (buf_read(pathname, &buf, &len) < 0) {
+    FREE(buf);
+    buf = NULL;
+    return NULL;
+  }
   return buf;
 }
 
