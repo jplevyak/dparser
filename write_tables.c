@@ -575,7 +575,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     t = g->terminals.v[i];
     if (t->regex_production && t->regex_production->rules.v[0]->speculative_code.code) {
       assert(!fp->binary);
-      sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", t->regex_production->index,
+      snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", t->regex_production->index,
               t->regex_production->rules.v[0]->index, tag);
     } else {
       strcpy(speculative_code, "NULL");
@@ -721,7 +721,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
         if (ss->v[j]->accepts.n) {
           uint k;
           char tmp[256];
-          sprintf(tmp, "d_shift_%d_%d_%s", i, j, tag);
+          snprintf(tmp, 255, "d_shift_%d_%d_%s", i, j, tag);
           for (k = 0; k < ss->v[j]->accepts.n; k++) {
             Action *a = ss->v[j]->accepts.v[k], *aa;
             if (ss->v[j]->accepts.n == 1) {
@@ -1130,9 +1130,9 @@ static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, i
             if (!*e || ss == e) d_fail("bad ${...} at line %d", line);
             n = dup_str(ss, e);
             if (!*y)
-              sprintf(x, "(D_PN(_children[%s], _offset))", n);
+              snprintf(x, 4095, "(D_PN(_children[%s], _offset))", n);
             else
-              sprintf(x, "d_get_child(%s, %s)", y, n);
+              snprintf(x, 4095, "d_get_child(%s, %s)", y, n);
             if (*e == ',') e++;
             if (isspace_(*e)) e++;
             i = !i;
@@ -1272,40 +1272,40 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       if (r->same_reduction) continue;
       if (r->speculative_code.code) {
         char fname[256];
-        sprintf(fname, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 266, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
       }
       if (r->final_code.code) {
         char fname[256];
-        sprintf(fname, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
         write_code(fp, g, r, r->final_code.code, fname, r->final_code.line, g->pathname);
       }
       for (k = 0; k < (int)r->pass_code.n; k++) {
         if (r->pass_code.v[k]) {
           char fname[256];
-          sprintf(fname, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
+          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
           write_code(fp, g, r, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
         }
       }
       if (r->speculative_code.code)
-        sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
+        snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->speculative_code.code)
-        sprintf(speculative_code, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+        snprintf(speculative_code, 266, "d_speculative_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(speculative_code, "NULL");
       if (r->final_code.code)
-        sprintf(final_code, "d_final_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
+        snprintf(final_code, 255, "d_final_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->final_code.code)
-        sprintf(final_code, "d_final_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+        snprintf(final_code, 255, "d_final_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(final_code, "NULL");
       pmax = r->pass_code.n;
       if (r->pass_code.n || (rdefault && rdefault->pass_code.n)) {
         if (rdefault && (int)rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
         if (!r->pass_code.n)
-          sprintf(pass_code, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
+          snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
         else {
-          sprintf(pass_code, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
+          snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
           fprintf(fp, "D_ReductionCode %s[] = {", pass_code);
           for (k = 0; k < pmax; k++) {
             if ((int)r->pass_code.n > k && r->pass_code.v[k])
