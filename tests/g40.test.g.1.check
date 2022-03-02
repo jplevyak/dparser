@@ -1,2 +1,2 @@
-59 states 41 scans 21 shifts 38 reductions 2 compares 0 ambiguities
+63 states 43 scans 23 shifts 43 reductions 3 compares 0 ambiguities
 ((( a  b  : )( b ( +  b ))) ; )

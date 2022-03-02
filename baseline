@@ -3,5 +3,6 @@
 ./parser_tests
 outs=tests/*.out
 for f in $outs ; do
-  cp $f $f:r.check
+  n=${f%.*}
+  cp $f $n.check
 done

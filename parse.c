@@ -575,7 +575,7 @@ static int child_table[4][3][6] = {{
 /* returns 1 if legal for child reduction and illegal for child shift */
 static int check_child(int ppri, AssocKind passoc, int cpri, AssocKind cassoc, int left, int right) {
   uint p = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : (passoc == ASSOC_UNARY_LEFT ? 2 : 3);
-  uint c = IS_BINARY_NARY_ASSOC(cassoc) ? 0 : (cassoc == ASSOC_UNARY_LEFT ? 1 : 2);
+  uint c = IS_BINARY_ASSOC(cassoc) ? 0 : (cassoc == ASSOC_UNARY_LEFT ? 1 : 2);
   uint r =
       cpri > ppri ? 0 : (cpri < ppri ? 1 : (2 + ((IS_RIGHT_ASSOC(cassoc) ? 2 : 0) + (IS_RIGHT_ASSOC(passoc) ? 1 : 0))));
   (void)left;
