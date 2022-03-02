@@ -1,3 +1,5 @@
+1.32    Fixed bugs with priorities.
+
 1.29    Fixed bug with handling of priorities and associativity (thanx Sjoerd Cranen)
         Fixed a bug in error recovery.
         Fixed a slash escapes in string literals (thanx Sjoerd Cranen)
