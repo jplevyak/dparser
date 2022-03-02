@@ -77,7 +77,7 @@ For python support: `cd python; gmake install`
 * `D_OPTIMIZE`: set to 1 to compile with optimizations (`-O3`)
 * `D_PROFILE`: set to 1 to compile with profiling support (`-pg`)
 * `D_LEAK_DETECT`: set to 1 to compile with memory leak detection (`-lleak`)
-* `D_USE_FREELISTS`: set to 1 to use free lists (TODO what is this?)
+* `D_USE_FREELISTS`: set to 1 to use free lists instead of straign free/malloc (defaults to 1)
 
 
 ## Contact
