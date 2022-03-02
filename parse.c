@@ -753,9 +753,13 @@ static void get_unshared_priorities(Parser *p, StackPNode *psx, StackPNode *psy,
       psr = psx;
     else if (stack_head(psx)->height < stack_head(psy)->height)
       psr = psy;
-    else if (stack_head(psx) > stack_head(psy))
+    else if (stack_head(psx)->parse_node.start_loc.s > stack_head(psy)->parse_node.start_loc.s)
       psr = psx;
-    else if (stack_head(psx) < stack_head(psy))
+    else if (stack_head(psx)->parse_node.start_loc.s < stack_head(psy)->parse_node.start_loc.s)
+      psr = psy;
+    else if (stack_head(psx)->priority > stack_head(psy)->priority)
+      psr = psx;
+    else if (stack_head(psx)->priority < stack_head(psy)->priority)
       psr = psy;
     else {
       (void)stack_pop(psx);
@@ -834,7 +838,7 @@ static void get_unshared_pnodes(Parser *p, PNode *x, PNode *y, VecPNode *pvx, Ve
 static int greedycmp(const void *ax, const void *ay) {
   PNode *x = *(PNode **)ax;
   PNode *y = *(PNode **)ay;
-  /* first by start */
+  /* first by earliest start */
   if (x->parse_node.start_loc.s < y->parse_node.start_loc.s) return -1;
   if (x->parse_node.start_loc.s > y->parse_node.start_loc.s) return 1;
   /* second by symbol */
