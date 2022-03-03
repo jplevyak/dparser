@@ -92,7 +92,7 @@ static void nfa_closure(DFAState *x) {
     Lbreak:;
     }
   }
-  qsort(x->states.v, x->states.n, sizeof(x->states.v[0]), nfacmp);
+  if (x->states.v != NULL) qsort(x->states.v, x->states.n, sizeof(x->states.v[0]), nfacmp);
 }
 
 static int eq_dfa_state(DFAState *x, DFAState *y) {
