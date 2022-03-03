@@ -1,6 +1,6 @@
 /*
-  Copyright 2002-2008 John Plevyak, All Rights Reserved
-*/
+   Copyright 2002-2022 John Plevyak, All Rights Reserved
+ */
 
 #include "d.h"
 
@@ -96,14 +96,13 @@ void xPP(Parser *pp, PNode *p) {
   xprint_paren(pp, p);
   printf("\n");
 }
+
 void PP(Parser *pp, PNode *p) {
   print_paren(pp, p);
   printf("\n");
 }
 
-/* #define D_ParseNode_to_PNode(_apn) ((PNode *)(D_PN(_apn, -(intptr_t) & ((PNode *)(NULL))->parse_node))) */
-#define D_ParseNode_to_PNode(_apn) ((PNode *)(D_PN(_apn, - ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)))))
-
+#define D_ParseNode_to_PNode(_apn) ((PNode *)(D_PN(_apn, -(sizeof(PNode) - sizeof(D_ParseNode)))))
 #define PNode_to_D_ParseNode(_apn) ((D_ParseNode *)&((PNode *)(_apn))->parse_node)
 
 D_ParseNode *d_get_child(D_ParseNode *apn, int child) {
@@ -538,14 +537,8 @@ static int reduce_actions(Parser *p, PNode *pn, D_Reduction *r) {
     pn->priority = r->rule_priority;
   }
   if (r->speculative_code) {
-    void ** v0;
-    if (pn->children.v == NULL) {
-      v0 = NULL;
-    } else {
-      v0 = (void **)&pn->children.v[0];
-    }
-    return r->speculative_code(pn, v0, pn->children.n,
-                               (intptr_t) ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)), (D_Parser *)p);
+    void **v0 = (pn->children.v == NULL) ? NULL : (void **)&pn->children.v[0];
+    return r->speculative_code(pn, v0, pn->children.n, (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)), (D_Parser *)p);
   }
   return 0;
 }
@@ -979,14 +972,9 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
       memset(&dummy, 0, sizeof(dummy));
       dummy.action_index = sh->action_index;
       new_pn->reduction = &dummy;
-      void ** v0;
-      if (new_pn->children.v == NULL) {
-	v0 = NULL;
-      } else {
-	v0 = (void **)&new_pn->children.v[0];
-      }
+      void **v0 = new_pn->children.v == NULL ? NULL : (void **)&new_pn->children.v[0];
       if (sh->speculative_code(new_pn, v0, new_pn->children.n,
-                               (intptr_t) ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)), (D_Parser *)p)) {
+                               (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)), (D_Parser *)p)) {
         free_PNode(p, new_pn);
         return NULL;
       }
@@ -1632,14 +1620,9 @@ static PNode *commit_tree(Parser *p, PNode *pn) {
   }
   if (pn->reduction) DBG(printf("commit %p (%s)\n", (void *)pn, p->t->symbols[pn->parse_node.symbol].name));
   if (pn->reduction && pn->reduction->final_code) {
-    void ** v0;
-    if (pn->children.v == NULL) {
-       v0 = NULL;
-    } else {
-      v0 = (void **)&pn->children.v[0];
-    }
-    pn->reduction->final_code(pn, v0, pn->children.n,
-                              (intptr_t)((long)sizeof(PNode) - (long)sizeof(D_ParseNode))  , (D_Parser *)p);
+    void **v0 = pn->children.v == NULL ?  NULL : (void **)&pn->children.v[0];
+    pn->reduction->final_code(pn, v0, pn->children.n, (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)),
+                              (D_Parser *)p);
   }
   if (pn->evaluated) {
     if (!p->user.save_parse_tree && !internal) free_ParseTreeBelow(p, pn);
@@ -1825,7 +1808,7 @@ static int error_recovery(Parser *p) {
 static void pass_call(Parser *p, D_Pass *pp, PNode *pn) {
   if (PASS_CODE_FOUND(pp, pn))
     pn->reduction->pass_code[pp->index](pn, (void **)&pn->children.v[0], pn->children.n,
-                                        (intptr_t)((long)sizeof(PNode) - (long)sizeof(D_ParseNode)), (D_Parser *)p);
+                                        (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)), (D_Parser *)p);
 }
 
 static void pass_preorder(Parser *p, D_Pass *pp, PNode *pn) {
