@@ -1672,7 +1672,7 @@ static void syntax_error_report_fn(struct D_Parser *ap) {
   ZNode *z = 0;
   // Find the farthest non-empty error location.
   while (sn) {
-    for (int i = 0; i < sn->zns.n; i++) {
+    for (uint i = 0; i < sn->zns.n; i++) {
       ZNode *zz = sn->zns.v[i];
       if (!zz) continue;
       if (!z || (is_z_pn_empty(z) && !is_z_pn_empty(zz))) {
@@ -1752,7 +1752,7 @@ static int error_recovery(Parser *p) {
             fprintf(stderr, "exceeded error recovery queue size\n");
         }
   }
-  for (int i = 0; i < tail; i++) q[i]->in_error_recovery_queue = 0;
+  for (uint i = 0; i < tail; i++) q[i]->in_error_recovery_queue = 0;
   if (best_sn) {
     D_Reduction *rr = MALLOC(sizeof(*rr));
     Reduction *r = MALLOC(sizeof(*r));

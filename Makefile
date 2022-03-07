@@ -35,6 +35,8 @@ ifeq ($(ARCH),i686)
   ARCH = x86
 endif
 
+CFLAGS += -std=c11
+
 ifeq ($(ARCH),x86_64)
   CFLAGS += -fPIC
 endif
