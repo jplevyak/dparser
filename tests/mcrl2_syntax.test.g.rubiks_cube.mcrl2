@@ -1,0 +1,149 @@
+% The Rubik's Cube is a 3-D mechanical puzzle invented in 1974[1] by Hungarian 
+% sculptor and professor of architecture Ernő Rubik. Originally called the 
+% "Magic Cube", the puzzle was licensed by Rubik to be sold by Ideal Toys in
+% 1980[3] and won the German Game of the Year special award for Best Puzzle 
+% that year. As of January 2009, 350 million cubes have sold worldwide making 
+% it the world's top-selling puzzle game. 
+%
+% In a classic Rubik's Cube, each of the six faces is covered by 9 stickers, 
+% among six solid colours (traditionally white, red, blue, orange, green, 
+% and yellow). A pivot mechanism enables each face to turn independently, 
+% thus mixing up the colours. For the puzzle to be solved, each face must be a
+% solid colour. The original 3×3×3 version celebrated its twenty-fifth 
+% anniversary in 2005. 
+%       
+%                         [http://en.wikipedia.org/wiki/Rubik's_Cube, 09-11-09]
+%
+% This version models the clockwise and counterclockwise rotations for a solved
+% Rubik's cube, for which only the white pieces are taken into account.
+%
+%                                   Eindhoven, November 09, 2009, Frank Stappers
+
+% Dimensions of the Rubik's Cube
+%           Z
+%           
+%           + (0,0,2)
+%           |
+%           |
+%           +
+%           |
+%           |
+%           +
+%           |
+%           |              Y  
+%           +----+----+----+ (0,2,0)
+%          /
+%         +
+%        /
+%       +
+%      /
+%     + (2,0,0)
+%
+%   X
+
+% Rubik's Cube colors
+sort Color = struct white | red | blue | orange | green | yellow ;
+% Rubik's Cube Faces 
+sort Face = struct X | Y | Z;
+sort Axis = Face;
+
+% Every visible Rubik's Cube facet has an XYZ-position and normal vector (Face) 
+% that expresses in which the direction the face is visible.
+sort Position = struct pos( x_: Int, y_: Int, z_: Int, nv_: Face );
+
+% A visible piece is a tuple of a Rubik's Cube facet and color
+sort Piece    = struct piece( color: Color, position: Position );
+
+map change_rotation_face: Face#Axis -> Face;
+var f: Face;
+    a: Axis;
+eqn (f == a) -> change_rotation_face( f , a ) = f;
+    (f != a ) && ( f == X ) && ( a == Y ) -> change_rotation_face( f , a ) = Z;
+    (f != a ) && ( f == X ) && ( a == Z ) -> change_rotation_face( f , a ) = Y;
+    (f != a ) && ( f == Y ) && ( a == Z ) -> change_rotation_face( f , a ) = X;
+    (f != a ) && ( f == Y ) && ( a == X ) -> change_rotation_face( f , a ) = Z;
+    (f != a ) && ( f == Z ) && ( a == X ) -> change_rotation_face( f , a ) = Y;
+    (f != a ) && ( f == Z ) && ( a == Y ) -> change_rotation_face( f , a ) = X;
+
+map pos_in_rotation: Position#Axis#Int -> Bool;
+var a: Axis;
+    p: Position;
+    i: Int;
+eqn pos_in_rotation( p, a, i) =  ((x_(p) == i) && ( a == X ))
+                              || ((y_(p) == i) && ( a == Y ))
+                              || ((y_(p) == i) && ( a == Z ));
+
+map apply_ccw_rotate: List(Piece)#Axis#Nat -> List(Piece);
+    apply_cw_rotate: List(Piece)#Axis#Nat -> List(Piece);
+var p: Piece;
+    SP: List(Piece);
+    a: Axis;
+    r: Nat;
+eqn apply_ccw_rotate(p |> SP,a,r) = piece( color(p), single_ccw_pos_update(position(p),a,r)) |> apply_ccw_rotate( SP, a, r ); 
+    apply_cw_rotate(p |> SP,a,r) = piece( color(p), single_cw_pos_update(position(p),a,r)) |> apply_cw_rotate( SP, a, r ); 
+    apply_ccw_rotate([],a,r) = [];  
+    apply_cw_rotate([],a,r) = [];  
+
+% The Rubik's cube is represented as a list of pieces.
+% To represent the representation in an unique way, the list is ordered.
+% The cube is ordered using a merge-sort algorithm
+map order_cube :(Piece#Piece -> Bool)#List(Piece) -> List(Piece);
+var x:Piece;
+    xs:List(Piece);
+    pred_: Piece#Piece -> Bool;
+eqn order_cube (pred_, [])     = [];
+    order_cube (pred_, x |> xs) = insert_piece(pred_, x, order_cube(pred_, xs));
+
+map insert_piece : (Piece#Piece -> Bool)#Piece# List(Piece) -> List(Piece);
+var x,y: Piece;
+    ys: List(Piece);
+    pred_: Piece#Piece -> Bool;
+eqn insert_piece (pred_, x, []) = [x]; 
+    pred_(x, y)    -> insert_piece(pred_, x, y|> ys) = x |> y |> ys;
+    (!pred_(x, y)) -> insert_piece(pred_, x, y|> ys) = y |> insert_piece( pred_, x, ys);
+
+% The eqf function represents the criteria to which the pieces in the list Rubik's cube are ordered.
+map eqf: Piece#Piece->Bool;
+var i,j: Piece;
+eqn eqf(i,j) = ((x_(position(i))+1)*6 + (y_(position(i))+1)*3 + z_(position(i))) < ((x_(position(j))+1)*6 + (y_(position(j))+1)*3 + z_(position(j)));
+
+map single_ccw_pos_update: Position#Axis#Int -> Position;
+    single_cw_pos_update: Position#Axis#Int -> Position;
+var a: Axis;
+    p: Position;
+    r: Int;
+eqn % Rotation over Z-axis
+    (Z == a) && pos_in_rotation( p, a, r ) -> single_ccw_pos_update( p , a, r ) = pos( -y_(p)+2, x_(p), z_(p), change_rotation_face( nv_(p), Z ) ) ;
+    % Rotation over Y-axis
+    (Y == a) && pos_in_rotation( p, a, r ) -> single_ccw_pos_update( p , a, r ) = pos( z_(p), y_(p), -x_(p)+2, change_rotation_face( nv_(p), Y ) ) ;
+    % Rotation over Y-axis
+    (X == a) && pos_in_rotation( p, a, r ) -> single_ccw_pos_update( p , a, r ) = pos( x_(p), -z_(p)+2, y_(p), change_rotation_face( nv_(p), X ) ) ;
+    !pos_in_rotation(p , a, r) -> single_ccw_pos_update(p,a,r) = p;
+    (Z == a) && pos_in_rotation( p, a, r ) -> single_cw_pos_update( p , a, r ) = pos( y_(p), -x_(p)+2, z_(p), change_rotation_face( nv_(p), Z ) ) ;
+    % Rotation over Y-axis
+    (Y == a) && pos_in_rotation( p, a, r ) -> single_cw_pos_update( p , a, r ) = pos( -z_(p)+2, y_(p), x_(p), change_rotation_face( nv_(p), Y ) ) ;
+    % Rotation over Y-axis
+    (X == a) && pos_in_rotation( p, a, r ) -> single_cw_pos_update( p , a, r ) = pos( x_(p), z_(p), -y_(p)+2, change_rotation_face( nv_(p), X ) ) ;
+    !pos_in_rotation(p , a, r) -> single_cw_pos_update(p,a,r) = p;
+
+act showcube: List(Piece);
+    % Rotate clockwise
+    rcw: Axis#Int;
+    % Rotate counter clockwise
+    rccw:Axis#Int;
+
+% Process P only rotates outermost rows, i.e. row 0 and row 2 
+proc P( p: List(Piece) ) = 
+             sum a:Axis.  rcw(a,0) . P( order_cube( lambda i,j:Piece. eqf(i,j),  apply_cw_rotate( p, a, 0 ) ) )
+           + sum a:Axis.  rcw(a,2) . P( order_cube( lambda i,j:Piece. eqf(i,j),  apply_cw_rotate( p, a, 2 ) ) )
+           + sum a:Axis. rccw(a,0) . P( order_cube( lambda i,j:Piece. eqf(i,j), apply_ccw_rotate( p, a, 0 ) ) )
+           + sum a:Axis. rccw(a,2) . P( order_cube( lambda i,j:Piece. eqf(i,j), apply_ccw_rotate( p, a, 2 ) ) );
+
+% Layout of the white side of the Rubik's cube
+init P(
+      order_cube( lambda i,j:Piece. eqf(i,j) 
+      ,[
+          piece(white, pos( 2,0,0, X )), piece(white, pos( 2,1,0, X )), piece(white, pos( 2,2,0, X )),
+          piece(white, pos( 2,0,1, X )),                                piece(white, pos( 2,2,1, X )),
+          piece(white, pos( 2,0,2, X )), piece(white, pos( 2,1,2, X )), piece(white, pos( 2,2,2, X ))
+       ]) );

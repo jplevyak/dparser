@@ -1,0 +1,662 @@
+% Specification of the Workload Management System of the DIRAC Community Grid Solution [1] 
+% for the LHCb [2] experiment at CERN. This subsystem is the backbone of DIRAC, managing
+% the lifecycle of all jobs submitted to the Grid resources.
+% A series of agents (modeled as recursive processes) observe and update the states of the 
+% centralized storage entity (Job). The shared storage is modeled as a process
+% continuously listening and responding to requests from other processes (agents).
+%
+% [1] A. Tsaregorodtsev et al. ""DIRAC: A community grid solution,"" in Proc. Computing in
+% High Energy Physics, 2007
+%
+% [2] Large Hadron Collider beauty experiment.
+% [Online] http://lhcb-public.web.cern.ch/lhcb-public
+%
+%
+% Authors: Daniela Remenska, Tim Willemse
+% October 2011
+%
+% IMPORTANT: the action "state" is present only for the purpose of verification and is not
+%            in any way part of the behaviour of the system;
+%
+% The following commands will generate a state space:
+% mcrl22lps WMS.mcrl2 WMS.lps
+% lps2lts -vrjittyc WMS.lps 
+% State space statistics: 160148696 states 
+%
+% NOTE: The above method takes roughly 50 hours (December 2011); 
+% lps-reach with chaining and/or saturation of the LTSmin toolset is able to take 
+% advantage of the asynchronous nature of the state space, allowing the tool to
+% exhaustively explore the state space symbolically in approx. 10 seconds.
+
+sort Status = struct 
+			Stalled?is_stalled |
+			Running?is_running | 
+		      Received?is_received | 
+			  Failed?is_failed | 
+		Rescheduled?is_rescheduled | 
+			      Done?is_done |
+			Matched?is_matched |
+		      Checking?is_checking | 
+			Waiting?is_waiting |
+			Staging?is_staging |
+			Deleted?is_deleted | 
+			Removed?is_removed | 
+			  Killed?is_killed | 
+		     Completed?is_completed;
+
+
+sort MinorStatus = struct 
+				PilotNotRunning?is_pilotNotRunning | 
+		      StallingMoreThanXSec?is_stallingMoreThanXSec | 
+					      ErrorMsg?is_errorMsg | 
+					    JobSanity?is_jobSanity |
+					JobAccepted?is_jobAccepted |
+				    JobScheduling?is_jobScheduling | 
+					    InputData?is_inputData |
+					    TaskQueue?is_taskQueue |
+					Application?is_application |
+			  InstallingSoftware?is_installingSoftware |
+			  StagingRequestSent?is_stagingRequestSent |
+		      PilotAgentSubmission?is_pilotAgentSubmission |
+					      Assigned?is_assigned |
+					  JDLProblem?is_JDLProblem |
+			  JobReceivedByAgent?is_jobReceivedByAgent |
+			      MaxReschedulings?is_maxReschedulings |
+				  JobRescheduled?is_jobRescheduled |
+				    SubmittedToCE?is_submittedToCE |
+			    JobInitialization?is_jobInitialization |
+		DownloadingInputSandbox?is_downloadingInputSandbox |
+    FailedDownloadingInputSandbox?is_failedDownloadingInputSandbox |
+			InputDataResolution?is_inputDataResolution |
+	      ExceptionDuringExecution?is_exceptionDuringExecution |
+				WatchdogStalled?is_watchdogStalled |
+			  ApplicationSuccess?is_applicationSuccess |
+			    ApplicationErrors?is_applicationErrors |
+					    Exception?is_exception |
+		    FailoverRequestFailed?is_failoverRequestFailed |
+		  ResolvingOutputSandbox?is_resolvingOutputSandbox |
+		  UploadingOutputSandbox?is_uploadingOutputSandbox |
+		    OutputSandboxUploaded?is_outputSandboxUploaded |
+			UploadingOutputData?is_uploadingOutputData |
+			  OutputDataUploaded?is_outputDataUploaded |
+				PendingRequests?is_pendingRequests |
+			    ExecutionComplete?is_executionComplete |
+				      RequestsDone?is_requestsDone |
+		      MarkedForTermination?is_markedForTermination |
+		StagingInputFilesFailed?is_stagingInputFilesFailed |
+			 CheckingAccounting? is_checkingAccounting ;
+
+sort Job = struct jobstatus(js:Status,ms:MinorStatus);
+
+
+sort WrapperState = struct
+			StartWrapper?is_startWrapper | 
+			Fault?is_fault | 
+			InitializeOK?is_initializeOK |
+			InputSandboxOK?is_inputSandboxOK |
+			ResolveInputDataOK?is_resolveInputDataOK |
+			ExecuteOK?is_executeOK |
+			CompletedOK?is_completedOK | 
+			OutputSandboxOK?is_outputSandboxOK |
+			OutputDataOK?is_outputDataOK |
+			FinalizeOK?is_finalizeOK;
+
+%------------------------------------
+% jobs-to-ids mapping, based on selection for the major status
+% example j2id([jobstatus(Checking,InputData),jobstatus(Matched,Assigned),jobstatus(Checking,JobSanity)],Checking) -> [0,2]
+
+map j2id:List(Job)#Status->List(Nat);
+map j2id':List(Job)#Status#Nat->List(Nat);
+
+var 
+	jobs,l:List(Job);
+	s:Status;
+	n:Nat;
+	a:Job;
+eqn
+	j2id(jobs,s) = j2id'(jobs,s,0);
+	j2id'([],s,n) = [];
+	js(a) == s -> j2id'(a|>l,s,n) = n|>j2id'(l,s,n+1);
+	js(a) != s -> j2id'(a|>l,s,n) = j2id'(l,s,n+1);
+
+%------------------------------------
+
+% jobs-to-ids mapping, based on selection for the major status AND minor status
+% example j2id2([jobstatus(Checking,InputData),jobstatus(Matched,Assigned),jobstatus(Checking,JobSanity)],Checking,JobSanity) -> [2]
+
+map j2id2:List(Job)#Job->List(Nat);
+map j2id2':List(Job)#Job#Nat->List(Nat);
+
+var 
+	jobs,l:List(Job);	
+	j,a:Job;
+	n:Nat;
+eqn
+	j2id2(jobs,j) = j2id2'(jobs,j,0);
+	j2id2'([],j,n) = [];
+	a == j -> j2id2'(a|>l,j,n) = n|>j2id2'(l,j,n+1);
+	a != j -> j2id2'(a|>l,j,n) = j2id2'(l,j,n+1);
+
+%------------------------------------
+
+%ids-to-jobs mapping, based on a list of IDs and major status 
+%example id2j2([0,2],[jobstatus(Checking,InputData),jobstatus(Matched,Assigned),jobstatus(Checking,JobSanity)],Failed)->
+%[jobstatus(Failed,InputData),jobstatus(Matched,Assigned),jobstatus(Failed,InputData)]
+
+map id2j2:List(Nat)#List(Job)#Status->List(Job);
+map id2j2':List(Nat)#List(Job)#Status#Nat->List(Job);
+
+var 
+	listIDs:List(Nat);
+	jobs,l:List(Job);
+	n:Nat;
+	a:Job;
+	st:Status;
+eqn 
+	id2j2(listIDs,jobs,st) = id2j2'(listIDs,jobs,st,0);
+	id2j2'(listIDs,[],st,n) = []; 
+	n in listIDs -> id2j2'(listIDs,a|>l,st,n) = jobstatus(st,ms(a))|>id2j2'(listIDs,l,st,n+1);
+	!(n in listIDs) -> id2j2'(listIDs,a|>l,st,n) = a|>id2j2'(listIDs,l,st,n+1);
+%------------------------------------
+
+%ids-to-jobs mapping, based on a list of IDs and MINOR status 
+%example id2j3([0,2],[jobstatus(Checking,InputData),jobstatus(Matched,Assigned),jobstatus(Checking,JobSanity)],RequestsDone)->
+%[jobstatus(Failed,RequestsDone),jobstatus(Matched,Assigned),jobstatus(Failed,RequestsDone)]
+
+map id2j3:List(Nat)#List(Job)#MinorStatus->List(Job);
+map id2j3':List(Nat)#List(Job)#MinorStatus#Nat->List(Job);
+
+var 
+	listIDs:List(Nat);
+	jobs,l:List(Job);
+	n:Nat;
+	a:Job;
+	mst:MinorStatus;
+eqn 
+	id2j3(listIDs,jobs,mst) = id2j3'(listIDs,jobs,mst,0);
+	id2j3'(listIDs,[],mst,n) = []; 
+	n in listIDs -> id2j3'(listIDs,a|>l,mst,n) = jobstatus(js(a),mst)|>id2j3'(listIDs,l,mst,n+1);
+	!(n in listIDs) -> id2j3'(listIDs,a|>l,mst,n) = a|>id2j3'(listIDs,l,mst,n+1);
+%------------------------------------
+
+%ids-to-jobs mapping, based on a list of IDs, major status AND minor status update
+%example id2j([0,2],[jobstatus(Checking,InputData),jobstatus(Matched,Assigned),jobstatus(Checking,JobSanity)],jobstatus(Failed,ErrorMsg))->
+%[jobstatus(Failed,ErrorMsg),jobstatus(Matched,Assigned),jobstatus(Failed,ErrorMsg)]
+
+map id2j:List(Nat)#List(Job)#Job->List(Job);
+map id2j':List(Nat)#List(Job)#Job#Nat->List(Job);
+
+var 
+	listIDs:List(Nat);
+	jobs,l:List(Job);
+	n:Nat;
+	a,j:Job;
+eqn 
+	id2j(listIDs,jobs,j) = id2j'(listIDs,jobs,j,0);
+	id2j'(listIDs,[],j,n) = []; 
+	n in listIDs -> id2j'(listIDs,a|>l,j,n) = j|>id2j'(listIDs,l,j,n+1);
+	!(n in listIDs) -> id2j'(listIDs,a|>l,j,n) = a|>id2j'(listIDs,l,j,n+1);
+
+%------------------------------------
+
+act internal;
+act JobPathAgent_selectJobs_,_JobPathAgent_selectJobs,JobPathAgent_selectJobs:List(Nat)#Status;
+act JobPathAgent_checkJob_,_JobPathAgent_checkJob,JobPathAgent_checkJob:List(Nat)#Job;
+act JobPathAgent_setNextOptimizer_,_JobPathAgent_setNextOptimizer,JobPathAgent_setNextOptimizer:List(Nat)#Job;
+act JobSanityAgent_selectJobs_,_JobSanityAgent_selectJobs,JobSanityAgent_selectJobs:List(Nat)#Job;
+act JobSanityAgent_checkInputData_,_JobSanityAgent_checkInputData,JobSanityAgent_checkInputData:List(Nat)#Job;
+act JobSanityAgent_checkInputSandbox_,_JobSanityAgent_checkInputSandbox,JobSanityAgent_checkInputSandbox:List(Nat)#Job;
+act JobSanityAgent_setNextOptimizer_,_JobSanityAgent_setNextOptimizer,JobSanityAgent_setNextOptimizer:List(Nat)#Job;
+act InputDataAgent_selectJobs_,_InputDataAgent_selectJobs,InputDataAgent_selectJobs:List(Nat)#Job;
+act InputDataAgent_checkJob_,_InputDataAgent_checkJob,InputDataAgent_checkJob:List(Nat)#Job;
+act InputDataAgent_setNextOptimizer_,_InputDataAgent_setNextOptimizer,InputDataAgent_setNextOptimizer:List(Nat)#Job;
+act JobSchedulingAgent_selectJobs_,_JobSchedulingAgent_selectJobs,JobSchedulingAgent_selectJobs:List(Nat)#Job;
+act JobSchedulingAgent_checkJob_,_JobSchedulingAgent_checkJob,JobSchedulingAgent_checkJob:List(Nat)#Job;
+act JobSchedulingAgent_sendToTaskQueue_,_JobSchedulingAgent_sendToTaskQueue,JobSchedulingAgent_sendToTaskQueue:List(Nat)#Job;
+act JobSchedulingAgent_setStagingRequest_,_JobSchedulingAgent_setStagingRequest,JobSchedulingAgent_setStagingRequest:List(Nat)#Job;
+act TaskQueueAgent_selectJobs_,_TaskQueueAgent_selectJobs,TaskQueueAgent_selectJobs:List(Nat)#Job;
+act TaskQueueAgent_checkJob_,_TaskQueueAgent_checkJob,TaskQueueAgent_checkJob:List(Nat)#Job;
+act TaskQueueAgent_insertJobInQueue_,_TaskQueueAgent_insertJobInQueue,TaskQueueAgent_insertJobInQueue:List(Nat)#Job;
+act StalledJobAgent_selectJobs_,_StalledJobAgent_selectJobs,StalledJobAgent_selectJobs:List(Nat)#Status;
+act StalledJobAgent_markStalledJobs_,_StalledJobAgent_markStalledJobs,StalledJobAgent_markStalledJobs:List(Nat)#Status;
+act StalledJobAgent_failStalledJobs_,_StalledJobAgent_failStalledJobs,StalledJobAgent_failStalledJobs:List(Nat)#Job;
+act JobCleaningAgent_selectJobs_,_JobCleaningAgent_selectJobs,JobCleaningAgent_selectJobs:List(Nat)#Status;
+act JobCleaningAgent_removeJobs_,_JobCleaningAgent_removeJobs,JobCleaningAgent_removeJobs:List(Nat)#Status;
+act RequestAgentMixIn_selectJobs_,_RequestAgentMixIn_selectJobs,RequestAgentMixIn_selectJobs:List(Nat)#Job;
+act RequestAgentMixIn_setJobStatus_,_RequestAgentMixIn_setJobStatus,RequestAgentMixIn_setJobStatus:List(Nat)#Job;
+act RequestAgentMixIn_setMinorStatus_,_RequestAgentMixIn_setMinorStatus,RequestAgentMixIn_setMinorStatus:List(Nat)#MinorStatus;
+act JobAgent_selectJobs_,_JobAgent_selectJobs,JobAgent_selectJobs:List(Nat)#Status;
+act JobAgent_matchJobs_,_JobAgent_matchJobs,JobAgent_matchJobs:List(Nat)#Job;
+act JobAgent_updateStatus_,_JobAgent_updateStatus,JobAgent_updateStatus:List(Nat)#Job;
+act JobAgent_rescheduleJob_,_JobAgent_rescheduleJob,JobAgent_rescheduleJob:List(Nat)#Job;
+act JobAgent_setupProxy_,_JobAgent_setupProxy,JobAgent_setupProxy:List(Nat)#Job;
+act JobAgent_checkInstallSoftware_,_JobAgent_checkInstallSoftware,JobAgent_checkInstallSoftware:List(Nat)#Job;
+act JobAgent_submitJob_,_JobAgent_submitJob,JobAgent_submitJob:List(Nat)#Job;
+act JobWrapper_initialize_,_JobWrapper_initialize,JobWrapper_initialize:List(Nat)#Job;
+act JobWrapper_rescheduleJob_,_JobWrapper_rescheduleJob,JobWrapper_rescheduleJob:List(Nat)#Job;
+act JobWrapper_transferInputSandbox_,_JobWrapper_transferInputSandbox,JobWrapper_transferInputSandbox:List(Nat)#Job;
+act JobWrapper_resolveInputData_,_JobWrapper_resolveInputData,JobWrapper_resolveInputData:List(Nat)#Job;
+act JobWrapper_execute_,_JobWrapper_execute,JobWrapper_execute:List(Nat)#Job;
+act JobWrapper_processJobOutputs_,_JobWrapper_processJobOutputs,JobWrapper_processJobOutputs:List(Nat)#Job;
+act JobWrapper_finalize_,_JobWrapper_finalize,JobWrapper_finalize:List(Nat)#Job;
+act _DIRAC_API_delete,DIRAC_API_delete_,DIRAC_API_delete:Nat#Job;
+act _DIRAC_API_reschedule,DIRAC_API_reschedule_,DIRAC_API_reschedule:Nat#Job;
+act _DIRAC_API_kill,DIRAC_API_kill_,DIRAC_API_kill:Nat#Job;
+act getRandomJob_,_getRandomJob,getRandomJob:Nat;
+act StagerSystem_selectJobs_,_StagerSystem_selectJobs,StagerSystem_selectJobs:List(Nat)#Status;
+act StagerSystem_updateJobFromStager_,_StagerSystem_updateJobFromStager,StagerSystem_updateJobFromStager:List(Nat)#Job;
+act JobManager_submitJob_,_JobManager_submitJob, JobManager_submitJob:Job;
+act state:List(Job);
+act runApp;
+
+%----------------------Jobs memory simulation via process
+proc Jobsproc(s:List(Job)) = 
+sum j:Job. JobManager_submitJob_(j).Jobsproc(s<|j) + 
+sum st:Status. JobPathAgent_selectJobs_(j2id(s,st),st).Jobsproc(s) +
+sum l:List(Nat),j:Job. JobPathAgent_checkJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobPathAgent_setNextOptimizer_(l,j).Jobsproc(id2j(l,s,j)) +
+sum j:Job. JobSanityAgent_selectJobs_(j2id2(s,j),j).Jobsproc(s) +
+sum l:List(Nat),j:Job. JobSanityAgent_checkInputData_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobSanityAgent_checkInputSandbox_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobSanityAgent_setNextOptimizer_(l,j).Jobsproc(id2j(l,s,j)) +
+sum j:Job. InputDataAgent_selectJobs_(j2id2(s,j),j).Jobsproc(s) + 
+sum l:List(Nat),j:Job. InputDataAgent_checkJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. InputDataAgent_setNextOptimizer_(l,j).Jobsproc(id2j(l,s,j)) +
+sum j:Job. JobSchedulingAgent_selectJobs_(j2id2(s,j),j).Jobsproc(s) +
+sum l:List(Nat),j:Job. JobSchedulingAgent_checkJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobSchedulingAgent_sendToTaskQueue_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobSchedulingAgent_setStagingRequest_(l,j).Jobsproc(id2j(l,s,j)) +
+sum j:Job. TaskQueueAgent_selectJobs_(j2id2(s,j),j).Jobsproc(s) +
+sum l:List(Nat),j:Job. TaskQueueAgent_checkJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. TaskQueueAgent_insertJobInQueue_(l,j).Jobsproc(id2j(l,s,j)) +
+sum st:Status. StalledJobAgent_selectJobs_(j2id(s,st),st).Jobsproc(s) +
+sum l:List(Nat),st:Status. StalledJobAgent_markStalledJobs_(l,st).Jobsproc(id2j2(l,s,st)) +
+sum l:List(Nat),j:Job. StalledJobAgent_failStalledJobs_(l,j).Jobsproc(id2j(l,s,j)) +
+sum st:Status. JobCleaningAgent_selectJobs_(j2id(s,st),st).Jobsproc(s) +
+sum l:List(Nat),st:Status. JobCleaningAgent_removeJobs_(l,st).Jobsproc(id2j2(l,s,st)) +
+sum j:Job. RequestAgentMixIn_selectJobs_(j2id2(s,j),j).Jobsproc(s) +
+sum l:List(Nat),j:Job. RequestAgentMixIn_setJobStatus_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),mst:MinorStatus. RequestAgentMixIn_setMinorStatus_(l,mst).Jobsproc(id2j3(l,s,mst)) +
+sum st:Status. JobAgent_selectJobs_(j2id(s,st),st).Jobsproc(s) +
+sum l:List(Nat),j:Job. JobAgent_matchJobs_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobAgent_updateStatus_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobAgent_rescheduleJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobAgent_submitJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_initialize_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_rescheduleJob_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobAgent_setupProxy_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobAgent_checkInstallSoftware_(l,j).Jobsproc(id2j(l,s,j)) + 
+sum l:List(Nat),j:Job. JobWrapper_transferInputSandbox_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_resolveInputData_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_execute_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_processJobOutputs_(l,j).Jobsproc(id2j(l,s,j)) +
+sum l:List(Nat),j:Job. JobWrapper_finalize_(l,j).Jobsproc(id2j(l,s,j)) +
+sum i:Nat,j:Job. DIRAC_API_delete_(i,j).Jobsproc(id2j([i],s,j)) +
+sum i:Nat,j:Job. DIRAC_API_kill_(i,j).Jobsproc(id2j([i],s,j)) +
+sum i:Nat,j:Job. DIRAC_API_reschedule_(i,j).Jobsproc(id2j([i],s,j)) +
+sum st:Status. StagerSystem_selectJobs_(j2id(s,st),st).Jobsproc(s) +
+sum l:List(Nat),j:Job. StagerSystem_updateJobFromStager_(l,j).Jobsproc(id2j(l,s,j)) +
+%getRandomJob_(0).Jobsproc(s) +
+getRandomJob_(0).Jobsproc(s) +
+state(s).Jobsproc(s);
+
+proc JobPathAgent = 
+	sum cc:List(Nat). _JobPathAgent_selectJobs(cc,Received).
+	(
+	 (cc!=[])->
+		(
+		 _JobPathAgent_checkJob(cc,jobstatus(Failed,ErrorMsg)) + 
+	 	 _JobPathAgent_setNextOptimizer(cc,jobstatus(Checking,JobSanity))
+	 	) 
+	 <> internal
+	)
+.JobPathAgent;
+%----------------------
+
+proc JobSanityAgent =
+	sum cc:List(Nat). _JobSanityAgent_selectJobs(cc,jobstatus(Checking,JobSanity)).
+	(
+	 (cc!=[])->
+		(
+		 _JobSanityAgent_checkInputData(cc,jobstatus(Failed,ErrorMsg)) + 
+	 	 _JobSanityAgent_checkInputSandbox(cc,jobstatus(Failed,ErrorMsg)) +
+	 	 _JobSanityAgent_setNextOptimizer(cc,jobstatus(Checking,InputData)) +
+	 	 _JobSanityAgent_setNextOptimizer(cc,jobstatus(Checking,JobScheduling))
+		) 
+	 <> internal
+	)	
+.JobSanityAgent;
+%----------------------
+proc InputDataAgent = 
+	sum cc:List(Nat). _InputDataAgent_selectJobs(cc,jobstatus(Checking,InputData)).
+	(
+	 (cc!=[])->
+		(
+		 _InputDataAgent_checkJob(cc,jobstatus(Failed,ErrorMsg)) +
+	 	 _InputDataAgent_setNextOptimizer(cc,jobstatus(Checking,JobScheduling))
+		) 
+	 <> internal
+	)
+.InputDataAgent;
+
+%----------------------
+proc JobSchedulingAgent = 
+	sum cc:List(Nat). _JobSchedulingAgent_selectJobs(cc,jobstatus(Checking,JobScheduling)).
+	(
+	 (cc!=[])->
+		(
+		 _JobSchedulingAgent_checkJob(cc,jobstatus(Failed,ErrorMsg)) + 
+	 	 _JobSchedulingAgent_setStagingRequest(cc,jobstatus(Staging,StagingRequestSent)) + 
+	 	 _JobSchedulingAgent_setStagingRequest(cc,jobstatus(Failed,ErrorMsg)) + 
+	 	 _JobSchedulingAgent_sendToTaskQueue(cc,jobstatus(Checking,TaskQueue))
+		) 
+	 <> internal
+	) 
+.JobSchedulingAgent;
+
+%----------------------
+proc TaskQueueAgent = 
+	sum cc:List(Nat). _TaskQueueAgent_selectJobs(cc,jobstatus(Checking,TaskQueue)).
+	(
+	 (cc!=[])->
+		(
+		 _TaskQueueAgent_checkJob(cc,jobstatus(Failed,ErrorMsg)) +
+	 	 _TaskQueueAgent_insertJobInQueue(cc,jobstatus(Waiting,PilotAgentSubmission))
+		) 
+	 <> internal
+	)
+.TaskQueueAgent;
+
+%----------------------
+proc StalledJobAgent = 
+	sum cc:List(Nat). _StalledJobAgent_selectJobs(cc,Running).
+	(
+	 (cc!=[])-> 
+		(_StalledJobAgent_markStalledJobs(cc,Stalled) + internal) <> internal
+	).
+	sum cc:List(Nat). _StalledJobAgent_selectJobs(cc,Stalled).
+	(
+	 (cc!=[])->
+		(
+		 _StalledJobAgent_failStalledJobs(cc,jobstatus(Failed,PilotNotRunning)) +
+	 	 _StalledJobAgent_failStalledJobs(cc,jobstatus(Failed,StallingMoreThanXSec))
+		)
+ 	<> internal
+	) 	
+.StalledJobAgent;
+
+%----------------------
+proc JobCleaningAgent = 
+	sum cc:List(Nat). _JobCleaningAgent_selectJobs(cc,Deleted).
+	(
+	 (cc!=[])->_JobCleaningAgent_removeJobs(cc,Removed) <> internal
+	).
+	sum cc:List(Nat). _JobCleaningAgent_selectJobs(cc,Done).
+	(
+	 (cc!=[])->_JobCleaningAgent_removeJobs(cc,Removed) <> internal
+	).
+	sum cc:List(Nat). _JobCleaningAgent_selectJobs(cc,Killed).
+	(
+	 (cc!=[])->_JobCleaningAgent_removeJobs(cc,Removed) <> internal
+	).
+	sum cc:List(Nat). _JobCleaningAgent_selectJobs(cc,Failed).
+	(
+	 (cc!=[])->_JobCleaningAgent_removeJobs(cc,Removed)<> internal
+	)
+.JobCleaningAgent;
+
+%----------------------
+proc RequestAgentMixIn = 
+	sum cc:List(Nat). _RequestAgentMixIn_selectJobs(cc,jobstatus(Completed,PendingRequests)).
+	(
+	 (cc!=[])-> _RequestAgentMixIn_setJobStatus(cc,jobstatus(Done,RequestsDone)) <> internal
+	).
+	sum cc:List(Nat). _RequestAgentMixIn_selectJobs(cc,jobstatus(Failed,PendingRequests)).
+	(
+	 (cc!=[])-> _RequestAgentMixIn_setMinorStatus(cc,RequestsDone) <> internal
+	)
+.RequestAgentMixIn;
+
+%----------------------
+JobAgent = 
+	sum cc:List(Nat). _JobAgent_selectJobs(cc,Waiting).
+	(
+	 (cc!=[])->  _JobAgent_matchJobs(cc,jobstatus(Matched,Assigned)).
+		(
+		 _JobAgent_updateStatus(cc,jobstatus(Failed,JDLProblem)).JobAgent +
+	  	 _JobAgent_updateStatus(cc,jobstatus(Matched,JobReceivedByAgent)). 
+		 	( 
+			 % setupProxy fails 
+		 	 _JobAgent_setupProxy(cc,jobstatus(Rescheduled,JobRescheduled)).JobAgent + 
+		 	 _JobAgent_setupProxy(cc,jobstatus(Failed,MaxReschedulings)).JobAgent +
+			 % or it doesn't
+			 internal
+		 	).
+			( 
+			 % check install software fails
+		 	 _JobAgent_checkInstallSoftware(cc,jobstatus(Rescheduled,JobRescheduled)).JobAgent + 
+		 	 _JobAgent_checkInstallSoftware(cc,jobstatus(Failed,MaxReschedulings)).JobAgent +
+			 % or it doesn't
+			 _JobAgent_checkInstallSoftware(cc,jobstatus(Matched,InstallingSoftware))
+		 	).
+		
+			(
+			 _JobAgent_submitJob(cc,jobstatus(Matched,SubmittedToCE)).JobWrapper(cc,StartWrapper) +
+	 		 _JobAgent_submitJob(cc,jobstatus(Failed,MaxReschedulings)).JobAgent +
+			 _JobAgent_submitJob(cc,jobstatus(Rescheduled,JobRescheduled)).JobAgent
+			)
+		)
+	 <> internal
+	)
+.JobAgent;
+
+%----------------------
+proc JobWrapper(cc:List(Nat),state:WrapperState) = 
+	
+		is_startWrapper(state)->
+		(	
+		_JobWrapper_initialize(cc,jobstatus(Running,JobInitialization)). 
+			(
+			_JobWrapper_initialize(cc,jobstatus(Received,JobRescheduled)).JobWrapper(cc,Fault) +
+			_JobWrapper_initialize(cc,jobstatus(Failed,MaxReschedulings)).JobWrapper(cc,Fault) +
+			JobWrapper(cc,InitializeOK)									
+			)
+		) 
+		+ 
+		is_initializeOK(state)->
+		(
+			_JobWrapper_transferInputSandbox(cc,jobstatus(Running,DownloadingInputSandbox)). 
+			( 
+			_JobWrapper_transferInputSandbox(cc,jobstatus(Received,JobRescheduled)).JobWrapper(cc,Fault) +
+			_JobWrapper_transferInputSandbox(cc,jobstatus(Failed,MaxReschedulings)).JobWrapper(cc,Fault) +
+			JobWrapper(cc,InputSandboxOK)
+			)
+		) 
+		+ 
+		is_inputSandboxOK(state)->
+		(
+			_JobWrapper_resolveInputData(cc,jobstatus(Running,InputDataResolution)). 
+			(
+			_JobWrapper_resolveInputData(cc,jobstatus(Received,JobRescheduled)).JobWrapper(cc,Fault) +
+			_JobWrapper_resolveInputData(cc,jobstatus(Failed,MaxReschedulings)).JobWrapper(cc,Fault) +
+			JobWrapper(cc,ResolveInputDataOK)
+			)
+		) 
+		+ 
+		is_resolveInputDataOK(state)->
+		(
+			_JobWrapper_execute(cc,jobstatus(Running,Application)). 
+			(
+			AppPayload.JobWrapper(cc,ExecuteOK) +
+			_JobWrapper_execute(cc,jobstatus(Failed,ExceptionDuringExecution)).JobWrapper(cc,Fault)
+			)
+		 
+		) 
+		+
+		% creates an execution thread
+		% passes the execution thread to a Watchdog instance (TBW)
+		
+		is_executeOK(state)->
+		(
+			_JobWrapper_execute(cc,jobstatus(Completed,ApplicationSuccess)).JobWrapper(cc,CompletedOK) + 
+		 	_JobWrapper_execute(cc,jobstatus(Completed,ApplicationErrors)).JobWrapper(cc,CompletedOK) +
+		 	_JobWrapper_execute(cc,jobstatus(Failed,WatchdogStalled)).JobWrapper(cc,Fault)
+		) 
+		+
+
+		is_completedOK(state)->
+		(
+			_JobWrapper_processJobOutputs(cc,jobstatus(Completed,UploadingOutputSandbox)).
+			_JobWrapper_processJobOutputs(cc,jobstatus(Completed,OutputSandboxUploaded)).JobWrapper(cc,OutputSandboxOK)
+			+ 
+			_JobWrapper_processJobOutputs(cc,jobstatus(Failed,ResolvingOutputSandbox)).JobWrapper(cc,Fault)
+		)
+		+
+		is_outputSandboxOK(state)->
+		(
+			_JobWrapper_processJobOutputs(cc,jobstatus(Completed,UploadingOutputData)).
+			_JobWrapper_processJobOutputs(cc,jobstatus(Completed,OutputDataUploaded)).JobWrapper(cc,OutputDataOK) 
+			+  
+			_JobWrapper_processJobOutputs(cc,jobstatus(Failed,UploadingOutputData)).JobWrapper(cc,Fault)
+		)
+		+
+		is_outputDataOK(state)->
+		(
+			_JobWrapper_finalize(cc,jobstatus(Done,ExecutionComplete)) +
+			_JobWrapper_finalize(cc,jobstatus(Failed,PendingRequests)) +
+			_JobWrapper_finalize(cc,jobstatus(Completed,PendingRequests))
+		).JobWrapper(cc,FinalizeOK)
+	;
+%----------------------
+
+proc AppPayload = runApp;
+	
+	
+proc DIRAC_API = 
+	sum job:Nat. _getRandomJob(job).
+	(_DIRAC_API_delete(job,jobstatus(Deleted,CheckingAccounting)) + 
+	_DIRAC_API_reschedule(job,jobstatus(Received,JobRescheduled)) + 
+	_DIRAC_API_kill(job,jobstatus(Killed,MarkedForTermination)))
+
+.DIRAC_API;
+
+%----------------------
+proc JobManager = 
+	_JobManager_submitJob(jobstatus(Received,JobAccepted));
+	%could add more submissions._JobManager_submitJob(jobstatus(Failed,FailedDownloadingInputSandbox)); 
+	
+%----------------------	
+
+proc StagerSystem =  
+	sum cc:List(Nat). _StagerSystem_selectJobs(cc,Staging).
+	(
+	 (cc!=[])->
+		(
+		 _StagerSystem_updateJobFromStager(cc,jobstatus(Failed,StagingInputFilesFailed)) +
+	 	 _StagerSystem_updateJobFromStager(cc,jobstatus(Checking,JobScheduling))
+		)
+ 	 <> internal
+	)
+.StagerSystem;
+
+%----------------------
+
+% Generic monitor for formulae of the form [true*. state(l1). true*. state(l2)]false
+% By default not included in the 'init' section
+
+act found: List(Job)#List(Job);
+act monitor: List(Job);
+
+proc Monitor(l1,l2:List(Job), b:Bool) =
+        tau.Monitor(l1,l2,b)  % use mCRL2's facility to have tau synchronise with any action
+      +(!b -> (sum l:List(Job). (l == l1)-> (monitor(l). Monitor(l1,l2,true))
+                                         <> (monitor(l). Monitor(l1,l2,b) ))
+           <> (sum l:List(Job). (l == l2)-> (monitor(l). found(l1,l2). delta)
+                                         <> monitor(l). Monitor(l1,l2,b) ));
+
+
+%----------------------
+
+init hide ({internal},
+ allow({internal,state,getRandomJob,found,
+ JobPathAgent_selectJobs,JobPathAgent_checkJob,JobPathAgent_setNextOptimizer,
+ JobSanityAgent_selectJobs,JobSanityAgent_checkInputData,JobSanityAgent_checkInputSandbox,JobSanityAgent_setNextOptimizer,
+ InputDataAgent_selectJobs,InputDataAgent_checkJob,InputDataAgent_setNextOptimizer,
+ JobSchedulingAgent_selectJobs,JobSchedulingAgent_checkJob,JobSchedulingAgent_sendToTaskQueue,JobSchedulingAgent_setStagingRequest,
+ TaskQueueAgent_selectJobs,TaskQueueAgent_checkJob,TaskQueueAgent_insertJobInQueue,
+ StalledJobAgent_selectJobs,StalledJobAgent_markStalledJobs,StalledJobAgent_failStalledJobs,
+ JobCleaningAgent_selectJobs,JobCleaningAgent_removeJobs,
+ RequestAgentMixIn_selectJobs,RequestAgentMixIn_setJobStatus,RequestAgentMixIn_setMinorStatus,
+ JobAgent_selectJobs,JobAgent_matchJobs,JobAgent_updateStatus,JobAgent_rescheduleJob,JobAgent_setupProxy,JobAgent_checkInstallSoftware, JobAgent_submitJob,
+ JobWrapper_initialize,JobWrapper_rescheduleJob,JobWrapper_transferInputSandbox,JobWrapper_resolveInputData,JobWrapper_execute,JobWrapper_processJobOutputs,JobWrapper_finalize,
+ DIRAC_API_delete,DIRAC_API_reschedule,DIRAC_API_kill,
+ StagerSystem_selectJobs,StagerSystem_updateJobFromStager,
+ JobManager_submitJob,
+ runApp
+ },
+comm({
+state|monitor -> state,
+JobPathAgent_selectJobs_|_JobPathAgent_selectJobs-> JobPathAgent_selectJobs,
+JobPathAgent_checkJob_|_JobPathAgent_checkJob-> JobPathAgent_checkJob,
+JobPathAgent_setNextOptimizer_|_JobPathAgent_setNextOptimizer-> JobPathAgent_setNextOptimizer,
+JobSanityAgent_selectJobs_|_JobSanityAgent_selectJobs-> JobSanityAgent_selectJobs,
+JobSanityAgent_checkInputData_|_JobSanityAgent_checkInputData-> JobSanityAgent_checkInputData,
+JobSanityAgent_checkInputSandbox_|_JobSanityAgent_checkInputSandbox-> JobSanityAgent_checkInputSandbox,
+JobSanityAgent_setNextOptimizer_|_JobSanityAgent_setNextOptimizer-> JobSanityAgent_setNextOptimizer,
+InputDataAgent_selectJobs_|_InputDataAgent_selectJobs-> InputDataAgent_selectJobs,
+InputDataAgent_checkJob_|_InputDataAgent_checkJob-> InputDataAgent_checkJob,
+InputDataAgent_setNextOptimizer_|_InputDataAgent_setNextOptimizer-> InputDataAgent_setNextOptimizer,
+JobSchedulingAgent_selectJobs_|_JobSchedulingAgent_selectJobs-> JobSchedulingAgent_selectJobs,
+JobSchedulingAgent_checkJob_|_JobSchedulingAgent_checkJob-> JobSchedulingAgent_checkJob,
+JobSchedulingAgent_sendToTaskQueue_|_JobSchedulingAgent_sendToTaskQueue-> JobSchedulingAgent_sendToTaskQueue,
+JobSchedulingAgent_setStagingRequest_|_JobSchedulingAgent_setStagingRequest-> JobSchedulingAgent_setStagingRequest,
+TaskQueueAgent_selectJobs_|_TaskQueueAgent_selectJobs-> TaskQueueAgent_selectJobs,
+TaskQueueAgent_checkJob_|_TaskQueueAgent_checkJob-> TaskQueueAgent_checkJob,
+TaskQueueAgent_insertJobInQueue_|_TaskQueueAgent_insertJobInQueue-> TaskQueueAgent_insertJobInQueue,
+StalledJobAgent_selectJobs_|_StalledJobAgent_selectJobs-> StalledJobAgent_selectJobs,
+StalledJobAgent_markStalledJobs_|_StalledJobAgent_markStalledJobs-> StalledJobAgent_markStalledJobs,
+StalledJobAgent_failStalledJobs_|_StalledJobAgent_failStalledJobs-> StalledJobAgent_failStalledJobs,
+JobCleaningAgent_selectJobs_|_JobCleaningAgent_selectJobs-> JobCleaningAgent_selectJobs,
+JobCleaningAgent_removeJobs_|_JobCleaningAgent_removeJobs-> JobCleaningAgent_removeJobs,
+RequestAgentMixIn_selectJobs_|_RequestAgentMixIn_selectJobs-> RequestAgentMixIn_selectJobs,
+RequestAgentMixIn_setJobStatus_|_RequestAgentMixIn_setJobStatus-> RequestAgentMixIn_setJobStatus,
+RequestAgentMixIn_setMinorStatus_|_RequestAgentMixIn_setMinorStatus-> RequestAgentMixIn_setMinorStatus,
+JobAgent_selectJobs_|_JobAgent_selectJobs-> JobAgent_selectJobs,
+JobAgent_matchJobs_|_JobAgent_matchJobs-> JobAgent_matchJobs,
+JobAgent_updateStatus_|_JobAgent_updateStatus-> JobAgent_updateStatus,
+JobAgent_rescheduleJob_|_JobAgent_rescheduleJob-> JobAgent_rescheduleJob,
+JobAgent_setupProxy_|_JobAgent_setupProxy-> JobAgent_setupProxy,
+JobAgent_checkInstallSoftware_|_JobAgent_checkInstallSoftware-> JobAgent_checkInstallSoftware,
+JobAgent_submitJob_|_JobAgent_submitJob-> JobAgent_submitJob,
+JobWrapper_initialize_|_JobWrapper_initialize-> JobWrapper_initialize,
+JobWrapper_rescheduleJob_|_JobWrapper_rescheduleJob-> JobWrapper_rescheduleJob,
+JobWrapper_transferInputSandbox_|_JobWrapper_transferInputSandbox-> JobWrapper_transferInputSandbox,
+JobWrapper_resolveInputData_|_JobWrapper_resolveInputData-> JobWrapper_resolveInputData,
+JobWrapper_execute_|_JobWrapper_execute-> JobWrapper_execute,
+JobWrapper_processJobOutputs_|_JobWrapper_processJobOutputs-> JobWrapper_processJobOutputs,
+JobWrapper_finalize_|_JobWrapper_finalize-> JobWrapper_finalize,
+DIRAC_API_delete_|_DIRAC_API_delete-> DIRAC_API_delete,
+DIRAC_API_reschedule_|_DIRAC_API_reschedule-> DIRAC_API_reschedule,
+DIRAC_API_kill_|_DIRAC_API_kill-> DIRAC_API_kill,
+getRandomJob_|_getRandomJob-> getRandomJob,
+StagerSystem_selectJobs_|_StagerSystem_selectJobs-> StagerSystem_selectJobs,
+StagerSystem_updateJobFromStager_|_StagerSystem_updateJobFromStager-> StagerSystem_updateJobFromStager,
+JobManager_submitJob_|_JobManager_submitJob -> JobManager_submitJob
+}, 
+											     JobManager ||
+											   Jobsproc([]) || 
+											   JobPathAgent || 
+											 JobSanityAgent || 
+											 InputDataAgent ||
+										     JobSchedulingAgent ||
+											 TaskQueueAgent ||
+											StalledJobAgent ||
+										       JobCleaningAgent ||
+										      RequestAgentMixIn ||
+											       JobAgent ||
+											   StagerSystem ||
+											      DIRAC_API 
+        %|| Monitor([jobstatus(Killed,MarkedForTermination)],[jobstatus(Checking,JobScheduling)],false)  % For the purpose of verification only
+        %||Monitor([jobstatus(Failed,PilotNotRunning)], [jobstatus(Done,ExecutionComplete)],false)       % For the purpose of verification only
+)));
+

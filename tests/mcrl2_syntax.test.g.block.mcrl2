@@ -1,0 +1,42 @@
+% Workers (block-specification)
+%
+% This is an artificial constructed specification with workers. Each worker
+% executes a particular task and has a unique ID. Some tasks required 
+% that other workers are put to work.
+% If a worker needs to address another worker, it selects a worker
+% with the lowest ID value, which is not occupied. When a worker has completed 
+% a task, it sends a notification to the worker that has delegated a task.
+% There are three kind of workers:
+% * A hard worker: Immediately executes an addressed task. (S)
+% * A messenger:   Takes a task and delivers it to another worker. A messenger 
+%                  cannot accept a new task until the delegated task has been
+%                  completed. (P)
+% * A lazy worker: Takes a task and delivers it simultaneously to two other 
+%                  workers. A lazy worker cannot accept a new task, when it has
+%                  delegated a task. A lazy worker only accepts the 
+%                  notification of delegated tasks when both task are completed. (M1)
+% Only hard workers require resources. This specification specifies unlimited 
+% resources for hard workers.
+%
+% Created by Frank Stappers,
+% 16 June 2009
+
+act s,s',d,d': Nat;
+
+proc P(n: Nat) = s(n).s(n+1).d(n+1).d(n).P(n);
+
+proc M1(n: Nat) = s(n). s(n+1)|s(n+2). d(n+1)|d(n+2).d(n).M1(n);
+
+proc S(n: Nat) = s(n).d(n).S(n);
+
+init
+  block({s,d},
+    comm( { s | s -> s'
+          , d | d -> d'
+          }
+          , P(0) || M1(1) || S(2) || P(3) || S(4) || (s(0).d(0))
+        )
+  )
+;
+
+

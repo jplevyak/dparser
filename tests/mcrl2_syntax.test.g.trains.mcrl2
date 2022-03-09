@@ -1,0 +1,130 @@
+% This file describes several mostly incorrect algorithms to establish mutual exclusion.
+% The correct version is also known as Peterson's mutual exclusion algorithm.
+% For illustrative purposes the algorithm has been shaped as a pair of trains
+% that must enter a common piece of track:
+%
+%          ------------>>-Train_p->>---------------------
+%        / --------------------<<-Train_q-<<------------- \
+%       / /                                              \ \
+%      | |q0                                             | |
+%      | |                                               | |p0
+%      | |                                               | |
+%       \ \  q1                                    q2    / /
+%        \ ---                                       --- /
+%          ---\-------------------------------------/---
+%          p2  leave_p                       enter_p    p1
+%              enter_q                       leave_q
+%
+% There are two trains, Train_p and Train_q, which must enter the common piece
+% of track. Train p first passes detector p0 and p1. After that, it must wait
+% for a semaphore Guard_p to allow the train to pass. It enters the critical
+% section using an enter_p action, and leaves it using a leave_p action. Using
+% a detector p2 train p indicates that it has left the critical section.
+% Train q drives in the other direction and passes detectors q0, q1 and q2 respectively.
+% Moreover, it passes guard Guard q and carries out enter_q and leave_q to
+% indicate that it enters and leaves the critical section.
+%
+% The description below provides four different mutual exclusion algorithms,
+% which can be indicated by the variable Invariant.
+% Variant 1 is a strict alternation algorithm (access is strictly alternating)
+% Variant 2 is the safe sluice (with total deadlock)
+% Variant 3 is a correct version of Peterson's algorithm
+% Variant 4 is a wrong version of Peterson's algorithm (no mutual exclusion)
+%
+% For each train there is a process and an auxiliary process (Train_p and Guard_p,
+% Train_q and Guard_q). Furthermore there are three variables. A common boolean variable
+% V and boolean variables Xp and Xq that can only be set by p, resp. q.
+%
+% In variant 1 the variable V is the only one that is used to determine access to
+% the critical section. If V is true, train p can enter, and if V is false, train
+% q can enter. Using the actions p1 and q1 trains indicate that they have left
+% the critical section allowing entrance of the other train. What can nicely be seen
+% when generating the reduced state space of this example, is that trains can only
+% alternatingly access the critical region, and no train can access the critical
+% region twice without the other having been in the critical region in between.
+% Note the initial tau's that determine which train must enter the critical region
+% first. The commands to generate the state space are (set Variant below to 1):
+% mcrl22lps trains.mcrl2 trains.lps
+% lps2lts trains.lps trains.lts
+% ltsconvert -ebisim trains.lts trainsr.lts
+% ltsgraph trainsr.lts
+%
+% In variant 2 (safe sluice) access to the critical region is regulated through the variables
+% Xp and Xq. Trains indicate their desire to enter the critical region through
+% p0 (resp. q0) setting Xp (resp. Xq) to true. In the guard they check whether
+% the other train did not indicate the desire to enter the critical region. If
+% so, the train can safely enter (i.e. pass the Guard).
+%   There is an awkward situation in this case. If both trains indicate their
+% desire to enter the critical region simultaneously, they both block the entrance
+% for the other train, and the whole system will end up in deadlock. This is also
+% clearly visible in the reduced state space. Another way to obtain the deadlock
+% and a trace to it, is by using lps2lts -td trains.lps. It is also interesting
+% to try to find the deadlock situation using the simulator (xsim). The deadlock
+% can be reached in a very small number of steps. It turns out to be very hard
+% to find using the simulator, if it is not known where the deadlock resides.
+%
+% The third variant is Peterson's mutual exclusion protocol. It is a combination
+% of both access mechanisms above. On the one hand processes can enter through
+% the mechanism of the safe sluice, where trains indicate their desire to enter.
+% On top of that there is the variable V that guarantees alternated access if
+% both trains want to enter. This yields a correct, deadlockfree protocol.
+%
+% In the fourth variant the sensors p1 and p0 are exchanged. This causes the
+% protocol to be incorrect, as mutual exclusion is not guaranteed anymore. This
+% on the one hand shows how subtle Peterson's algorithm is. On the other hand
+% it shows the effectiveness of tools. It is very hard to detect by human reasoning
+% whether exchanging the detectors is safe. When generating the reduced state
+% space, it is obvious that it is not safe.
+
+act  p0, p1, p2, enter_p, leave_p, p0_, p1_, p2_,
+     q0, q1, q2, enter_q, leave_q, q0_, q1_, q2_,
+     set_xp_, set_xq_, set_v_,
+     reset_xp_, reset_xq_, reset_v_;
+     get_xp, get_xq, get_v,
+     get_xp_, get_xq_, get_v_,
+     get_xp__, get_xq__, get_v__ : Bool;
+
+map  Variant:Pos;
+eqn  Variant=2;
+
+proc Train_p= ((Variant==4) -> p1 . p0 <> p0 . p1 ). Guard_p . enter_p . leave_p . p2 . Train_p;
+     Train_q= q0 . q1 . Guard_q . enter_q . leave_q . q2 . Train_q;
+
+     Guard_p=
+       (Variant!=1) -> get_xq(false)<>delta+
+       (Variant!=2) -> get_v(true)<>delta;
+
+     Guard_q=
+       (Variant!=1) -> get_xp(false)<>delta+
+       (Variant!=2) -> get_v(false)<>delta;
+
+     Xp(b:Bool)=
+       set_xp_ . Xp(true)+
+       reset_xp_ . Xp(false)+
+       get_xp_(b) . Xp(b);
+
+     Xq(b:Bool)=
+       set_xq_ . Xq(true)+
+       reset_xq_ . Xq(false)+
+       get_xq_(b) . Xq(b);
+
+     V(b:Bool)=
+       set_v_ . V(true)+
+       reset_v_ . V(false)+
+       get_v_(b) . V(b);
+
+init
+     hide({p0_, p1_, p2_, q0_, q1_, q2_, get_xp__, get_xq__, get_v__},
+       allow({p0_, p1_, p2_, q0_, q1_, q2_, get_xp__, get_xq__, get_v__,
+              enter_p,leave_p,enter_q,leave_q},
+         comm({p0 | set_xp_ -> p0_,
+               p1 | reset_v_ -> p1_,
+               p2 | reset_xp_ -> p2_,
+               q0 | set_xq_ -> q0_,
+               q1 | set_v_ -> q1_,
+               q2 | reset_xq_ -> q2_,
+               get_xp | get_xp_ -> get_xp__,
+               get_xq | get_xq_ -> get_xq__,
+               get_v | get_v_ -> get_v__},
+         Train_p || Train_q || Xp(false) || Xq(false) || V(false))));
+

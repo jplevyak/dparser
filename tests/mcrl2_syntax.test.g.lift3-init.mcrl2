@@ -1,0 +1,168 @@
+% Specification of a system for lifting trucks
+% Based on the original specification in muCRL by Arno Wouters and Pang Jun, 13
+% November 2000
+% Translated to mCRL2 by Bas Ploeger
+%
+% This is the initial specification of the system in which no problems have been
+% solved.
+%
+% The real system measures the height of the lifts and broadcasts these. This is
+% not taken into account in this specification.
+%
+% This specification models:
+% - movement of all lifts together
+% The real system has, in addition, two other possibilities which
+% are not modelled in the present specification
+% - movement of a single lift
+% - movement of an axis
+%
+% For more information, please refer to the following publication:
+%
+% J.F. Groote, J. Pang and A.G. Wouters. Analysis of a distributed system
+% for lifting trucks. The Journal of Logic and Algebraic Programming
+% 55:21-56, 2003. This article also appeared as Technical report
+% SEN-R0111, CWI, Amsterdam, 2001.
+
+sort  State = struct STANDBY | STOP | STARTUP | UP | DOWN | SYNC;
+
+map   N: Pos;
+eqn   N = 3;
+
+map   S: Nat -> Nat;
+      P: Nat -> Nat;
+var   n: Nat;
+eqn   n <  N -> S(n) = n+1;
+      n == N -> S(n) = 1;
+      n >  1 -> P(n) = Int2Nat(n-1);
+      n == 1 -> P(n) = Pos2Nat(N);
+
+map   remove: Nat # List(Nat) -> List(Nat);
+      inl: Nat # List(Nat) -> Bool;
+var   n:Nat;
+      l:List(Nat);
+eqn   remove(n,[]) = [];
+      n == head(l) -> remove(n,l) = remove(n,tail(l));
+      n != head(l) -> remove(n,l) = head(l) |> remove(n,tail(l));
+      inl(n,[]) = false;
+      n == head(l) -> inl(n,l) = true;
+      n != head(l) -> inl(n,l) = inl(n,tail(l));
+
+map   Addresses:      List(Nat) # Nat	    -> List(Nat);
+      Addresses_up:   List(Nat) # Nat # Nat -> List(Nat);
+      Addresses_down: List(Nat) # Nat # Nat -> List(Nat);
+var   a,a': Nat;
+      A,A': List(Nat);
+      b: Bool;
+eqn   Addresses(A,a) = Addresses_up(A,a,a) ++ Addresses_down(A,a,a);
+      (inl(a,A) && a' == S(a)) -> Addresses_up(A,a,a') = [ S(a) ];
+      (inl(a,A) && a' != S(a)) -> Addresses_up(A,a,a') = S(a) |> Addresses_up(A,S(a),a');
+      !(inl(a,A)) -> Addresses_up(A,a,a') = [];
+      P(a) == a' -> Addresses_down(A,a,a') = [];
+      (P(a) != a' &&  inl(P(a),A)) -> Addresses_down(A,a,a') = P(a) |> Addresses_down(A,P(a),a');
+      (P(a) != a' && !inl(P(a),A)) -> Addresses_down(A,a,a') = [];
+
+sort  Message = struct mes(address:Nat,state:State);
+
+act   r_stob,s_stob,c_stob: Message # Nat;
+      r_btos,s_btos,c_btos: Message # Nat;
+      r_open_relay ,s_open_relay ,c_open_relay : Nat;
+      r_close_relay,s_close_relay,c_close_relay: Nat;
+      protocol_error: Nat;
+      setref,up,down,released: Nat;
+      move: Nat # State;
+
+proc  Bus(R:List(Nat)) =
+	sum msg:Message,a:Nat .
+	  r_stob(msg,a).
+	  ( (Addresses(R,a) == []) -> Bus(R) <> Deliver(msg,R,Addresses(R,a)) )
+	+
+	sum a:Nat .
+	  ( r_open_relay(a).Bus(remove(a,R)) + r_close_relay(a).Bus(a |> R) );
+
+proc  Deliver(m:Message, R:List(Nat), A:List(Nat) ) =
+	sum a:Nat .
+	(
+	  s_btos(m,a).
+	  ( (inl(a,A)) ->
+	      ( (remove(a,A) == []) -> Bus(R) <> Deliver(m,R,remove(a,A)) ) <> delta)
+	  +
+	  r_open_relay(a).Deliver(m,remove(a,R),A)
+	  +
+	  r_close_relay(a).Deliver(m,a|>R,A)
+	);
+
+proc  Lift0(n:Nat) =
+	setref(n).s_close_relay(n).s_stob(mes(1,STARTUP),n).s_open_relay(n).
+	( sum msg:Message .
+	    r_btos(msg,n).
+	    ( (state(msg) == STARTUP) ->
+		s_stob(mes(1,SYNC),n).s_stob(mes(1,STANDBY),n).Lift2(n,1,address(msg),STANDBY)
+	      <> protocol_error(n).Lift2(n,1,1,STOP)
+	    )
+	)
+	+
+	sum msg:Message .
+	  r_btos(msg,n).
+	  ( (state(msg) == STARTUP) ->
+	      s_close_relay(n).s_stob(mes(S(address(msg)),STARTUP),n).
+	      Lift1(n,S(address(msg)),S(address(msg)))
+	    <> protocol_error(n).Lift2(n,1,1,STOP)
+	  );
+
+proc  Lift1(n:Nat,m:Nat,nos:Nat) =
+	sum msg:Message .
+          r_btos(msg,n).
+	  ( (state(msg) == STARTUP) -> Lift1(n,m,address(msg))
+	  <> ( (state(msg) == SYNC) -> Lift2(n,m,nos,STANDBY)
+	    <> protocol_error(n).Lift2(n,m,1,STOP)
+	    )
+	  );
+
+proc  Lift2(n:Nat,m:Nat,nos:Nat,s:State) =
+	(s == STANDBY) ->
+	  (
+	    up(n).Lift3(n,m,nos,UP,nos)
+	    +
+	    down(n).Lift3(n,m,nos,DOWN,nos)
+	  )<>delta
+	+
+	sum msg:Message .
+	  r_btos(msg,n).
+	  ( (state(msg) == SYNC) -> move(n,s).Lift2(n,m,nos,s)
+	  <> ( (address(msg) == P(m)) ->
+		s_stob(mes(m,state(msg)),n).Lift2(n,m,nos,state(msg))
+	    <> Lift2(n,m,nos,state(msg))
+	    )
+	  );
+
+proc  Lift3(n:Nat,m:Nat,nos:Nat,s:State,count_:Nat) =
+	released(n).Lift2(n,m,nos,STANDBY)
+	+
+	sum msg:Message.
+	  r_btos(msg,n).
+	  ( (state(msg) == SYNC) -> move(n,s).Lift3(n,m,nos,s,count_)
+	  <> ( (address(msg) == P(m)) ->
+		( (state(msg) == s && count_ == 2) ->
+		    s_stob(mes(m,SYNC),n).move(n,s).s_stob(mes(m,s),n).
+		    Lift3(n,m,nos,s,nos)
+		<> s_stob(mes(m,s),n).Lift3(n,m,nos,s,nos)
+		)
+	    <> ( (state(msg) == s) -> Lift3(n,m,nos,s,P(count_))
+	      <> Lift3(n,m,nos,s,count_)
+	      )
+	    )
+	  );
+
+init  hide
+      ( { c_stob,c_btos,c_open_relay,c_close_relay },
+	allow
+	( { c_stob,c_btos,c_open_relay,c_close_relay,protocol_error,
+	    setref,up,down,released, move },
+	  comm
+	  ( { s_stob|r_stob->c_stob, s_btos|r_btos->c_btos,
+	      s_open_relay|r_open_relay->c_open_relay,
+	      s_close_relay|r_close_relay->c_close_relay },
+	    Bus([]) || Lift0(1) || Lift0(2) || Lift0(3)
+	  )
+	)
+      );

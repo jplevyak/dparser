@@ -2,7 +2,6 @@
 coming from different states.... what does this mean?
 - fix ambiguity handling for parsing from start states... need to force a final reduction
   either bloat the state table (probably best), or try to force the reduction manually....
-- memory leaks on error recovery
 - add trailing context to regular expressions
 - enhance cmp_stacks
 - optimize speed
@@ -16,3 +15,16 @@ handle path for include files
 add option to name the output file.
 
 fix issue with equiv_D_Scope.
+
+fix failing tests:
+
+mcrl2_syntax.test.g.dice.mcrl2 syntax error
+mcrl2_syntax.test.g.startup.mcrl2 syntax error
+mcrl2_syntax.test.g.garage-r2.mcrl2 non-deterministic
+mcrl2_syntax.test.g.WMS.mcrl2 non-deterministic
+mcrl2_syntax.test.g.SMS.mcrl2 non-deterministic
+mcrl2_syntax.test.g.garage-ver.mcrl2 non-deterministic
+mcrl2_syntax.test.g.garage-r2-error.mcrl2 non-deterministic
+mcrl2_syntax.test.g.garage-r3.mcrl2 non-deterministic
+mcrl2_syntax.test.g.garage.mcrl2 non-deterministic
+mcrl2_syntax.test.g.hex.mcrl2 non-deterministic

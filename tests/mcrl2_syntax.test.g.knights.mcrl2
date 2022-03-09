@@ -1,0 +1,138 @@
+% This file describes a small puzzle.
+% Given a chess board filled with black and white knights as indicated
+% below by initialBoard. Can the knights change place, without
+% capturing opponent's pieces. This is modelled by the situation
+% indicated by finalBoard.
+%  The process X below models two moves in a row, one for black and
+% one for white via the action jump. The action ready takes place
+% if the final situation has been reached.
+%  The most effective way to do a state space search is using
+%
+% mcrl22lps -n knights.mcrl2 | lpsuntime > temp.lps
+% lpssuminst temp.lps temp1.lps
+% lpsstructelm -depth 10 temp1.lps temp2.lps [to replace the
+% list structure of the Board by explicit variables]
+% lps2lts -Rjittyc -v -aready temp2.lps | less
+%
+% There are 35144889 states at 19 levels. The action ready
+% is found at the end. There are 36 moves necessary to
+% exchange the positions of the black and white horses.
+
+
+%------------------------------------------------------------------
+%  differ1 and differ2 are used to check whether a move of a
+%  knight is valid
+%------------------------------------------------------------------
+
+map differ1,differ2:Pos#Pos->Bool;
+var p,p':Pos;
+eqn differ1(p,p')=if(p>p',p-p'==1,p'-p==1);
+    differ2(p,p')=if(p>p',p-p'==2,p'-p==2);
+
+%------------------------------------------------------------------
+%  definition of the playing board
+%------------------------------------------------------------------
+
+sort Piece = struct black | white | empty;
+     Row = struct row(Piece,Piece,Piece,Piece,Piece);
+     Board = struct col(Row,Row,Row,Row,Row);
+
+%------------------------------------------------------------------
+%  Dedicated definitions
+%------------------------------------------------------------------
+
+map getPiece:Pos#Pos#Board -> Piece;
+    setPiece:Pos#Pos#Piece#Board->Board;
+var p:Pos;
+    r1,r2,r3,r4,r5:Row;
+    pc:Piece;
+eqn getPiece(1,p,col(r1,r2,r3,r4,r5))=getPiece(p,r1);
+    getPiece(2,p,col(r1,r2,r3,r4,r5))=getPiece(p,r2);
+    getPiece(3,p,col(r1,r2,r3,r4,r5))=getPiece(p,r3);
+    getPiece(4,p,col(r1,r2,r3,r4,r5))=getPiece(p,r4);
+    getPiece(5,p,col(r1,r2,r3,r4,r5))=getPiece(p,r5);
+    setPiece(1,p,pc,col(r1,r2,r3,r4,r5))=
+         col(setPiece(p,pc,r1),r2,r3,r4,r5);
+    setPiece(2,p,pc,col(r1,r2,r3,r4,r5))=
+         col(r1,setPiece(p,pc,r2),r3,r4,r5);
+    setPiece(3,p,pc,col(r1,r2,r3,r4,r5))=
+         col(r1,r2,setPiece(p,pc,r3),r4,r5);
+    setPiece(4,p,pc,col(r1,r2,r3,r4,r5))=
+         col(r1,r2,r3,setPiece(p,pc,r4),r5);
+    setPiece(5,p,pc,col(r1,r2,r3,r4,r5))=
+         col(r1,r2,r3,r4,setPiece(p,pc,r5));
+
+
+map getPiece:Pos#Row -> Piece;
+    setPiece:Pos#Piece#Row -> Row;
+var p:Pos;
+    p1,p2,p3,p4,p5: Piece;
+    pc:Piece;
+
+eqn setPiece(1,pc,row(p1,p2,p3,p4,p5))=row(pc,p2,p3,p4,p5);
+    setPiece(2,pc,row(p1,p2,p3,p4,p5))=row(p1,pc,p3,p4,p5);
+    setPiece(3,pc,row(p1,p2,p3,p4,p5))=row(p1,p2,pc,p4,p5);
+    setPiece(4,pc,row(p1,p2,p3,p4,p5))=row(p1,p2,p3,pc,p5);
+    setPiece(5,pc,row(p1,p2,p3,p4,p5))=row(p1,p2,p3,p4,pc);
+
+    getPiece(1,row(p1,p2,p3,p4,p5))=p1;
+    getPiece(2,row(p1,p2,p3,p4,p5))=p2;
+    getPiece(3,row(p1,p2,p3,p4,p5))=p3;
+    getPiece(4,row(p1,p2,p3,p4,p5))=p4;
+    getPiece(5,row(p1,p2,p3,p4,p5))=p5;
+
+
+
+map initialBoard,finalBoard:Board;
+eqn initialBoard=col(row(black,black,black,black,black),
+                     row(white,black,black,black,black),
+                     row(white,white,empty,black,black),
+                     row(white,white,white,white,black),
+                     row(white,white,white,white,white));
+
+    finalBoard=col(row(white,white,white,white,white),
+                   row(black,white,white,white,white),
+                   row(black,black,empty,white,white),
+                   row(black,black,black,black,white),
+                   row(black,black,black,black,black));
+
+map isOccupied:Pos#Pos#Board->Bool;
+var p1,p2:Pos;
+    f:Board;
+eqn isOccupied(p1,p2,f)= getPiece(p1,p2,f)!=empty;
+
+
+map isKnight'sMove:Pos#Pos#Pos#Pos->Bool;
+var p1,p2,q1,q2:Pos;
+eqn isKnight'sMove(p1,p2,q1,q2)=
+       (differ1(p1,q1) && differ2(p2,q2)) ||
+       (differ2(p1,q1) && differ1(p2,q2));
+
+%------------------------------------------------------------------
+
+act  jump, ready;
+
+% Jump from p1,p2 to q1,q2 and then from r1,r2 to p1,p2.
+% The final situation can only be reached after an even
+% number of moves (with each move the empty position moves
+% an odd number of steps, and therefore, the empty position
+% can never come back to the center after an odd number of
+% moves). Therefore, we can combine two moves into one,
+% reducing the state space by a factor 2.
+
+proc X(f:Board)=
+     sum p1,p2,q1,q2,r1,r2:Pos.
+         (p1<=5 && p2<=5 && q1<=5 && q2 <=5 && r1<=5 && r2<=5 &&
+          (r1!=q1 || r2!=q2) &&
+          !isOccupied(q1,q2,f) &&
+          isKnight'sMove(p1,p2,q1,q2) &&
+          isKnight'sMove(r1,r2,p1,p2) &&
+          f!=finalBoard) -> jump.
+            X(setPiece(r1,r2,empty,
+                setPiece(p1,p2,getPiece(r1,r2,f),
+                  setPiece(q1,q2,getPiece(p1,p2,f),f))))<>delta+
+     (f==finalBoard) -> ready.delta<>delta;
+
+
+init hide({jump},X(initialBoard));
+

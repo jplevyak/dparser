@@ -1,0 +1,109 @@
+% This file describes a variant of the bounded retransmission
+% protocol. This example was taken from the PRISM Benchmark Suite: 
+% http://www.prismmodelchecker.org/casestudies/brp.php
+%
+% This protocol specifies that a "sender" trying to deliver a file 
+% divided in a number of chunks N. Furthermore, in case of
+% failure the package is retransmitted. The maximum number of 
+% retransmissions is bounded by MAX. The communication channels L and K
+% between sender and receiver are not completely reliable, and their 
+% behavior is modelled using a probabilistic labelled transition system
+% to specify the probability of a packet to get lost in the channel.
+%
+% Hector Joao Rivera Verduzco. November 2016.
+
+map N:Pos;
+    MAX:Pos;
+     
+eqn N=10;
+    MAX=4;
+    
+    % Interactions
+act new_file;
+    fail_transmition;
+    success_frame;
+    send_aF;  read_aF;  c_aF;
+    read_aB;  send_aB;  c_aB;
+    read_aA;  send_aA;  c_aA;
+    read_aG;  send_aG;  c_aG;
+    read_TO_Ack; send_TO_Ack;  c_TO_Ack;
+    read_TO_Msg; send_TO_Msg;  c_TO_Msg;
+    send_success_file; read_success_file;  c_success_file;
+    send_sync; read_sync;  c_sync;
+    
+%   pc: program counter
+%   0 - flip
+%   1 - write 
+%   2 - check
+%   3 - finished
+proc sender(s:Int, srep:Int, nrtr:Int, i:Int)=
+        %idle
+        (s==0)->new_file.sender(1,0,nrtr,1)+
+        % next frame
+        (s==1)->send_aF.sender(2,srep,nrtr,i)+
+        % wait ack
+        (s==2)->read_aB.sender(4,srep,nrtr,i)+
+        (s==2)->read_TO_Msg.sender(3,srep,nrtr,i)+
+        (s==2)->read_TO_Ack.sender(3,srep,nrtr,i)+
+        % retransmit
+        (s==3 && nrtr<MAX)->send_aF.sender(2,srep,nrtr+1,i)+
+        (s==3 && nrtr==MAX && i<N)->fail_transmition.sender(5,1,nrtr,i)+
+        (s==3 && nrtr==MAX && i==N)->fail_transmition.sender(5,2,nrtr,i)+
+        % success
+        (s==4 && i<N)->success_frame.sender(1,srep,0,i+1)+
+        (s==4 && i==N)->send_success_file.sender(5,3,0,i)+
+        % resync
+        (s==5)->send_sync.sender(0,srep,0,i)
+     ;
+               
+    receiver(r:Int)=
+        % new file
+        (r==0)->read_aG.receiver(1)+
+        (r==1)->send_aA.receiver(0)+
+        read_success_file.receiver(0)+
+        read_sync.receiver(0)
+    ;
+               
+    channelK(k:Int)=
+        % idle
+        (k==0)->read_aF.( dist b:Bool[if(b,98/100,2/100)].
+                          b-> channelK(1)
+                          <>  channelK(2)
+                         )+
+        % sending
+        (k==1)->send_aG.channelK(0)+
+        % lost
+        (k==2)->send_TO_Msg.channelK(0)
+    ;
+    
+    channelL(l:Int)=
+        % idle
+        (l==0)->read_aA.( dist b:Bool[if(b,1/100,99/100)].
+                          b-> channelL(2)
+                          <>  channelL(1)
+                         )+
+        % sending
+        (l==1)->send_aB.channelL(0)+
+        % lost
+        (l==2)->send_TO_Ack.channelL(0)
+    ;
+% 
+init 
+    hide({c_sync, c_aB, c_aA, c_aG, c_TO_Ack, c_TO_Msg, c_success_file},
+	allow({new_file, fail_transmition, success_frame, c_aF,
+           c_aB, c_aA, c_aG, c_TO_Ack, c_TO_Msg, c_success_file,
+           c_sync},
+    comm({read_aF | send_aF -> c_aF,
+          read_aB | send_aB -> c_aB,
+          read_aA | send_aA -> c_aA,
+          read_aG | send_aG -> c_aG,
+          read_TO_Ack | send_TO_Ack -> c_TO_Ack,
+          read_TO_Msg | send_TO_Msg -> c_TO_Msg,
+          send_success_file | read_success_file -> c_success_file,
+         send_sync | read_sync -> c_sync},
+
+        sender(0,0,0,0)||
+        channelK(0)||
+        channelL(0)||
+        receiver(0)
+        )));

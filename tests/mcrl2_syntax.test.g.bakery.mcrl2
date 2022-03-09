@@ -1,0 +1,27 @@
+% This file describes the original bakery protocol as described by Lamport for
+% two parties that want to gain mutual access.  The processes are called
+% P(true) and P(false).
+%
+% The state space of this system is infinite, and as such it is a good and
+% simple example to apply symbolic methods in the broadest sense.
+
+act
+  send,get,c:          Bool # Nat;
+  request,enter,leave: Bool;
+
+proc P(b:Bool)        = request(b).P0(b,0) + send(b,0).P(b);
+
+     P0(b:Bool,n:Nat) = (sum m:Nat. get(!b,m).P1(b,m + 1)) + send(b,n).P0(b,n);
+
+     P1(b:Bool,n:Nat) =
+        (sum m:Nat. get(!(b),m).
+          ((n < m || m == 0) -> C1(b,n) <> P1(b,n))) + send(b,n).P1(b,n);
+
+     C1(b:Bool,n:Nat) = enter(b).C2(b,n) + send(b,n).C1(b,n);
+
+     C2(b:Bool,n:Nat) = leave(b).P(b) + send(b,n).C2(b,n);
+
+init
+  allow({request,enter,leave,c},
+    comm({get|send->c}, P(true) || P(false))
+  );

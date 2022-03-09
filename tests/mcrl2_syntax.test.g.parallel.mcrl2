@@ -1,0 +1,11 @@
+% This process consists of 3 parallel processes
+% that iteratively carry out 10 consequtive actions.
+
+% Jan Friso Groote, September 3, 2006.
+
+
+act a,b,c,d,e,f,g,h,i,j;
+
+proc X=a.b.c.d.e.f.g.h.i.j.X;
+
+init X||X||X;

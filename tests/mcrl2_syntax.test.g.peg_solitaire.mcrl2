@@ -1,0 +1,243 @@
+% This file describes the well known peg solitaire game.
+% The question is to show how from a board that
+% has the shape:
+%
+%                  x x x
+%                  x x x
+%              x x x x x x x
+%              x x x . x x x
+%              x x x x x x x
+%                  x x x
+%                  x x x
+%
+% where each `x' is a pin, and `.' an empty hole, the situation
+%
+%                  . . .
+%                  . . .
+%              . . . . . . .
+%              . . . x . . .
+%              . . . . . . .
+%                  . . .
+%                  . . .
+%
+% can be reached. A move constists of capturing a pin by
+% moving one pin over another to an empty place. These moves
+% can both be horizontal, and vertical, but not diagonal.
+% So a typical first move in the game is:
+%
+%                  x x x
+%                  x x x
+%              x x x x x x x
+%              x . . x x x x
+%              x x x x x x x
+%                  x x x
+%                  x x x
+%
+% There are three other, moves in the initial situation.
+% The total number of reachable board positions is 187636300.
+% The state spaces per level are given below (where the transition
+% from level 32 to level 33 is a ready transition):
+%
+% level 1 done. (1 state, 4 transitions)
+% level 2 done. (4 states, 12 transitions)
+% level 3 done. (12 states, 60 transitions)
+% level 4 done. (60 states, 400 transitions)
+% level 5 done. (296 states, 2228 transitions)
+% level 6 done. (1338 states, 11360 transitions)
+% level 7 done. (5648 states, 51952 transitions)
+% level 8 done. (21842 states, 213420 transitions)
+% level 9 done. (77559 states, 790132 transitions)
+% level 10 done. (249690 states, 2595424 transitions)
+% level 11 done. (717788 states, 7510380 transitions)
+% level 12 done. (1834379 states, 19116668 transitions)
+% level 13 done. (4138302 states, 42497988 transitions)
+% level 14 done. (8171208 states, 81824196 transitions)
+% level 15 done. (14020166 states, 135512592 transitions)
+% level 16 done. (20773236 states, 191887588 transitions)
+% level 17 done. (26482824 states, 231397620 transitions)
+% level 18 done. (28994876 states, 236879588 transitions)
+% level 19 done. (27286330 states, 205786556 transitions)
+% level 20 done. (22106348 states, 151783424 transitions)
+% level 21 done. (15425572 states, 94975656 transitions)
+% level 22 done. (9274496 states, 50282084 transitions)
+% level 23 done. (4792664 states, 22378164 transitions)
+% level 24 done. (2120101 states, 8318648 transitions)
+% level 25 done. (800152 states, 2565692 transitions)
+% level 26 done. (255544 states, 644556 transitions)
+% level 27 done. (68236 states, 127620 transitions)
+% level 28 done. (14727 states, 18804 transitions)
+% level 29 done. (2529 states, 2052 transitions)
+% level 30 done. (334 states, 124 transitions)
+% level 31 done. (32 states, 8 transitions)
+% level 32 done. (5 states, 1 transition)
+% level 33 done. (1 state, 0 transitions)
+%
+% We currently use the following commands to explore the state
+% space:
+%
+% mcrl22lps -n peg_solitaire.mcrl2 temps1.lps
+% lpssuminst temps1.lps temps2.lps
+% lpsrewr temps2.lps temps3.lps
+% lps2lts -vrjittyc -aready temps3.lps
+%
+% It is expected that the speed of state space generation will
+% increase a factor 10, after applying lpsstructelm to replace
+% the Board data structure in the parameter list of the linear
+% process by a sequence of variables of sort Piece. Initially,
+% this will yield 47 variables, but I expect that the 16 `unused'
+% variables representing the corners, can be removed using
+% lpsconstelm. This would generate an additional speedup.
+% The use of lpsparunfold is also expected to reduce the memory
+% footprint of the generation of the state space with a factor
+% of at least 2.
+%
+% Jan Friso Groote, 4/1/2007. 
+%
+% On 3/4/2009 Jaco van de Pol analyzed this example using symbolic
+% state space exploration. He found a stupid copy/paste mistake
+% that has now been repaired. Using ltsmin (symbolic state space
+% generation) the necessary time was
+% appr. a half hour and memory requirements were approximately 8GB.
+%
+% On 9/4/2009 it turned out to be possible to generate the state
+% space using the recipe above (uncovering a garbage collection
+% bug in the aterm library slowing state space generation with
+% an unnecessary factor up to 1000 (sic)). The state space requirements
+% were 25Gbyte and the required time 24hours (svn version 5952).
+% Lpsstructelm (about to be called lpsparunfold) was not used, and
+% is expected to substantially increase the speed requirements. 
+
+sort Piece = struct empty | pin | unused;
+     Row = struct row(Piece,Piece,Piece,Piece,Piece,Piece,Piece);
+     Board = struct col(Row,Row,Row,Row,Row,Row,Row);
+
+map getPiece:Pos#Pos#Board -> Piece;
+    setPiece:Pos#Pos#Piece#Board->Board;
+var x:Pos;
+    r1,r2,r3,r4,r5,r6,r7:Row;
+    pc:Piece;
+eqn getPiece(x,1,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r1);
+    getPiece(x,2,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r2);
+    getPiece(x,3,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r3);
+    getPiece(x,4,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r4);
+    getPiece(x,5,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r5);
+    getPiece(x,6,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r6);
+    getPiece(x,7,col(r1,r2,r3,r4,r5,r6,r7))=getPiece(x,r7);
+    setPiece(x,1,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(setPiece(x,pc,r1),r2,r3,r4,r5,r6,r7);
+    setPiece(x,2,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,setPiece(x,pc,r2),r3,r4,r5,r6,r7);
+    setPiece(x,3,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,r2,setPiece(x,pc,r3),r4,r5,r6,r7);
+    setPiece(x,4,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,r2,r3,setPiece(x,pc,r4),r5,r6,r7);
+    setPiece(x,5,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,r2,r3,r4,setPiece(x,pc,r5),r6,r7);
+    setPiece(x,6,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,r2,r3,r4,r5,setPiece(x,pc,r6),r7);
+    setPiece(x,7,pc,col(r1,r2,r3,r4,r5,r6,r7))=
+         col(r1,r2,r3,r4,r5,r6,setPiece(x,pc,r7));
+
+
+map getPiece:Pos#Row -> Piece;
+    setPiece:Pos#Piece#Row -> Row;
+var p:Pos;
+    p1,p2,p3,p4,p5,p6,p7: Piece;
+    pc:Piece;
+
+eqn setPiece(1,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(pc,p2,p3,p4,p5,p6,p7);
+    setPiece(2,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,pc,p3,p4,p5,p6,p7);
+    setPiece(3,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,p2,pc,p4,p5,p6,p7);
+    setPiece(4,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,p2,p3,pc,p5,p6,p7);
+    setPiece(5,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,p2,p3,p4,pc,p6,p7);
+    setPiece(6,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,p2,p3,p4,p5,pc,p7);
+    setPiece(7,pc,row(p1,p2,p3,p4,p5,p6,p7))=row(p1,p2,p3,p4,p5,p6,pc);
+
+    getPiece(1,row(p1,p2,p3,p4,p5,p6,p7))=p1;
+    getPiece(2,row(p1,p2,p3,p4,p5,p6,p7))=p2;
+    getPiece(3,row(p1,p2,p3,p4,p5,p6,p7))=p3;
+    getPiece(4,row(p1,p2,p3,p4,p5,p6,p7))=p4;
+    getPiece(5,row(p1,p2,p3,p4,p5,p6,p7))=p5;
+    getPiece(6,row(p1,p2,p3,p4,p5,p6,p7))=p6;
+    getPiece(7,row(p1,p2,p3,p4,p5,p6,p7))=p7;
+
+
+map  initialBoard, finalBoard, emptyBoard : Board;
+eqn  initialBoard = col(row(unused,unused,pin,   pin,   pin,   unused,unused),
+                        row(unused,unused,pin,   pin,   pin,   unused,unused),
+                        row(pin,   pin,   pin,   pin,   pin,   pin,   pin),
+                        row(pin,   pin,   pin,   empty, pin,   pin,   pin),
+                        row(pin,   pin,   pin,   pin,   pin,   pin,   pin),
+                        row(unused,unused,pin,   pin,   pin,   unused,unused),
+                        row(unused,unused,pin,   pin,   pin,   unused,unused));
+
+     finalBoard =   col(row(unused,unused,empty, empty, empty, unused,unused),
+                        row(unused,unused,empty, empty, empty, unused,unused),
+                        row(empty, empty, empty, empty, empty, empty, empty),
+                        row(empty, empty, empty, pin,   empty, empty, empty),
+                        row(empty, empty, empty, empty, empty, empty, empty),
+                        row(unused,unused,empty, empty, empty, unused,unused),
+                        row(unused,unused,empty, empty, empty, unused,unused));
+
+     emptyBoard =   col(row(unused,unused,empty, empty, empty, unused,unused),
+                        row(unused,unused,empty, empty, empty, unused,unused),
+                        row(empty, empty, empty, empty, empty, empty, empty),
+                        row(empty, empty, empty, empty, empty, empty, empty),
+                        row(empty, empty, empty, empty, empty, empty, empty),
+                        row(unused,unused,empty, empty, empty, unused,unused),
+                        row(unused,unused,empty, empty, empty, unused,unused));
+
+
+
+map rightMovable,leftMovable,downMovable,upMovable:Pos#Pos#Board->Bool;
+    moveRight,moveLeft,moveDown,moveUp:Pos#Pos#Board->Board;
+var x,y:Pos;
+    b:Board;
+
+eqn rightMovable(x,y,b)=
+       getPiece(x,y,b)==pin && getPiece(x+1,y,b)==pin && getPiece(x+2,y,b)==empty && x<6;
+
+    moveRight(x,y,b)=setPiece(x,y,empty,setPiece(x+1,y,empty,setPiece(x+2,y,pin,b)));
+
+    leftMovable(x,y,b)=
+       getPiece(x,y,b)==pin && getPiece(Int2Pos(x-1),y,b)==pin &&
+       getPiece(Int2Pos(x-2),y,b)==empty && x>2;
+
+    moveLeft(x,y,b)=setPiece(x,y,empty,setPiece(Int2Pos(x-1),y,empty,
+                      setPiece(Int2Pos(x-2),y,pin,b)));
+
+    downMovable(x,y,b)=
+       getPiece(x,y,b)==pin && getPiece(x,Int2Pos(y-1),b)==pin &&
+       getPiece(x,Int2Pos(y-2),b)==empty && y>2;
+
+    moveDown(x,y,b)=setPiece(x,y,empty,setPiece(x,Int2Pos(y-1),empty,
+                      setPiece(x,Int2Pos(y-2),pin,b)));
+
+    upMovable(x,y,b)=
+       getPiece(x,y,b)==pin && getPiece(x,y+1,b)==pin &&
+             getPiece(x,y+2,b)==empty && y<6;
+
+    moveUp(x,y,b)=setPiece(x,y,empty,setPiece(x,y+1,empty,setPiece(x,y+2,pin,b)));
+
+act  moveright,moveleft,moveup,movedown:Pos#Pos#Piece;
+     ready;
+proc X(b:Board)=
+        (b==finalBoard) -> ready.X(emptyBoard)+
+        sum x,y:Pos.(x<=7 && y<=7 &&
+                     rightMovable(x,y,b)
+                    ) -> moveright(x,y,getPiece(x,y,b)).X(moveRight(x,y,b))+
+        sum x,y:Pos.(x<=7 && y<=7 &&
+                     leftMovable(x,y,b)
+                    ) -> moveleft(x,y,getPiece(x,y,b)).X(moveLeft(x,y,b))+
+        sum x,y:Pos.(x<=7 && y<=7 &&
+                     downMovable(x,y,b)
+                    ) -> movedown(x,y,getPiece(x,y,b)).X(moveDown(x,y,b))+
+        sum x,y:Pos.(x<=7 && y<=7 &&
+                     upMovable(x,y,b)
+                    ) -> moveup(x,y,getPiece(x,y,b)).X(moveUp(x,y,b))+
+        delta;
+
+init X(initialBoard);
+
+
+

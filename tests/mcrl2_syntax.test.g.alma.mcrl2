@@ -1,0 +1,289 @@
+% Specification of the ACS Manager along with Containers and Components.
+% This is a part of the software of the ALMA project carried out by ESO.
+% The intention of this project is to put >60 radio telescopes on a plane
+% high up in the mountains of Chili for radio astronomy.
+%
+% An explanation of this specification can be found in 
+%
+% B.~Ploeger. Analysis of ACS using mCRL2.
+% Technical Report 09-11, Computer Science Reports,
+% Department of Mathematics and Computer Science, Eindhoven
+% University of Technology, Eindhoven, The Netherlands, 2009.
+%
+% Author: Bas Ploeger
+% September 2009
+
+% Data sort for the state of a container or component
+sort State = struct dead | loggingin | running;
+
+% Data sort for identifying the various processes in the system
+% (Manager threads, components, etc.)
+sort ID = struct none | Comp1 | Comp2 | Cont1 | MT1 | MT2 | ContLogin;
+
+% Functions for checking if an ID indicates a component/container
+map  is_component: ID -> Bool;
+     is_container: ID -> Bool;
+var  x: ID;
+eqn  is_component(x) = (x in {Comp1,Comp2});
+     is_container(x) = (x in {Cont1});
+
+% Function returning the container of a component
+map  getCont: ID -> ID;
+eqn  getCont(Comp1) = Cont1;
+     getCont(Comp2) = Cont1;
+
+% Function for adding elements to a list of IDs. It is ensured that the
+% list contains no duplicates and remains sorted.
+map  add_sorted: ID # List(ID) -> List(ID);
+var  c,d:ID;
+     L:List(ID);
+eqn  add_sorted(c,[]) = [c];
+     add_sorted(c,d |> L) =  if( c < d , c |> d |> L , 
+           d |> if(c==d , L , add_sorted(c,L)) );
+
+%%% Action declarations %%%
+
+act
+
+% For container life cycle
+rcv_startup_container, snd_startup_container, startup_container,
+rcv_login, snd_login, login, rcv_authenticate, snd_authenticate,
+authenticate, rcv_auth_ok, snd_auth_ok, auth_ok, rcv_auth_not_ok,
+snd_auth_not_ok, auth_not_ok: ID # ID;
+
+% For component life cycle
+rcv_activate_component, snd_activate_component, activate_component: ID #
+ID # ID;
+rcv_create, snd_create, create, rcv_initialize, snd_initialize,
+initialize, rcv_execute, snd_execute, execute: ID # ID;
+
+% For accessing/manipulating data stored in the Manager
+rcv_has_component_man, snd_has_component_man, has_component_man,
+rcv_no_component_man, snd_no_component_man, no_component_man,
+rcv_add_component_man, snd_add_component_man, add_component_man,
+rcv_has_container_man, snd_has_container_man, has_container_man,
+rcv_no_container_man, snd_no_container_man, no_container_man,
+rcv_add_container_man, snd_add_container_man, add_container_man,
+rcv_acquire_actsync_lock, snd_acquire_actsync_lock,
+acquire_actsync_lock, rcv_release_actsync_lock,
+snd_release_actsync_lock, release_actsync_lock: ID # ID;
+
+% For synchronization of access to data stored in the Manager
+rcv_free_container, snd_free_container, free_container,
+rcv_lock_container, snd_lock_container, lock_container,
+rcv_free_component, snd_free_component, free_component,
+rcv_lock_component, snd_lock_component, lock_component: ID;
+
+% For synchronization on monitor objects
+rcv_wake_up, snd_wake_up, wake_up, rcv_notify_all, snd_notify_all,
+notify_all, rcv_wait, snd_wait, wait: ID # ID;
+timeout: ID;
+
+% External triggers
+get_component: ID # ID;
+
+
+%%% Process definitions %%%
+
+% A monitor object
+proc Monitor(m:ID,waitlist:List(ID)) =
+     sum n:ID .
+     ( rcv_wait(n,m) . Monitor(m,add_sorted(n,waitlist))
+       +
+       rcv_notify_all(n,m) . 
+       ( (waitlist == []) -> Monitor(m,waitlist)
+                          <> Monitor_NotifyAll(m,waitlist) ) );
+
+proc Monitor_NotifyAll(m:ID,waitlist:List(ID)) =
+     snd_wake_up(head(waitlist),m) .
+     ( (tail(waitlist) != []) -> Monitor_NotifyAll(m,tail(waitlist))
+                              <> Monitor(m,[]) );
+
+% Manager
+
+% The activation synchronization locks
+proc ManagerActSync(actsync:Set(ID)) =
+     sum m,n:ID .
+     (n in actsync) -> rcv_release_actsync_lock(m,n) 
+                       . ManagerActSync(actsync - {n})
+                    <> rcv_acquire_actsync_lock(m,n)
+                       . ManagerActSync(actsync + {n});
+
+% The component store
+proc ManagerComponents(comps:Set(ID),lock:ID) =
+     (lock == none) -> 
+     sum m:ID . snd_lock_component(m) . ManagerComponents(comps,m)
+     +
+     rcv_free_component(lock) . ManagerComponents(comps,none)
+     +
+     sum c:ID . is_component(c) ->
+     ((c in comps) -> snd_has_component_man(lock,c)
+                      . ManagerComponents(comps,lock)
+                   <> snd_no_component_man(lock,c)
+                      . ManagerComponents(comps,lock)
+       +
+       rcv_add_component_man(lock,c)
+       . ManagerComponents(comps + {c},lock) );
+
+% The container store
+proc ManagerContainers(conts:Set(ID),lock:ID) =
+     (lock == none) -> 
+     sum m:ID . snd_lock_container(m) . ManagerContainers(conts,m)
+     +
+     rcv_free_container(lock) . ManagerContainers(conts,none)
+     +
+     sum c:ID . is_container(c) ->
+     ( (c in conts) -> snd_has_container_man(lock,c)
+                       . ManagerContainers(conts,lock) 
+                    <> snd_no_container_man(lock,c)
+                       . ManagerContainers(conts,lock)
+       +
+       rcv_add_container_man(lock,c)
+       . ManagerContainers(conts + {c},lock) );
+
+% Manager thread
+proc ManagerThread(m:ID) =
+     sum c:ID . is_component(c) ->
+     ( get_component(m,c)
+       .(timeout(m)
+         +
+         snd_acquire_actsync_lock(m,c)
+         . rcv_lock_component(m)
+         .(rcv_has_component_man(m,c)
+           . snd_free_component(m)
+           +
+           rcv_no_component_man(m,c)
+           . snd_free_component(m)
+           . rcv_lock_container(m)
+           .(rcv_has_container_man(m,getCont(c))
+             . snd_free_container(m)
+             . MT_ActivateComponent(m,c)
+             +
+             rcv_no_container_man(m,getCont(c))
+             . snd_free_container(m)
+             .(timeout(m)
+               +
+               snd_acquire_actsync_lock(m,getCont(c))
+               . snd_startup_container(m,getCont(c))
+               . snd_wait(m,ContLogin)
+               . rcv_wake_up(m,ContLogin)
+               . snd_release_actsync_lock(m,getCont(c))
+               . MT_ActivateComponent(m,c)
+              )             
+            )
+          )
+         . snd_release_actsync_lock(m,c)
+        )
+       . ManagerThread(m)
+     )
+     +
+     sum c:ID . is_container(c) ->
+     ( rcv_login(m,c)
+       . snd_authenticate(m,c)
+       .(snd_auth_not_ok(m,c)
+         +
+         snd_auth_ok(m,c)
+         . rcv_lock_container(m)
+         .(rcv_has_container_man(m,c)
+           +
+           rcv_no_container_man(m,c)
+           . snd_add_container_man(m,c)
+          )
+         . snd_free_container(m)
+         . snd_notify_all(m,ContLogin)
+        )
+       . ManagerThread(m)
+     );
+
+% Activate a component
+proc MT_ActivateComponent(m:ID,c:ID) =
+     snd_activate_component(m,getCont(c),c)
+     . rcv_lock_component(m)
+     . snd_add_component_man(m,c)
+     . snd_free_component(m);
+
+% Container
+
+proc Container(c:ID, s:State, comps:Set(ID)) =
+     sum m:ID . (
+     (s == dead) -> rcv_startup_container(m,c)
+                    . Container(c,loggingin,comps)
+     +
+     (s == loggingin) ->
+       snd_login(m,c)
+       . rcv_authenticate(m,c)
+       .( rcv_auth_ok(m,c) . Container(c,running,comps)
+          +
+          rcv_auth_not_ok(m,c) . Container(c,dead,comps) )
+     +
+     (s == running) ->
+       sum d:ID . is_component(d) ->
+       rcv_activate_component(m,c,d)
+       . snd_create(c,d)
+       . snd_initialize(c,d)
+       . snd_execute(c,d)
+       . Container(c,s,comps + {d}) );
+
+% Component
+
+proc Component(c:ID,s:State) =
+     (s == dead) -> 
+       sum d:ID . 
+       rcv_create(d,c)
+       . rcv_initialize(d,c)
+       . rcv_execute(d,c)
+       . Component(c,running);
+
+%%% Initial process specification %%%
+
+init 
+
+% Allow only these actions, block all others
+allow(
+{ login, authenticate, auth_ok, auth_not_ok, startup_container,
+  activate_component, create, initialize, execute, get_component,
+  has_component_man, no_component_man, add_component_man,
+  has_container_man, no_container_man, add_container_man,
+  acquire_actsync_lock, release_actsync_lock, free_container,
+  lock_container, free_component, lock_component, notify_all, wake_up,
+  wait, timeout },
+
+% Synchronously communicating actions
+comm(
+{ rcv_login|snd_login -> login,
+  rcv_authenticate|snd_authenticate -> authenticate,
+  rcv_auth_ok|snd_auth_ok -> auth_ok,
+  rcv_auth_not_ok|snd_auth_not_ok -> auth_not_ok,
+  rcv_startup_container|snd_startup_container -> startup_container,
+  rcv_activate_component|snd_activate_component -> activate_component,
+  rcv_create|snd_create -> create,
+  rcv_initialize|snd_initialize -> initialize,
+  rcv_execute|snd_execute -> execute,
+  rcv_has_component_man|snd_has_component_man -> has_component_man,
+  rcv_no_component_man|snd_no_component_man -> no_component_man,
+  rcv_add_component_man|snd_add_component_man -> add_component_man,
+  rcv_has_container_man|snd_has_container_man -> has_container_man,
+  rcv_no_container_man|snd_no_container_man -> no_container_man,
+  rcv_add_container_man|snd_add_container_man -> add_container_man,
+  rcv_acquire_actsync_lock|snd_acquire_actsync_lock -> acquire_actsync_lock,
+  rcv_release_actsync_lock|snd_release_actsync_lock -> release_actsync_lock,
+  rcv_free_container|snd_free_container -> free_container,
+  rcv_lock_container|snd_lock_container -> lock_container,
+  rcv_free_component|snd_free_component -> free_component,
+  rcv_lock_component|snd_lock_component -> lock_component,
+  rcv_wake_up|snd_wake_up -> wake_up,
+  rcv_notify_all|snd_notify_all -> notify_all,
+  rcv_wait|snd_wait -> wait },
+
+% The parallel processes that constitute the system, along with their
+% initial states
+
+ManagerActSync({}) || ManagerComponents({},none)
+|| ManagerContainers({},none)
+|| ManagerThread(MT1) || ManagerThread(MT2)
+|| Container(Cont1,dead,{}) 
+|| Component(Comp1,dead)
+|| Component(Comp2,dead)
+|| Monitor(ContLogin,[])
+
+));

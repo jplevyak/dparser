@@ -1,0 +1,83 @@
+% This file contains the cabp protocol as described in section 3.5 of
+% S. Mauw and G.J. Veltink, editors, Algebraic Specification of Communication
+% Protocols, Cambridge tracts in theoretical computer science 36, Cambridge
+% University Press, Cambridge 1993.
+%
+% With two data elements, the generated transition system has 464 states.
+%
+% It is interesting to see the clustering of this statespace in ltsgraph.
+% The statespace after branching bisimulation contains 3 states and is
+% exactly the same as the reduced statespace of the alternating bit protocol.
+%
+% Note that it is interesting to compare the differences of the alternating
+% bit protocol (abp), concurrent alternating bit protocol (cabp), one bit
+% sliding window protocol (onebit) and the alternating bit protocol with
+% independent acknowledgements (par), regarding the implementation, the
+% the number of states and the external behaviour.
+
+%-------------------------------  DATA  ----------------------------------
+
+sort DATA = struct d1 | d2;
+
+%-------------------------------  error  ----------------------------------
+
+sort  error = struct ce | ae;
+
+%-------------------------------  bit ------------------------------------
+
+sort  bit = struct bit0 | bit1;
+
+map   invert:bit -> bit;
+eqn   invert(bit1)=bit0;
+      invert(bit0)=bit1;
+
+%-------------------------------  Frame ----------------------------------
+
+sort Frame = struct frame(getd : DATA, getb: bit);
+
+%------------------------------  ACK   -----------------------------------
+
+sort ACK = struct ac;
+
+%------------------------------  act   -----------------------------------
+
+act   r1,s2 : DATA;
+      c3,r3,s3,c4,r4,s4 : Frame;
+      c4,r4,s4,c7,r7,s7 : error;
+      c5,r5,s5,c8,r8,s8 : ACK;
+      c6,r6,s6,c7,r7,s7 : bit;
+      skip;
+
+%------------------------------  proc  -----------------------------------
+
+
+proc  S = RM(bit0);
+      RM(b:bit) = sum d:DATA.r1(d).SF(frame(d,b));
+      SF(f:Frame) = s3(f).SF(f) + r8(ac).RM(invert(getb(f)));
+
+      K  = sum f:Frame.r3(f).K(f);
+      K(f:Frame) = (skip.s4(f)+skip.s4(ce)+skip).K;
+
+      R = RF(bit0);
+      RF(b:bit) = sum d:DATA.r4(frame(d,b)).s2(d).s5(ac).RF(invert(b))
+                     + sum d:DATA. r4(frame(d,invert(b))).RF(b)
+                     + r4(ce).RF(b);
+
+      AS = AS(bit1);
+      AS(b:bit) = r5(ac).AS(invert(b)) + s6(b).AS(b);
+
+      L = sum b:bit.r6(b) . L(b);
+      L(b:bit) = ( skip.s7(b) + skip.s7(ae) + skip ).L;
+
+      AR = AR(bit0);
+      AR(b:bit) = ( r7(ae) + r7(invert(b))) . AR(b)
+                   + r7(b).s8(ac).AR(invert(b));
+
+init
+   hide({c3,c4,c5,c6,c7,c8,skip},
+     allow({c3,c4,c5,c6,c7,c8,skip,r1,s2},
+       comm({r3|s3->c3, r4|s4->c4, r5|s5->c5, r6|s6->c6,
+                r7|s7->c7, r8|s8->c8},
+               S || K || R || AS || L || AR )));
+
+

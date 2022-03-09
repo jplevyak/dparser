@@ -21,7 +21,7 @@ for g in $grammars ; do
   fi
   $VALGRIND ./make_dparser $flags $g
   make -s sample_parser SAMPLE_GRAMMAR=$(basename $g)
-  files="$g."+([0-9])
+  files="$g."*[0-9]
   for t in $files ; do
     if test -f "$t.flags" ; then
       flags=$(cat $t.flags)

@@ -1,0 +1,49 @@
+% Workers (allow-specification)
+%
+% This is an artificial constructed specification with workers. Each worker
+% executes a particular task and has a unique ID. Some tasks require
+% that other workers are put to work.
+% If a worker needs to address another worker, it selects the worker
+% with the lowest ID, that is not occupied. When a worker has completed
+% a task, it sends a notification to the worker that has delegated the task.
+% There are three kinds of workers:
+% * A hard worker: Immediately executes an addressed task. (S)
+% * A messenger:   Takes a task and delivers it to another worker. A messenger
+%                  cannot accept a new task until the delegated task has been
+%                  completed. (P)
+% * A lazy worker: Takes a task and delivers it simultaneously to two other
+%                  workers. A lazy worker cannot accept a new task, when it has
+%                  delegated a task. A lazy worker only accepts the
+%                  notification of delegated tasks when both task are completed. (M1)
+% Only hard workers require resources. This specification allows up to 4
+% hard workers to execute tasks.
+%
+% Created by Frank Stappers, 
+% 16 June 2009
+
+act s,s',d,d': Nat;
+
+proc P(n: Nat) = s(n).s(n+1).d(n+1).d(n).P(n);
+
+proc M1(n: Nat) = s(n). s(n+1)|s(n+2). d(n+1)|d(n+2).d(n).M1(n);
+
+proc S(n: Nat) = s(n).d(n).S(n);
+
+init
+ allow( { s'
+        , s' | s'
+        , s' | s' | s'
+        , s' | s' | s' | s'
+        , d'
+        , d' | d'
+        , d' | d' | d'
+        , d' | d' | d' | d'
+        },
+   comm( { s | s -> s'
+         , d | d -> d'
+         }
+, P(0) || M1(1) || S(2) || S(3) || P(4) || P(5) || S(6) || (s(0).s(0))
+       )
+ )
+;
+

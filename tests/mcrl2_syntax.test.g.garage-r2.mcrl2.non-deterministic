@@ -1,0 +1,1003 @@
+% The following is the specification of the safety layer of the automated
+% parking garage after reduction 2 as described in [1, Appendices B and C.3].
+%
+% Simulation of this specification is possible. When used in combination with
+% the corresponding visualisation plugin, it is an effective way to get a
+% feeling for the specification.
+%
+% State space generation is not possible, because the state space consists of
+% 6,4 * 10^11 (640 billion) states, and a multiple of this in transitions.
+%
+% [1] Aad Mathijssen and A. Johannes Pretorius. Specification, Analysis and
+%     Verification of an Automated Parking Garage. Computer Science Report
+%     05-25, Eindhoven University of Technology (TU/e), 2005.
+
+sort
+  FloorRow = struct r1 | r2 | r3;
+  FloorCol = struct c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | c10;
+  FloorPosPart = struct pa | pb;
+  FloorPos = struct pos_r1(FloorCol, FloorPosPart)
+                  | pos_r2(FloorCol)
+                  | pos_r3(FloorCol);
+  FloorPosList = List(FloorPos);
+  ShuttlePos = struct r1a | r2a | r3a | r1b | r2b | r3b;
+  ShuttlePosSet = List(ShuttlePos); % representing a set of ShuttlePos elements
+  ShuttleOrientation = struct lowered | tilted;
+  R1Belt   = struct b_r1a_sh | b_r1a | b_r1lift | b_r1b | b_r1b_sh;
+  R2Belt   = struct b_r2a_sh | b_r2 | b_r2b_sh;
+  R3Belt   = struct b_r3a_sh | b_r3 | b_r3b_sh;
+  R1BeltSet = List(R1Belt); % representing a set of R1Belt elements
+  R2BeltSet = List(R2Belt); % representing a set of R2Belt elements
+  R3BeltSet = List(R3Belt); % representing a set of R3Belt elements
+  DirCol = struct col_inc | col_dec;
+  DirRow = struct row_inc | row_dec;
+  MoveSize = struct full | half;
+  LiftHeight = struct street | rotate | basement;
+  Area =
+    struct area(positions: FloorPosList, tilted_c1: Bool, tilted_c10: Bool);
+  Instruction = struct move_belts(R1BeltSet, DirCol, MoveSize)
+                     | move_belts(R2BeltSet, DirCol, MoveSize)
+                     | move_belts(R3BeltSet, DirCol, MoveSize)
+                     | move_shuttles(ShuttlePosSet, ShuttleOrientation, DirRow)
+                     | tilt_shuttle(ShuttlePos, ShuttleOrientation)
+                     | move_lift(LiftHeight)
+                     | rotate_lift;
+  InstructionSet = List(Instruction); % representing a set of instructions
+  Event = struct add_car | remove_car;
+  ExecResult = struct ok | fail;
+  OccState = struct free | occupied;
+  AvailState = struct avail | n_avail;
+  FloorState = FloorPos -> OccState;
+  ShuttleState = ShuttlePos # ShuttleOrientation -> AvailState;
+  LiftState = struct lsf_street | lso_street
+                   | lsf_rotate | lso_rotate
+                   | ls_basement;
+  GlobalState =
+    struct glob_state(fs_: FloorState, shs_: ShuttleState, ls_: LiftState);
+
+% FloorRow operations
+map
+  index: FloorRow -> Pos;
+  % index(fra) is the index of fra
+  lt: FloorRow # FloorRow -> Bool;
+  % lt(fra,frb) indicates if fra is less than frb
+var
+  fra, frb: FloorRow;
+eqn
+  index(r1) = 1;
+  index(r2) = 2;
+  index(r3) = 3;
+  lt(fra, frb) = index(fra) < index(frb);
+
+% FloorCol operations
+map
+  index: FloorCol -> Pos;
+  % index(fca) is the index of fca
+  lt: FloorCol # FloorCol -> Bool;
+  % lt(fca,fcb) indicates if fca is less than fcb
+var
+  fca, fcb: FloorCol;
+eqn
+  index(c1) = 1;
+  index(c2) = 2;
+  index(c3) = 3;
+  index(c4) = 4;
+  index(c5) = 5;
+  index(c6) = 6;
+  index(c7) = 7;
+  index(c8) = 8;
+  index(c9) = 9;
+  index(c10) = 10;
+  lt(fca, fcb) = index(fca) < index(fcb);
+
+% FloorPosPart operations
+map
+  index: FloorPosPart -> Pos;
+  % index(ffpa) is the index of fppa
+  lt: FloorPosPart # FloorPosPart -> Bool;
+  % lt(fppa,fppb) indicates if fppa is less than fppb
+var
+  fppa, fppb: FloorPosPart;
+eqn
+  index(pa) = 1;
+  index(pb) = 2;
+  lt(fppa, fppb) = index(fppa) < index(fppb);
+
+% FloorPos operations
+map
+  row: FloorPos -> FloorRow;
+  % row(fpa) is the row of fpa
+  col: FloorPos -> FloorCol;
+  % col(fpa) is the column of fpa
+  part: FloorPos -> FloorPosPart;
+  % part(fpa) is the part of fpa
+  lt: FloorPos # FloorPos -> Bool;
+  % lt(fpa, fpb) indicates if fpa is less than fpb
+  lt_r: FloorPos # FloorPos -> Bool;
+  % lt_r(fpa, fpb) indicates if fpa is less than fpb, provided
+  % row(fpa) = row(fpb) (auxiliary function needed by lt for efficiency)
+  lt_rc: FloorPos # FloorPos -> Bool;
+  % lt_rc(fpa, fpb) indicates if fpa is less than fpb, provided
+  % row(fpa) = row(fpb) and col(fpa) = col(fpb)
+  % (auxiliary function needed by lt_r for efficiency)
+  gt: FloorPos # FloorPos -> Bool;
+  % gt(fpa, fpb) indicates if fpa is greater than fpb
+var
+  fca: FloorCol;
+  fppa: FloorPosPart;
+  fpa, fpb: FloorPos;
+eqn
+  row(pos_r1(fca, fppa)) = r1;
+  row(pos_r2(fca)) = r2;
+  row(pos_r3(fca)) = r3;
+  col(pos_r1(fca, fppa)) = fca;
+  col(pos_r2(fca)) = fca;
+  col(pos_r3(fca)) = fca;
+  part(pos_r1(fca, fppa)) = fppa;
+  row(fpa) == row(fpb) ->
+    lt(fpa, fpb) = lt_r(fpa, fpb);
+  row(fpa) != row(fpb) ->
+    lt(fpa, fpb) = lt(row(fpa), row(fpb));
+  col(fpa) == col(fpb) ->
+    lt_r(fpa, fpb) = lt_rc(fpa, fpb);
+  col(fpa) != col(fpb) ->
+    lt_r(fpa, fpb) = lt(col(fpa), col(fpb));
+  lt_rc(fpa, fpb) = row(fpa) == r1 && lt(part(fpa), part(fpb));
+  gt(fpa,fpb) = lt(fpb, fpa);
+
+% FloorPosList operations
+map
+  contains: FloorPos # FloorPosList -> Bool;
+  % contains(fpa, fps) indicates if fps contains fpa
+  overlap: FloorPosList # FloorPosList -> Bool;
+  % overlap(fps, fpt) indicates if the elements of fps and fpt overlap
+  rev: FloorPosList -> FloorPosList;
+  % rev(fps) is the reverse of list fps
+  grev: FloorPosList # FloorPosList -> FloorPosList;
+  % grev(fps, fpt) is the reverse of fps concatenated with fpt
+  % (auxiliary function needed for efficiency by rev)
+var
+  fpa, fpb: FloorPos;
+  fps, fpt: FloorPosList;
+eqn
+  contains(fpa, []) = false;
+  contains(fpa, fpa |> fps) = true;
+  fpa != fpb -> contains(fpa, fpb |> fps) = contains(fpa, fps);
+  overlap([], fpt)         = false;
+  overlap(fpa |> fps, fpt) = contains(fpa, fpt) || overlap(fps, fpt);
+  rev(fps)                 = grev(fps, []);
+  grev([], fpt)            = fpt;
+  grev(fpa |> fps, fpt)    = grev(fps, fpa |> fpt);
+
+% ShuttlePos operations
+map
+  index: ShuttlePos -> Pos;
+  % index(spa) is the index of spa
+  row: ShuttlePos -> FloorRow;
+  % row(spa) is the row of spa
+  col: ShuttlePos -> FloorCol;
+  % col(spa) is the column of spa
+  lt: ShuttlePos # ShuttlePos -> Bool;
+  % lt(spa, spb) indicates if spa is less than spb
+  gt: ShuttlePos # ShuttlePos -> Bool;
+  % gt(spa, spb) indicates if spa is greater than spb
+  positions: ShuttlePos -> FloorPosList;
+  % positions(spa) represents the floor positions corresponding to spa in
+  % lowered position
+  has_neighbour: ShuttlePos # DirRow -> Bool;
+  % has_neighbour(spa, dr) indicates if spa has a successor in direction dr
+  neighbour: ShuttlePos # DirRow -> ShuttlePos;
+  % neighbour(spa, dr) is the neighbour of spa in directrion dr, provided it
+  % exists
+  connected: ShuttlePos # ShuttlePos -> Bool;
+  % connected(spa, spb) indicates if the bottom of spa is connected to the top
+  % of spb
+var
+  spa, spb: ShuttlePos;
+eqn
+  index(r1a) = 1;
+  index(r2a) = 2;
+  index(r3a) = 3;
+  index(r1b) = 4;
+  index(r2b) = 5;
+  index(r3b) = 6;
+  row(r1a) = r1;
+  row(r2a) = r2;
+  row(r3a) = r3;
+  row(r1b) = r1;
+  row(r2b) = r2;
+  row(r3b) = r3;
+  col(r1a) = c1;
+  col(r2a) = c1;
+  col(r3a) = c1;
+  col(r1b) = c10;
+  col(r2b) = c10;
+  col(r3b) = c10;
+  lt(spa, spb) = index(spa) < index(spb);
+  gt(spa, spb) = index(spa) > index(spb);
+  positions(r1a) = positions(b_r1a_sh);
+  positions(r2a) = positions(b_r2a_sh);
+  positions(r3a) = positions(b_r3a_sh);
+  positions(r1b) = positions(b_r1b_sh);
+  positions(r2b) = positions(b_r2b_sh);
+  positions(r3b) = positions(b_r3b_sh);
+  has_neighbour(spa, row_inc) = row(spa) != r3;
+  has_neighbour(spa, row_dec) = row(spa) != r1;
+  neighbour(r1a, row_inc) = r2a;
+  neighbour(r2a, row_inc) = r3a;
+  neighbour(r1b, row_inc) = r2b;
+  neighbour(r2b, row_inc) = r3b;
+  neighbour(r2a, row_dec) = r1a;
+  neighbour(r3a, row_dec) = r2a;
+  neighbour(r2b, row_dec) = r1b;
+  neighbour(r3b, row_dec) = r2b;
+  connected(spa, spb) =
+    succ(index(spa)) == index(spb) &&
+    col(spa) == col(spb);
+
+% ShuttlePosSet operations
+map
+  is_set_sps: ShuttlePosSet -> Bool;
+  % is_set_sps(sps) indicates if sps is a set
+  % In the remainder of the data equation section, for every ShuttlePosSet sps
+  % is_set_sps(sps) is a precondition.
+  contains: ShuttlePos # ShuttlePosSet -> Bool;
+  % contains(spa, sps) indicates if sps contains spa
+  shuttles: FloorCol -> ShuttlePosSet;
+  % shuttles(fc) represents the shuttle positions corresponding to fc
+  positions_sps: ShuttlePosSet -> FloorPosList;
+  % positions_sps(sps) represents the floor positions corresponding to sps
+  connected_sps: ShuttlePosSet -> Bool;
+  % connected_sps(sps) indicates if all elements of sps are connected
+  has_neighbour: ShuttlePosSet # DirRow -> Bool;
+  % has_neighbour(sps, dr) indicates is sps has a neighbour in direction dr
+  neighbour_sps: ShuttlePosSet # DirRow -> ShuttlePos;
+  % neighbour_sps(sps, dr) is the neighbour of sps in direction dr, provided it
+  % exists
+  add_neighbour: ShuttlePosSet # DirRow -> ShuttlePosSet;
+  % add_neighbour(sps, dr) represents the sps extended with its neighbour in
+  % direction dr, provided it exists
+var
+  spa, spb: ShuttlePos;
+  sps: ShuttlePosSet;
+  fc: FloorCol;
+eqn
+  is_set_sps([]) = true;
+  is_set_sps(spa |> []) = true;
+  is_set_sps(spa |> spb |> sps) =
+    lt(spa, spb) && is_set_sps(spb |> sps);
+  contains(spa, []) = false;
+  contains(spa, spa |> sps) = true;
+  spa != spb -> contains(spa, spb |> sps) = contains(spa, sps);
+  shuttles(fc) = if(fc == c1, [r1a,r2a,r3a], if(fc == c10, [r1b,r2b,r3b], []));
+  positions_sps([]) = [];
+  positions_sps(spa |> sps) = positions(spa) ++ positions_sps(sps);
+  connected_sps([])    = true;
+  connected_sps([spa]) = true;
+  connected_sps(spa |> spb |> sps) =
+    connected(spa, spb) && connected_sps(spb |> sps);
+  has_neighbour(sps, row_inc) = has_neighbour(rhead(sps), row_inc);
+  has_neighbour(sps, row_dec) = has_neighbour(head(sps), row_dec);
+  neighbour_sps(sps, row_inc) = neighbour(rhead(sps), row_inc);
+  neighbour_sps(sps, row_dec) = neighbour(head(sps), row_dec);
+  add_neighbour(sps, row_inc) = sps <| neighbour_sps(sps, row_inc);
+  add_neighbour(sps, row_dec) = neighbour_sps(sps, row_dec) |> sps;
+
+% ShuttleOrientation operations
+map
+  index: ShuttleOrientation -> Pos;
+  % index(soa) is the index of soa
+  lt: ShuttleOrientation # ShuttleOrientation -> Bool;
+  % lt(soa, sob) indicates if soa is less than sob
+  gt: ShuttleOrientation # ShuttleOrientation -> Bool;
+  % gt(soa, sob) indicates if soa is greater than sob
+  not: ShuttleOrientation -> ShuttleOrientation;
+  % not(soa) indicates the opposite of soa
+var
+  soa, sob: ShuttleOrientation;
+eqn
+  index(lowered) = 1;
+  index(tilted) = 2;
+  lt(soa, sob) = index(soa) < index(sob);
+  gt(soa, sob) = index(soa) > index(sob);
+  not(lowered) = tilted;
+  not(tilted) = lowered;
+
+% Belt operations
+map
+  index: R1Belt -> Pos;
+  index: R2Belt -> Pos;
+  index: R3Belt -> Pos;
+  % index(ba) is the index of belt ba
+  row: R1Belt -> FloorRow;
+  row: R2Belt -> FloorRow;
+  row: R3Belt -> FloorRow;
+  % row(ba) is the row of belt ba
+  lt: R1Belt # R1Belt -> Bool;
+  lt: R2Belt # R2Belt -> Bool;
+  lt: R3Belt # R3Belt -> Bool;
+  % lt(ba, bb) indicates if belt ba is less than belt bb
+  positions: R1Belt -> FloorPosList;
+  positions: R2Belt -> FloorPosList;
+  positions: R3Belt -> FloorPosList;
+  % positions(ba) represents the positions corresponding to belt ba
+  connected: R1Belt # R1Belt -> Bool;
+  connected: R2Belt # R2Belt -> Bool;
+  connected: R3Belt # R3Belt -> Bool;
+  % connected(ba, bb) indicates if the right of ba is connected to the left
+  % of bb
+  available: R1Belt # ShuttleState # LiftState -> Bool;
+  available: R2Belt # ShuttleState # LiftState -> Bool;
+  available: R3Belt # ShuttleState # LiftState -> Bool;
+  % available(ba, shs, ls) indicates if belt ba is available for states shs
+  % and ls
+var
+  r1ba, r1bb: R1Belt;
+  r2ba, r2bb: R2Belt;
+  r3ba, r3bb: R3Belt;
+  fs: FloorState;
+  shs: ShuttleState;
+  ls: LiftState;
+  ms: MoveSize;
+eqn
+  index(b_r1a_sh)  = 1;
+  index(b_r1a)     = 2;
+  index(b_r1lift)  = 3;
+  index(b_r1b)     = 4;
+  index(b_r1b_sh)  = 5;
+  index(b_r2a_sh)  = 1;
+  index(b_r2)      = 2;
+  index(b_r2b_sh)  = 3;
+  index(b_r3a_sh)  = 1;
+  index(b_r3)      = 2;
+  index(b_r3b_sh)  = 3;
+  row(r1ba)        = r1;
+  row(r2ba)        = r2;
+  row(r3ba)        = r3;
+  lt(r1ba, r1bb)   = index(r1ba) < index(r1bb);
+  lt(r2ba, r2bb)   = index(r2ba) < index(r2bb);
+  lt(r3ba, r3bb)   = index(r3ba) < index(r3bb);
+  positions(b_r1a_sh) = [pos_r1(c1, pa), pos_r1(c1, pb)];
+  positions(b_r1a)    = [pos_r1(c2, pa), pos_r1(c2, pb),
+                         pos_r1(c3, pa), pos_r1(c3, pb),
+                         pos_r1(c4, pa), pos_r1(c4, pb),
+                         pos_r1(c5, pa), pos_r1(c5, pb),
+                         pos_r1(c6, pa)];
+  positions(b_r1lift) = [pos_r1(c6, pb), pos_r1(c7, pa)];
+  positions(b_r1b)    = [pos_r1(c7, pb),
+                         pos_r1(c8, pa), pos_r1(c8, pb),
+                         pos_r1(c9, pa), pos_r1(c9, pb)];
+  positions(b_r1b_sh) = [pos_r1(c10, pa), pos_r1(c10, pb)];
+  positions(b_r2a_sh) = [pos_r2(c1)];
+  positions(b_r2)     = [pos_r2(c2),
+                         pos_r2(c3),
+                         pos_r2(c4),
+                         pos_r2(c5),
+                         pos_r2(c6),
+                         pos_r2(c7),
+                         pos_r2(c8),
+                         pos_r2(c9)];
+  positions(b_r2b_sh) = [pos_r2(c10)];
+  positions(b_r3a_sh) = [pos_r3(c1)];
+  positions(b_r3)     = [pos_r3(c2),
+                         pos_r3(c3),
+                         pos_r3(c4),
+                         pos_r3(c5),
+                         pos_r3(c6),
+                         pos_r3(c7),
+                         pos_r3(c8),
+                         pos_r3(c9)];
+  positions(b_r3b_sh) = [pos_r3(c10)];
+  available(b_r1a_sh, shs, ls) = shs(r1a, lowered) == avail;
+  available(b_r1a, shs, ls) = true;
+  available(b_r1lift, shs, ls) = ls == ls_basement;
+  available(b_r1b, shs, ls) = true;
+  available(b_r1b_sh, shs, ls) = shs(r1b, lowered) == avail;
+  available(b_r2a_sh, shs, ls) = shs(r2a, lowered) == avail;
+  available(b_r2, shs, ls) = true;
+  available(b_r2b_sh, shs, ls) = shs(r2b, lowered) == avail;
+  available(b_r3a_sh, shs, ls) = shs(r3a, lowered) == avail;
+  available(b_r3, shs, ls) = true;
+  available(b_r3b_sh, shs, ls) = shs(r3b, lowered) == avail;
+
+% BeltSet operations
+map
+  is_set_b_r1: R1BeltSet -> Bool;
+  is_set_b_r2: R2BeltSet -> Bool;
+  is_set_b_r3: R3BeltSet -> Bool;
+  % is_set_b_rX(bs) indicates if bs is a set
+  % In the remainder of this data equations section each belt set bs has
+  % is_set_b_rX(bs) as a precondition.
+  contains: R1Belt # R1BeltSet -> Bool;
+  contains: R2Belt # R2BeltSet -> Bool;
+  contains: R3Belt # R3BeltSet -> Bool;
+  % contains(ba, bs) indicates if ba is an element of bs
+  positions_b_r1: R1BeltSet -> FloorPosList;
+  positions_b_r2: R2BeltSet -> FloorPosList;
+  positions_b_r3: R3BeltSet -> FloorPosList;
+  % positions_b_rX(bs) represents the floor positions corresponding to the
+  % belts in bs
+  connected_b_r1: R1BeltSet -> Bool;
+  connected_b_r2: R2BeltSet -> Bool;
+  connected_b_r3: R3BeltSet -> Bool;
+  % connected(bs) indicates if the belts in bs are connected
+  available_b_r1: R1BeltSet # ShuttleState # LiftState -> Bool;
+  available_b_r2: R2BeltSet # ShuttleState # LiftState -> Bool;
+  available_b_r3: R3BeltSet # ShuttleState # LiftState -> Bool;
+  % available_b_rX(bs, shs, ls) indicates if all belts in bs are available for
+  % states shs and ls
+var
+  r1ba, r1bb: R1Belt;
+  r2ba, r2bb: R2Belt;
+  r3ba, r3bb: R3Belt;
+  r1bs: R1BeltSet;
+  r2bs: R2BeltSet;
+  r3bs: R3BeltSet;
+  fs: FloorState;
+  shs: ShuttleState;
+  ls: LiftState;
+eqn
+  is_set_b_r1([])              = true;
+  is_set_b_r1(r1ba |> [])      = true;
+  is_set_b_r1(r1ba |> r1bb |> r1bs) =
+    lt(r1ba, r1bb) && is_set_b_r1(r1bb |> r1bs);
+  is_set_b_r2([])              = true;
+  is_set_b_r2(r2ba |> [])      = true;
+  is_set_b_r2(r2ba |> r2bb |> r2bs) =
+    lt(r2ba, r2bb) && is_set_b_r2(r2bb |> r2bs);
+  is_set_b_r3([])              = true;
+  is_set_b_r3(r3ba |> [])      = true;
+  is_set_b_r3(r3ba |> r3bb |> r3bs) =
+    lt(r3ba, r3bb) && is_set_b_r3(r3bb |> r3bs);
+  contains(r1ba, []) = false;
+  contains(r1ba, r1ba |> r1bs) = true;
+  r1ba != r1bb -> contains(r1ba, r1bb |> r1bs) = contains(r1ba, r1bs);
+  contains(r2ba, []) = false;
+  contains(r2ba, r2ba |> r2bs) = true;
+  r2ba != r2bb -> contains(r2ba, r2bb |> r2bs) = contains(r2ba, r2bs);
+  contains(r3ba, []) = false;
+  contains(r3ba, r3ba |> r3bs) = true;
+  r3ba != r3bb -> contains(r3ba, r3bb |> r3bs) = contains(r3ba, r3bs);
+  positions_b_r1([]) = [];
+  positions_b_r1(r1ba |> r1bs) = positions(r1ba) ++ positions_b_r1(r1bs);
+  positions_b_r2([]) = [];
+  positions_b_r2(r2ba |> r2bs) = positions(r2ba) ++ positions_b_r2(r2bs);
+  positions_b_r3([]) = [];
+  positions_b_r3(r3ba |> r3bs) = positions(r3ba) ++ positions_b_r3(r3bs);
+  connected_b_r1([]) = true;
+  connected_b_r1(r1ba |> []) = true;
+  connected_b_r1(r1ba |> r1bb |> r1bs) =
+    connected(r1ba, r1bb) && connected_b_r1(r1bb |> r1bs);
+  connected_b_r2([]) = true;
+  connected_b_r2(r2ba |> []) = true;
+  connected_b_r2(r2ba |> r2bb |> r2bs) =
+    connected(r2ba, r2bb) && connected_b_r2(r2bb |> r2bs);
+  connected_b_r3([]) = true;
+  connected_b_r3(r3ba |> []) = true;
+  connected_b_r3(r3ba |> r3bb |> r3bs) =
+     connected(r3ba, r3bb) && connected_b_r3(r3bb |> r3bs);
+  connected(r1ba, r1bb) = succ(index(r1ba)) == index(r1bb);
+  connected(r2ba, r2bb) = succ(index(r2ba)) == index(r2bb);
+  connected(r3ba, r3bb) = succ(index(r3ba)) == index(r3bb);
+  available_b_r1([], shs, ls) = true;
+  available_b_r1(r1ba |> r1bs, shs, ls) =
+    available(r1ba, shs, ls) && available_b_r1(r1bs, shs, ls);
+  available_b_r2([], shs, ls) = true;
+  available_b_r2(r2ba |> r2bs, shs, ls) =
+    available(r2ba, shs, ls) && available_b_r2(r2bs, shs, ls);
+  available_b_r3([], shs, ls) = true;
+  available_b_r3(r3ba |> r3bs, shs, ls) =
+    available(r3ba, shs, ls) && available_b_r3(r3bs, shs, ls);
+
+% Area operations
+map
+  overlap: Area # Area -> Bool;
+  % area(a, b) indicates if area a and b overlap
+var
+  fps, fpt: FloorPosList;
+  tc1a, tc1b, tc10a, tc10b: Bool;
+eqn
+  overlap(area(fps, tc1a, tc1b), area(fpt, tc10a, tc10b)) =
+    overlap(fps, fpt) || (tc1a && tc1b) || (tc10a && tc10b);
+
+% Instruction operations
+map
+  index: Instruction -> Pos;
+  % index(i) is the index of instruction i
+  lt: Instruction # Instruction -> Bool;
+  % lt(i, j) indicates if i is less than j
+  valid: Instruction -> Bool;
+  % valid(i) indicates if instruction i is valid
+  area: Instruction -> Area;
+  % area(i) represents the area on which instruction i has any effect
+  overlap: Instruction # Instruction -> Bool;
+  % overlap(i, j) indicates if instruction i and j overlap
+var
+  r1bs: R1BeltSet;
+  r2bs: R2BeltSet;
+  r3bs: R3BeltSet;
+  dc: DirCol;
+  ms: MoveSize;
+  sp: ShuttlePos;
+  sps: ShuttlePosSet;
+  so: ShuttleOrientation;
+  dr: DirRow;
+  lh: LiftHeight;
+  i,j: Instruction;
+eqn
+  index(move_belts(r1bs, dc, ms)) = 1;
+  index(move_belts(r2bs, dc, ms)) = 2;
+  index(move_belts(r3bs, dc, ms)) = 3;
+  index(move_shuttles(sps, so, dr)) = 4;
+  index(tilt_shuttle(sp, so)) = 5;
+  index(move_lift(lh)) = 6;
+  index(rotate_lift) = 7;
+  lt(i, j) = index(i) < index(j);
+  valid(move_belts(r1bs, dc, ms)) = is_set_b_r1(r1bs);
+  valid(move_belts(r2bs, dc, ms)) = is_set_b_r2(r2bs);
+  valid(move_belts(r3bs, dc, ms)) = is_set_b_r3(r3bs);
+  valid(move_shuttles(sps, so, dr)) = is_set_sps(sps);
+  valid(tilt_shuttle(sp, so)) = true;
+  valid(move_lift(lh)) = true;
+  valid(rotate_lift) = true;
+  area(move_belts(r1bs, dc, ms)) = area(positions_b_r1(r1bs), false, false);
+  area(move_belts(r2bs, dc, ms)) = area(positions_b_r2(r2bs), false, false);
+  area(move_belts(r3bs, dc, ms)) = area(positions_b_r3(r3bs), false, false);
+  area(move_shuttles(sps, lowered, dr)) =
+    area(positions_sps(add_neighbour(sps, dr)), false, false);
+  area(move_shuttles(sps, tilted, dr)) =
+    area([], col(head(sps)) == c1, col(head(sps)) == c10);
+  area(tilt_shuttle(sp, so)) =
+    area(positions(sp), col(sp) == c1, col(sp) == c10);
+  area(move_lift(lh)) = area(positions(b_r1lift), false, false);
+  area(rotate_lift) = area(positions_b_r1([b_r1a, b_r1lift, b_r1b]), false, false);
+  overlap(i, j) = overlap(area(i), area(j));
+
+% InstructionSet operations
+map
+  is_set_is: InstructionSet -> Bool;
+  % is_set_is(is) indicates if is is a set
+  % In the remainder of the data equation section, for every InstructionSet is
+  % is_set_is(is) is a precondition.
+  valid: InstructionSet -> Bool;
+  % valid(is) indicates if the instructions in is are valid
+  overlap: Instruction # InstructionSet -> Bool;
+  % overlap(i, is) indicates if instruction i overlaps with any of the
+  % instructions in is
+var
+  i,j: Instruction;
+  is: InstructionSet;
+eqn
+  is_set_is([]) = true;
+  is_set_is(i |> []) = true;
+  is_set_is(i |> j |> is) = lt(i, j) && is_set_is(j |> is);
+  valid([]) = true;
+  valid(i |> is) = valid(i) && valid(is);
+  overlap(i, []) = false;
+  overlap(i, j |> is) = overlap(i, j) || overlap(i, is);
+
+% AvailState operations
+map
+  not: AvailState -> AvailState;
+  % not(asa) indicates the opposite of asa
+eqn
+  not(avail) = n_avail;
+  not(n_avail) = avail;
+
+% FloorState operations
+map
+  init_fs: FloorState;
+  % init_fs is the initial floor state
+  update: FloorPos # OccState # FloorState -> FloorState;
+  cond_upd: FloorPos # OccState # FloorState -> FloorState;
+  ins_upd: FloorPos # OccState # FloorState -> FloorState;
+  % update(fpa, osa, fsa) represents fsa, where position fpa has value osa;
+  % cond_upd and ins_upd are auxiliary functions with the same meaning that
+  % are needed for efficiency
+  ins_upd_fps: FloorPosList # OccState # FloorState -> FloorState;
+  % ins_upd_fps(fps, osa, fsa) represents fsa, where positions fps have value
+  % osa
+  free: FloorPosList # FloorState -> Bool;
+  % free(fps, fsa) indicates that all positions in fps are free for state fsa
+  occupied: FloorPosList # FloorState -> Bool;
+  % occupied(fps, fsa) indicates that all positions in fps are occupied for
+  % state fsa
+  end_free: FloorPosList # DirCol # Bool # FloorState -> Bool;
+  % end_free(fps, dc, obl, fsa) indicates if the end of the list fps in
+  % direction dc is free for state fsa; if obl then the one but last element
+  % also needs to be free
+  even_occ: FloorPosList # FloorState -> Bool;
+  % even_occ(fps, fsa) indicates if the number of occupied positions in fps for
+  % state fsa is even
+  no_half_car: ShuttlePos # FloorState -> Bool;
+  % no_half_car(spa, fsa) indicates if there is a half car positioned on spa
+  % for state fsa
+  no_half_car_sps: ShuttlePosSet # FloorState -> Bool;
+  % no_half_car(sps, fsa) indicates if there is a half car positioned on any
+  % of the elements of sps for state fsa
+  shift_inc: FloorPosList # FloorState -> FloorState;
+  % shift_inc(fps, fsa) represents fsa, where the states of the positions in
+  % fps are shifted one position to the right; the first element in fps
+  % gets state free
+  gshift_inc: FloorPosList # FloorState # OccState -> FloorState;
+  % gshift_inc(fps, fsa, osa) has the same meaning as shift_inc(fps, fsa), with
+  % the exception that the first element in fps gets state osa
+  % (auxiliary function needed by shift_inc)
+  shift_dec: FloorPosList # FloorState -> FloorState;
+  % shift_dec(fps, fsa) represents fsa, where the states of the positions in
+  % fps are shifted one position to the left; the last element in fps gets
+  % state free
+  shift_inc_ctw: Bool # FloorPosList # FloorState -> FloorState;
+  % shift_inc_ctw(ctw, fps, fsa) represents fsa where the states of the
+  % positions in fps are shifted one position to the right;
+  % if ctw then two positions are shifted
+  shift_dec_ctw: Bool # FloorPosList # FloorState -> FloorState;
+  % shift_dec_ctw(ctw, fps, fsa) represents fsa where the states of the
+  % positions in fps are shifted one position to the left;
+  % if ctw then two positions are shifted
+  shift_inc_sps: ShuttlePosSet # FloorState -> FloorState;
+  % shift_inc(sps, fsa) represents fsa, where the states of the shuttles in
+  % sps are shifted one position downwards; the first element in sps
+  % gets state free
+  shift_dec_sps: ShuttlePosSet # FloorState -> FloorState;
+  % shift_dec(sps, fsa) represents fsa, where the states of the shuttles in
+  % sps are shifted one position upwards; the last element in sps gets state
+  % free
+var
+  b: Bool;
+  fsa, fsb: FloorState;
+  fpa, fpb: FloorPos;
+  osa, osb: OccState;
+  fps: FloorPosList;
+  spa: ShuttlePos;
+  sps: ShuttlePosSet;
+eqn
+  init_fs(fpa) = free;
+  fpa == fpb  -> update(fpa, osa, fsa)(fpb) = osa;
+  fpa != fpb  -> update(fpa, osa, fsa)(fpb) = fsa(fpb);
+  cond_upd(fpa, osa, fsa) =
+    if(fsa(fpa) == osa, fsa, update(fpa, osa, fsa));
+  ins_upd(fpa, osa, init_fs) = cond_upd(fpa, osa, init_fs);
+  lt(fpa,fpb) ->
+    ins_upd(fpa, osa, update(fpb, osb, fsa)) =
+    cond_upd(fpa, osa, update(fpb, osb, fsa));
+  gt(fpa,fpb) ->
+    ins_upd(fpa, osa, update(fpb, osb, fsa)) =
+    update(fpb, osb, ins_upd(fpa, osa, fsa));
+  fpa == fpb  ->
+    ins_upd(fpa, osa, update(fpb, osb, fsa)) =
+    cond_upd(fpa, osa, fsa);
+  ins_upd_fps([], osa, fsa) = fsa;
+  ins_upd_fps(fpa |> fps, osa, fsa) =
+    ins_upd(fpa, osa, ins_upd_fps(fps, osa, fsa));
+  free([], fsa) = true;
+  free(fpa |> fps, fsa) = fsa(fpa) == free && free(fps, fsa);
+  occupied(fpa |> fps, fsa) = fsa(fpa) == occupied && occupied(fps, fsa);
+  occupied([], fsa) = true;
+  end_free(fps, col_inc, false, fsa) =
+    fsa(head(rev(fps))) == free;
+  end_free(fps, col_inc, true, fsa) =
+    fsa(head(l)) == free && fsa(head(tail(l))) == free
+      whr l = rev(fps) end;
+  end_free(fps, col_dec, false, fsa) =
+    fsa(head(fps)) == free;
+  end_free(fps, col_dec, true, fsa) =
+    fsa(head(fps)) == free && fsa(head(tail(fps))) == free;
+  even_occ([], fsa) = true;
+  fsa(fpa) == free ->
+    even_occ(fpa |> fps, fsa) = even_occ(fps, fsa);
+  fsa(fpa) == occupied ->
+    even_occ(fpa |> fps, fsa) = !even_occ(fps, fsa);
+  row(spa) != r1 ->
+    no_half_car(spa, fsa) = true;
+  row(spa) == r1 ->
+    no_half_car(spa, fsa) = even_occ(positions(spa), fsa);
+  no_half_car_sps([], fsa) = true;
+  no_half_car_sps(spa |> sps, fsa) =
+    no_half_car(spa, fsa) && no_half_car_sps(sps, fsa);
+  shift_inc(fps, fsa) = gshift_inc(fps, fsa, free);
+  gshift_inc([], fsa, osa) = fsa;
+  gshift_inc([fpa], fsa, osa) = ins_upd(fpa, osa, fsa);
+  gshift_inc(fpa |> fps, fsa, osa) =
+    ins_upd(fpa, osa, gshift_inc(fps, fsa, fsa(fpa)));
+  shift_dec([], fsa) = fsa;
+  shift_dec([fpa], fsa) = ins_upd(fpa, free, fsa);
+  shift_dec(fpa |> fpb |> fps, fsa) =
+    ins_upd(fpa, fsa(fpb), shift_dec(fpb |> fps, fsa));
+  shift_inc_ctw(false, fps, fsa) =
+    shift_inc(fps, fsa);
+  shift_inc_ctw(true, fps, fsa) =
+    shift_inc(fps, shift_inc(fps, fsa));
+  shift_dec_ctw(false, fps, fsa) =
+    shift_dec(fps, fsa);
+  shift_dec_ctw(true, fps, fsa) =
+    shift_dec(fps, shift_dec(fps, fsa));
+  shift_inc_sps([], fsa) = fsa;
+  row(spa) == r1 ->
+    shift_inc_sps(spa |> sps, fsa) =
+      ins_upd_fps(positions(spa), free,
+        shift_inc(positions_sps(spa |> sps), fsa));
+  row(spa) != r1 ->
+    shift_inc_sps(spa |> sps, fsa) = shift_inc(positions_sps(spa |> sps), fsa);
+  shift_dec_sps([], fsa) = fsa;
+  row(spa) == r1 ->
+    shift_dec_sps(spa |> sps, fsa) =
+      ins_upd_fps(positions(spa), fsa(head(positions(head(sps)))),
+        shift_dec(positions_sps(spa |> sps), fsa));
+  row(spa) != r1 ->
+    shift_dec_sps(spa |> sps, fsa) = shift_dec(positions_sps(spa |> sps), fsa);
+
+% ShuttleState operations
+map
+  init_shs: ShuttleState;
+  % initial shuttle state
+  update: ShuttlePos # ShuttleOrientation # AvailState # ShuttleState ->
+    ShuttleState;
+  cond_upd: ShuttlePos # ShuttleOrientation # AvailState # ShuttleState ->
+    ShuttleState;
+  ins_upd: ShuttlePos # ShuttleOrientation # AvailState # ShuttleState ->
+    ShuttleState;
+  % update(spa, soa, asa, fsa) represents fsa, where position fpa in
+  % orientation soa has value asa; cond_upd and ins_upd are auxiliary functions
+  % with the same meaning that are needed for efficiency
+  available: ShuttlePos # ShuttleOrientation # ShuttleState -> Bool;
+  % available(spa, soa, shs) indicates if shuttle spa is available in
+  % orientation soa for state shs
+  available_sps: ShuttlePosSet # ShuttleOrientation # ShuttleState -> Bool;
+  % available(sps, soa, shs) indicates if all shuttles in sps are available in
+  % orientation soa for state shs
+  shift_inc: ShuttlePosSet # ShuttleOrientation # ShuttleState -> ShuttleState;
+  % shift_inc(sps, soa, shs) represents shs, where the states of the shuttles
+  % in sps are shifted one shuttle downwards in orientation soa; the first
+  % element in sps gets state unavailable
+  gshift_inc: ShuttlePosSet # ShuttleOrientation # ShuttleState # AvailState
+    -> ShuttleState;
+  % gshift_inc(sps, soa, shs, asa) has the same meaning as shift_inc(sps, soa,
+  % shs), with the exception that the first element in sps gets state asa
+  % (auxiliary function needed by shift_inc)
+  shift_dec: ShuttlePosSet # ShuttleOrientation # ShuttleState -> ShuttleState;
+  % shift_dec(sps, soa, shs) represents shs, where the states of the shuttles
+  % in sps are shifted one shuttle upwards in orientation soa; the last
+  % element in sps gets state unavailable
+var
+  b: Bool;
+  shs, shsa: ShuttleState;
+  spa, spb: ShuttlePos;
+  sps: ShuttlePosSet;
+  soa, sob: ShuttleOrientation;
+  asa, asb: AvailState;
+eqn
+  init_shs(spa, lowered) = if(row(spa) != r3, avail, n_avail);
+  init_shs(spa, tilted) = if(row(spa) != r3, n_avail, avail);
+  spa == spb  && soa == sob  ->
+    update(spa, soa, asa, shs)(spb, sob) = asa;
+  spa != spb  || soa != sob  ->
+    update(spa, soa, asa, shs)(spb, sob) = shs(spb, sob);
+  cond_upd(spa, soa, asa, shs) =
+    if(shs(spa, soa) == asa, shs, update(spa, soa, asa, shs));
+  ins_upd(spa, soa, asa, init_shs) =
+    cond_upd(spa, soa, asa, init_shs);
+  lt(spa,spb) || (spa == spb && lt(soa, sob)) ->
+    ins_upd(spa, soa, asa, update(spb, sob, asb, shs)) =
+    cond_upd(spa, soa, asa, update(spb, sob, asb, shs));
+  gt(spa,spb) || (spa == spb && gt(soa, sob)) ->
+    ins_upd(spa, soa, asa, update(spb, sob, asb, shs)) =
+    update(spb, sob, asb, ins_upd(spa, soa, asa, shs));
+  spa == spb && soa == sob ->
+    ins_upd(spa, soa, asa, update(spb, sob, asb, shs)) =
+    cond_upd(spa, soa, asa, shs);
+  available(spa, soa, shs) = shs(spa, soa) == avail;
+  available_sps([], soa, shs) = true;
+  available_sps(spa |> sps, soa, shs) =
+    available(spa, soa, shs) && available_sps(sps, soa, shs);
+  shift_inc(sps, soa, shs) = gshift_inc(sps, soa, shs, n_avail);
+  gshift_inc([], soa, shs, asa)    = shs;
+  gshift_inc([spa], soa, shs, asa) =
+    ins_upd(spa, soa, asa, shs);
+  gshift_inc(spa |> sps, soa, shs, asa) =
+    ins_upd(spa, soa, asa, gshift_inc(sps, soa, shs, shs(spa, soa)));
+  shift_dec([], soa, shs)       = shs;
+  shift_dec([spa], soa, shs)    = ins_upd(spa, soa, n_avail, shs);
+  shift_dec(spa |> spb |> sps, soa, shs) =
+    ins_upd(spa, soa, shs(spb, soa), shift_dec(spb |> sps, soa, shs));
+
+% LiftState operations
+map
+  height: LiftState -> LiftHeight;
+  % height(ls) represents the height of state ls
+  occupied: LiftState # FloorState -> Bool;
+  % occupied(ls, fs) indicates if the lift is occupieed for states ls and fs
+  make_ls: LiftHeight # OccState -> LiftState;
+  % make_ls(lh, os) represents the lift state corresponding to height lh and
+  % occupied state os
+var
+  b: Bool;
+  fsa: FloorState;
+  osa: OccState;
+eqn
+  height(lsf_street)  = street;
+  height(lso_street)  = street;
+  height(lsf_rotate)  = rotate;
+  height(lso_rotate)  = rotate;
+  height(ls_basement) = basement;
+  occupied(lsf_street, fsa) = false;
+  occupied(lso_street, fsa) = true;
+  occupied(lsf_rotate, fsa) = false;
+  occupied(lso_rotate, fsa) = true;
+  occupied(ls_basement, fsa) = occupied(positions(b_r1lift), fsa);
+  make_ls(street, occupied) = lso_street;
+  make_ls(street, free) = lsf_street;
+  make_ls(rotate, occupied) = lso_rotate;
+  make_ls(rotate, free) = lsf_rotate;
+  make_ls(basement, osa) = ls_basement;
+
+% GlobalState operations
+map
+  init_gs: GlobalState;
+  % init_gs is the initial global state
+  allowed: Instruction # GlobalState -> Bool;
+  % allowed(i, gs) indicates if instruction i is allowed given global state gs
+  nextstate: Instruction # ExecResult # GlobalState -> GlobalState;
+  % nextstate(i, r, gs) represents the global state after execution of
+  % instruction i with result r in state gs
+  allowed: InstructionSet # GlobalState -> Bool;
+  % allowed(is, gs) indicates if instruction set is is allowed given global
+  % state gs
+  nextstate: InstructionSet # ExecResult # GlobalState -> GlobalState;
+  % nextstate(is, r, gs) represents the global state after execution of
+  % instruction set is with result r in state gs
+  possible: Event # GlobalState -> Bool;
+  % possible(e, gs) indicates if event e is possible given global state gs
+  nextstate: Event # GlobalState -> GlobalState;
+  % nextstate(e, gs) represents the global state after the event e has occurred
+  % in state gs
+var
+  gs, gsa: GlobalState;
+  fs, fsa: FloorState;
+  shs, shsa: ShuttleState;
+  ls, lsa: LiftState;
+  lh, lha: LiftHeight;
+  p,q: FloorPos;
+  s,t: OccState;
+  i,j: Instruction;
+  r1bs: R1BeltSet;
+  r2bs: R2BeltSet;
+  r3bs: R3BeltSet;
+  dc: DirCol;
+  ms: MoveSize;
+  sps: ShuttlePosSet;
+  dr: DirRow;
+  sp, spa, spb: ShuttlePos;
+  so: ShuttleOrientation;
+  is: InstructionSet;
+eqn
+  init_gs =
+    glob_state(
+      init_fs,
+      init_shs,
+      lsf_street);
+  allowed(move_belts(r1bs, dc, ms), glob_state(fs, shs, ls)) =
+    r1bs != [] &&
+    connected_b_r1(r1bs) &&
+    available_b_r1(r1bs, shs, ls) &&
+    end_free(l, dc, ms == full, fs) &&
+    even_occ(l, fs)
+    whr l = positions_b_r1(r1bs) end;
+  allowed(move_belts(r2bs, dc, ms), glob_state(fs, shs, ls)) =
+    ms == full &&
+    r2bs != [] &&
+    connected_b_r2(r2bs) &&
+    available_b_r2(r2bs, shs, ls) &&
+    end_free(positions_b_r2(r2bs), dc, false, fs);
+  allowed(move_belts(r3bs, dc, ms), glob_state(fs, shs, ls)) =
+    ms == full &&
+    r3bs != [] &&
+    connected_b_r3(r3bs) &&
+    available_b_r3(r3bs, shs, ls) &&
+    end_free(positions_b_r3(r3bs), dc, false, fs);
+  allowed(move_shuttles(sps, so, dr), glob_state(fs, shs, ls)) =
+    sps != [] &&
+    connected_sps(sps) &&
+    available_sps(sps, so, shs) &&
+    % placing a comment in front of the following conjunct allows the shuttles
+    % to be moved even if a car is placed half on the shuttle
+    (so == lowered => no_half_car_sps(sps, fs)) &&
+    has_neighbour(sps, dr) &&
+    !available(neighbour_sps(sps, dr), so, shs);
+  allowed(tilt_shuttle(sp, lowered), glob_state(fs, shs, ls)) =
+    available_sps(shuttles(col(sp)), lowered, shs) &&
+    free(positions(sp), fs);
+  allowed(tilt_shuttle(sp, tilted), glob_state(fs, shs, ls)) =
+    shs(sp, tilted) == avail &&
+    shs(sp, lowered) == n_avail;
+  ls == ls_basement ->
+    allowed(move_lift(lh), glob_state(fs, shs, ls)) =
+    lh != height(ls) &&
+    % replacing the following conjunct by
+    %   even_occ(positions(b_r1lift), fs);
+    % allows the lift to move up if two cars are placed half on the lift belt
+    if(free(positions(b_r1lift), fs), true,
+      even_occ(positions_b_r1([b_r1a_sh, b_r1a]), fs) &&
+      even_occ(positions_b_r1([b_r1b, b_r1b_sh]), fs));
+  ls != ls_basement ->
+    allowed(move_lift(lh), glob_state(fs, shs, ls)) =
+    lh != height(ls);
+  allowed(rotate_lift, glob_state(fs, shs, ls)) =
+    height(ls) == rotate &&
+    free([pos_r1(c5, pa), pos_r1(c5, pb), pos_r1(c6, pa),
+          pos_r1(c7, pb), pos_r1(c8, pa), pos_r1(c8, pb)], fs);
+  nextstate(move_belts(r1bs, col_inc, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_inc_ctw(ms == full, positions_b_r1(r1bs), fs), shs, ls);
+  nextstate(move_belts(r1bs, col_dec, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_dec_ctw(ms == full, positions_b_r1(r1bs), fs), shs, ls);
+  nextstate(move_belts(r2bs, col_inc, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_inc(positions_b_r2(r2bs), fs), shs, ls);
+  nextstate(move_belts(r2bs, col_dec, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_dec(positions_b_r2(r2bs), fs), shs, ls);
+  nextstate(move_belts(r3bs, col_inc, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_inc(positions_b_r3(r3bs), fs), shs, ls);
+  nextstate(move_belts(r3bs, col_dec, ms), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_dec(positions_b_r3(r3bs), fs), shs, ls);
+  nextstate(move_shuttles(sps, lowered, row_inc), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_inc_sps(l, fs), shift_inc(l, lowered, shs), ls)
+      whr l = add_neighbour(sps, row_inc) end;
+  nextstate(move_shuttles(sps, lowered, row_dec), ok, glob_state(fs, shs, ls)) =
+    glob_state(shift_dec_sps(l, fs), shift_dec(l, lowered, shs), ls)
+      whr l = add_neighbour(sps, row_dec) end;
+  nextstate(move_shuttles(sps, tilted, row_inc), ok, glob_state(fs, shs, ls)) =
+    glob_state(fs, shift_inc(add_neighbour(sps, row_inc), tilted, shs), ls);
+  nextstate(move_shuttles(sps, tilted, row_dec), ok, glob_state(fs, shs, ls)) =
+    glob_state(fs, shift_dec(add_neighbour(sps, row_dec), tilted, shs), ls);
+  nextstate(tilt_shuttle(sp, so), ok, glob_state(fs, shs, ls)) =
+    glob_state(fs,
+      ins_upd(sp, so, n_avail, ins_upd(sp, not(so), avail, shs)),
+      ls);
+  occupied(ls, fs) ->
+    nextstate(move_lift(lh), ok, glob_state(fs, shs, ls)) =
+      glob_state(
+        if(height(ls) != basement && lh == basement,
+          ins_upd_fps(positions(b_r1lift), occupied, fs),
+          if(height(ls) == basement && lh != basement,
+            ins_upd_fps(positions(b_r1lift), free, fs),
+            fs
+            )
+          ),
+        shs, make_ls(lh, occupied));
+  !occupied(ls, fs) ->
+    nextstate(move_lift(lh), ok, glob_state(fs, shs, ls)) =
+      glob_state(fs, shs, make_ls(lh, free));
+  nextstate(rotate_lift, ok, gs) = gs;
+  nextstate(i, fail, gs) = gs;
+  allowed([], gs) = false;
+  allowed(i |> [], gs) = allowed(i, gs);
+  allowed(i |> j |> is, gs) =
+    allowed(i, gs) &&
+    !overlap(i, j |> is) &&
+    allowed(j |> is, gs);
+  nextstate([], ok, gs) = gs;
+  nextstate(i |> is, ok, gs) = nextstate(i, ok, nextstate(is, ok, gs));
+  nextstate(is, fail, gs) = gs;
+  possible(add_car, glob_state(fs, shs, ls)) =
+    ls == lsf_street;
+  possible(remove_car, glob_state(fs, shs, ls)) =
+    ls == lso_street;
+  nextstate(add_car, glob_state(fs, shs, ls)) =
+    glob_state(fs, shs, lso_street);
+  nextstate(remove_car, glob_state(fs, shs, ls)) =
+    glob_state(fs, shs, lsf_street);
+
+act
+  exec: Instruction;
+  occur: Event;
+
+proc
+  S(gs_sl: GlobalState) =
+    sum i: Instruction. (valid(i) && allowed(i, gs_sl)) ->
+      exec(i) . S(nextstate(i, ok, gs_sl))
+  +
+    sum e: Event. possible(e, gs_sl) ->
+      occur(e) . S(nextstate(e, gs_sl))
+  ;
+
+init
+  S(init_gs);

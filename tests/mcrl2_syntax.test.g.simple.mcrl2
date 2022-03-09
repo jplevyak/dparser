@@ -1,0 +1,14 @@
+% This file contains a simple process that can do a step, an urgent and
+% a reset action. After a reset, urgent steps can be performed within a period
+% of two seconds. Ordinary steps can always be done. A reset is also always
+% possible. The times of actions are only recorded in the parameter, and not
+% explicitly as at time tag in the actions.
+%
+% Jan Friso Groote, December 2008
+
+act  step, urgent, reset;
+proc P(x:Real) = sum y:Real.(x<y)->step.P(y)
+               + sum y:Real.(x<y && x<2)->urgent.P(y)
+               + reset.P(0);
+
+init P(0);

@@ -1,0 +1,26 @@
+% This is a description of the Monty Hall problem based
+% on the American tv show called Let's Make a Deal. The 
+% question is what the best strategy is for a player to
+% select a prize hidden behind one of three doors. The
+% player can point at one door, but it will then receive
+% the information behind which of the remaining doors the
+% prize is certainly not located. The player can then point
+% again at one of the two remaining doors. The question is
+% should he stick to his original choice or change to the
+% other door.
+%
+% Jan Friso Groote, February 2016.
+
+
+% Below the variant is listed where the player switches the door.
+% To investigate the strategy where the door is not switched,
+% the inequality != should be replaced by equality ==.
+
+sort Doors = struct d1 | d2 | d3;
+act  player_collects_prize:Bool;
+init dist door_with_prize:Doors[1/3].
+     dist initially_selected_door_by_player:Doors[1/3].
+          player_collects_prize(initially_selected_door_by_player!=door_with_prize).
+          delta;
+          
+

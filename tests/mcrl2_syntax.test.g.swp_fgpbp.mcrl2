@@ -1,0 +1,66 @@
+% This file contains an mCRL2 version of the sliding window protocol
+% as used in Fokkink, Groote, Pang, Badban and van de Pol,
+% Verifying a sliding window protocol in mCRL, Report SENR0308, CWI,
+% Amsterdam, 2003.
+% The `constant' n is the size of the buffers in the protocol. 
+% This specification differs from older specifications in the sense that
+% it uses functions to update the buffers. The internal lambda expressions
+% representing the buffers will grow with every insertion and removal, 
+% meaning that in this form the state space generation will not terminate.
+% For a terminating state space, the function update mechanism must be
+% used: f[v->w], representing lambda x.if(x==v,w,f(x));
+%
+% The system has states.
+
+map  n: Pos;
+eqn  n=2;
+
+sort D = struct d1 | d2;
+     Buf = Nat -> struct data(getdata:D) | empty;
+map  emptyBuf: Buf;
+     insert: D#Nat#Buf -> Buf;
+     remove: Nat#Buf -> Buf;
+     release: Nat#Nat#Buf -> Buf;
+     nextempty: Nat#Buf -> Nat;
+     nextempty_rec: Nat#Buf#Nat -> Nat;
+     inWindow: Nat#Nat#Nat -> Bool;
+var  i,j,k: Nat; d: D; q: Buf;
+eqn  emptyBuf = lambda j:Nat.empty;
+     insert(d,i,q) = lambda j:Nat.if(i==j,data(d),q(j));
+     remove(i,q) = lambda j:Nat.if(i==j,empty,q(j));
+     i mod 2*n==j mod 2*n -> release(i,j,q) = q;
+     i mod 2*n!=j mod 2*n ->
+          release(i,j,q) = release((i+1) mod 2*n,j,remove(i,q));
+     k<n -> nextempty_rec(i,q,k) =
+               if(q(i)==empty,i,nextempty_rec((i+1) mod n,q,k+1));
+     k==n -> nextempty_rec(i,q,k)=i;
+     nextempty(i,q) = nextempty_rec(i,q,0);
+     inWindow(i,j,k) = (i<=j && j<k) || (k<i && i<=j) || (j<k && k<i);
+
+act  sA,rA,sD,rD: D;
+     sB,rB,cB,sC,rC,cC: D#Nat;
+     sE,rE,cE,sF,rF,cF: Nat;
+     j;
+
+proc S(l,m:Nat,q:Buf) =
+        sum d:D. inWindow(l,m,(l+n) mod 2*n) ->
+                rA(d).S(l,(m+1) mod 2*n,insert(d,m,q))<>delta+
+        sum k:Nat. (q(k)!=empty && k<2*n) -> sB(getdata(q(k)),k).S(l,m,q)<>delta+
+        sum k:Nat. rF(k).S(k,m,release(l,k,q));
+
+     R(l:Nat,q:Buf) =
+        sum d:D,k:Nat. rC(d,k).
+                (inWindow(l,k,(l+n) mod 2*n) -> R(l,insert(d,k,q)) <> R(l,q))+
+        (q(l)!=empty) -> sD(getdata(q(l))).R((l+1) mod 2*n,remove(l,q))<>delta+
+        sE(nextempty(l,q)).R(l,q);
+
+     K = sum d:D,k:Nat. rB(d,k).(j.sC(d,k)+j).K;
+
+     L = sum k:Nat. rE(k).(j.sF(k)+j).L;
+
+init allow({cB,cC,cE,cF,j,rA,sD},
+        comm({rB|sB->cB, rC|sC->cC, rE|sE->cE, rF|sF->cF},
+           S(0,0,emptyBuf) ||
+           K ||
+           L ||
+           R(0,emptyBuf)));

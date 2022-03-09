@@ -1,0 +1,221 @@
+% Specification of a system for lifting trucks
+% Based on the original specification in muCRL by Arno Wouters and Pang Jun, 12
+% February 2001
+% Translated to mCRL2 by Bas Ploeger
+%
+% Main modification:
+% 1) The sync message is used to finish the startup phase in old specification,
+%    this is removed.
+% 2) Using move(n,s) to replace move_down(n), move_up(n), move_not(n)
+%
+% This is the final specification used for model checking.
+%
+% In this specification the following problems are solved (or avoided):
+%
+% (1) Station 2 sends startup message before relay between 1 and 2 closed.
+%     Solved by adding a sync action after closing the relay. This models
+%     a delay (before station 2 sends its startup message) which is long
+%     enough to be sure that the relay is closed
+% (2) Errors resulting from more than one setref button pressed in the initial
+%     phase. This made impossible by adding a Setref_monitor process.
+%     This models the situation that the operators conform to the instruction
+%     in the manual which states that they must assure sure that the system
+%     is started from one lift only.
+% (3) The problem that releasing a button at the wrong moment may lead to a
+%     state in which all stations are UP or DOWN but no one is active.
+%     This is solved as follows: after release the station waits until it
+%     is its turn to use the bus before it becomes passive
+% (4) The problem that pressing two up buttons or two down buttons at different
+%     lifts may result in one lift remaining motion less while the others move
+%     (if one button is released at the wrong moment). This is solved as follows:
+%     after a button being pressed the station waits till it is turn to
+%     use the bus before it becomes active and it becomes active only
+%     if it is sure that there is no other station active (i.e. if the
+%     message it received from the station just before it was a STANDBY message).
+%
+% The real system measures the height of the lifts and broadcasts these. This is
+% not taken into account in this specification.
+%
+% This specification models two kinds of movements:
+% - movement of all lifts together
+% - movement of a single lift
+% The real system has, in addition, the possibility to move an axis. This
+% is not modelled in this specification.
+%
+% For more information, please refer to the following publication:
+%
+% J.F. Groote, J. Pang and A.G. Wouters. Analysis of a distributed system
+% for lifting trucks. The Journal of Logic and Algebraic Programming
+% 55:21-56, 2003. This article also appeared as Technical report
+% SEN-R0111, CWI, Amsterdam, 2001.
+
+sort  State = struct STANDBY | STOP | STARTUP | UP | DOWN | SYNC;
+
+map   N: Pos;
+eqn   N = 3;
+
+map   S: Nat -> Nat;
+      P: Nat -> Nat;
+var   n: Nat;
+eqn   n <  N -> S(n) = n+1;
+      n == N -> S(n) = 1;
+      n >  1 -> P(n) = Int2Nat(n-1);
+      n == 1 -> P(n) = Pos2Nat(N);
+
+map   remove: Nat # List(Nat) -> List(Nat);
+      inl: Nat # List(Nat) -> Bool;
+var   n:Nat;
+      l:List(Nat);
+eqn   remove(n,[]) = [];
+      n == head(l) -> remove(n,l) = remove(n,tail(l));
+      n != head(l) -> remove(n,l) = head(l) |> remove(n,tail(l));
+      inl(n,[]) = false;
+      n == head(l) -> inl(n,l) = true;
+      n != head(l) -> inl(n,l) = inl(n,tail(l));
+
+map   Addresses:      List(Nat) # Nat	    -> List(Nat);
+      Addresses_up:   List(Nat) # Nat # Nat -> List(Nat);
+      Addresses_down: List(Nat) # Nat # Nat -> List(Nat);
+var   a,a': Nat;
+      A,A': List(Nat);
+      b: Bool;
+eqn   Addresses(A,a) = Addresses_up(A,a,a) ++ Addresses_down(A,a,a);
+      (inl(a,A) && a' == S(a)) -> Addresses_up(A,a,a') = [ S(a) ];
+      (inl(a,A) && a' != S(a)) -> Addresses_up(A,a,a') = S(a) |> Addresses_up(A,S(a),a');
+      !(inl(a,A)) -> Addresses_up(A,a,a') = [];
+      P(a) == a' -> Addresses_down(A,a,a') = [];
+      (P(a) != a' &&  inl(P(a),A)) -> Addresses_down(A,a,a') = P(a) |> Addresses_down(A,P(a),a');
+      (P(a) != a' && !inl(P(a),A)) -> Addresses_down(A,a,a') = [];
+
+sort  Message = struct mes(address:Nat,state:State);
+
+act   r_stob,s_stob,c_stob: Message # Nat;
+      r_btos,s_btos,c_btos: Message # Nat;
+      r_open_relay ,s_open_relay ,c_open_relay : Nat;
+      r_close_relay,s_close_relay,c_close_relay: Nat;
+      s_init,r_init,c_init: Nat;
+      setref,setrefup,setrefdown,up,down,unlockup,unlockdown,released: Nat;
+      move: Nat # State;
+      s_sync,r_sync,c_sync;
+      s_stable,r_stable,c_stable;
+
+proc  Bus(R:List(Nat)) =
+	sum msg:Message,a:Nat .
+	  r_stob(msg,a).
+	  ( (Addresses(R,a) == []) -> Bus(R) <> Deliver(msg,R,Addresses(R,a)) )
+	+
+	sum a:Nat .
+	  ( r_open_relay(a).Bus(remove(a,R)) + r_close_relay(a).Bus(a |> R) );
+
+proc  Deliver(m:Message, R:List(Nat), A:List(Nat) ) =
+	sum a:Nat .
+	(
+	  ( (inl(a,A)) ->
+	    s_btos(m,a).
+	    ( (remove(a,A) == []) -> Bus(R) <> Deliver(m,R,remove(a,A)) )<>delta
+	  )
+	  +
+	  r_open_relay(a).Deliver(m,remove(a,R),A)
+	  +
+	  r_close_relay(a).Deliver(m,a|>R,A)
+	);
+
+proc  Lift0(n:Nat) =
+	s_init(n).s_close_relay(n).s_stob(mes(1,STARTUP),n).s_open_relay(n).
+	s_sync.
+	( sum msg:Message .
+	    r_btos(msg,n).
+	    ( (state(msg) == STARTUP) ->
+		s_stable.s_stob(mes(1,STANDBY),n).
+		Lift2(n,1,address(msg),STANDBY,false)<>delta
+	    )
+	)
+	+
+	sum msg:Message .
+	  r_btos(msg,n).
+	  ( (state(msg) == STARTUP) ->
+	      s_close_relay(n).
+	      ( (address(msg) == 1) ->
+		  r_sync.s_stob(mes(2,STARTUP),n).
+		  Lift1(n,S(address(msg)),S(address(msg)))
+	      <> s_stob(mes(S(address(msg)),STARTUP),n).
+		Lift1(n,S(address(msg)),S(address(msg)))
+	      )<>delta
+	  );
+
+proc  Lift1(n:Nat,m:Nat,nos:Nat) =
+	sum msg:Message .
+          r_btos(msg,n).
+	  ( (state(msg) == STARTUP) -> Lift1(n,m,address(msg))
+	  <> ( (state(msg) == STANDBY) ->
+		( (address(msg) == P(m)) ->
+		    s_stob(mes(m,STANDBY),n).Lift2(n,m,nos,STANDBY,false)
+		<> Lift2(n,m,nos,STANDBY,false)
+		)<>delta
+	    )
+	  );
+
+proc  Lift2(n:Nat,m:Nat,nos:Nat,s:State,c:Bool) =
+	(s == STANDBY) ->
+	  (
+	    up(n).Lift2(n,m,nos,UP,true)
+	    +
+	    down(n).Lift2(n,m,nos,DOWN,true)
+	  ) <> delta
+	+
+	sum msg:Message .
+	  r_btos(msg,n).
+	  ( (state(msg) == SYNC) -> move(n,s).Lift2(n,m,nos,s,c)
+	  <> ( (address(msg) == P(m)) ->
+	      ( c ->
+		( (state(msg) == STANDBY) ->
+		  s_stob(mes(m,s),n).Lift3(n,m,nos,s,nos)
+		<> s_stob(mes(m,state(msg)),n).Lift2(n,m,nos,state(msg),false)
+		)
+	      <> s_stob(mes(m,state(msg)),n).Lift2(n,m,nos,state(msg),c)
+	      )
+	    <> ( c -> Lift2(n,m,nos,s,c)
+	           <> Lift2(n,m,nos,state(msg),c)
+	      )
+	    )
+	  );
+
+proc  Lift3(n:Nat,m:Nat,nos:Nat,s:State,count_:Nat) =
+	(s != STANDBY ) -> released(n).Lift3(n,m,nos,STANDBY,nos)<>delta
+	+
+	sum msg:Message.
+	  r_btos(msg,n).
+	  %move(n,s).Lift3(n,m,nos,s,count_)
+	  ( (address(msg) == P(m)) ->
+	    ( (s == STANDBY) ->
+	      s_stob(mes(m,STANDBY),n).Lift2(n,m,nos,STANDBY,false)
+	    <> ( (state(msg) == s && count_ == 2) ->
+		s_stob(mes(m,SYNC),n).move(n,s).s_stob(mes(m,s),n).
+		Lift3(n,m,nos,s,nos)
+	      <> s_stob(mes(m,s),n).Lift3(n,m,nos,s,nos)
+	      )
+	    )
+	  <> (  (state(msg) == s)
+	    -> Lift3(n,m,nos,s,P(count_))
+	    <> Lift3(n,m,nos,s,count_)
+	    )
+	  );
+
+proc  Setref_monitor =
+	sum n:Nat . r_init(n).r_stable.Setref_monitor;
+
+init  hide
+      ( { c_stob,c_btos,c_open_relay,c_close_relay,c_sync,c_init,c_stable },
+	allow
+	( { c_stob,c_btos,c_open_relay,c_close_relay,c_sync,c_init,c_stable,
+	    setref,setrefup,setrefdown,up,down,unlockup,unlockdown,released,
+	    move },
+	  comm
+	  ( { s_stob|r_stob->c_stob, s_btos|r_btos->c_btos,
+	      s_open_relay|r_open_relay->c_open_relay,
+	      s_close_relay|r_close_relay->c_close_relay, s_sync|r_sync->c_sync,
+	      s_init|r_init->c_init, s_stable|r_stable->c_stable },
+	    Bus([]) || Lift0(1) || Lift0(2) || Lift0(3) || Setref_monitor
+	  )
+	)
+      );

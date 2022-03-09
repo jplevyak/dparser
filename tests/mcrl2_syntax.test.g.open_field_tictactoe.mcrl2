@@ -1,0 +1,159 @@
+% In the Communications of the ACM (January 2017, Vol 60(1), page 112) Dennis
+% Shasha describes a variant of tic tac toe where the board is unlimited, and
+% the winner wins when four pieces are put in a row, horizontally, vertically 
+% or diagonally. 
+%
+% He ends with the question whether there is a winning strategy when the board
+% is limited to 6x6 fields, player red has the four corners occupied and player
+% yellow starts the game. Below a formalisation of this problem is provided.
+%
+% As it stands this puzzle has not been solved by the toolset.
+% August 2018, Jan Friso Groote
+
+sort Piece = struct Red | Yellow | None;
+map N,M,R:Pos;
+eqn N=6;     %Number of columns (default 7)
+    M=6;     %Number of rows (default 6)
+    R=4;     %Length of a winning sequence of the same color (default 4)
+
+sort Row=List(Piece);
+     Board=List(Row);
+
+map  At:Nat#Nat#Board->Piece;                       % At(x,y,b) give the piece at position x,y. If there is no
+                                                    % piece, or if x,y is outside the board, give None.
+     At:Nat#Row->Piece;                             % See At above. Now for a single row.
+     Put:Piece#Pos#Pos#Board->Board;                % Put piece at the indicated position on the board.
+     Put:Piece#Pos#Row->Row;                        % Put piece p at the indicated position in a row.
+
+     Four_in_a_row:Piece#Board->Bool;               % Indicates whether there are four pieces of sort Piece
+                                                    % either horizontally, vertically or diagonally in a row.
+     Four_in_a_row_horizontally:Piece#Board->Bool;
+     Four_in_a_row_horizontally:Piece#Pos#Board->Bool; % Check from the indicated row upwards.
+     Count_rows_horizontally:Piece#Pos#Pos#Board#Nat->Bool; % Count the number of pieces in a row, and return
+                                                            % true when four in a row have been found.
+     Four_in_a_row_vertically:Piece#Board->Bool;
+     Four_in_a_row_vertically:Piece#Pos#Board->Bool; % Check from the indicated row upwards.
+     Count_rows_vertically:Piece#Pos#Pos#Board#Nat->Bool;
+
+     Four_in_a_row_diagonally:Piece#Board->Bool;
+     Four_in_a_row_diagonally_column:Piece#Pos#Board->Bool; % Check from the first column diagonally.
+     Four_in_a_row_diagonally_row:Piece#Pos#Board->Bool; % Check from the first row diagonally.
+     Count_rows_diagonally:Piece#Pos#Pos#Board#Nat->Bool;
+     Count_rows_diagonally':Piece#Pos#Pos#Board#Nat->Bool;
+
+var  b,b':Board;
+     r:Row;
+     p,p',p'':Piece;
+     x,y:Nat;
+     c:Bool;
+     z:Pos;
+
+eqn  if(c,true,false)=c;
+     if(c,false,true)=!c;
+     if(c,p,p')==p'' = if(c,p==p'',p'==p'');
+     y==1 -> At(x,y,r|>b)=At(x,r);
+     1<y && y<=M -> At(x,y,r|>b)=At(x,Int2Nat(y-1),b);
+     y==0 || y>M || x==0 || x>N -> At(x,y,b)=None;
+     At(x,y,if(c,b,b'))=if(c,At(x,y,b),At(x,y,b'));  % This rewrite rule is instrumental to let lpsconstelm
+                                                     % reduce the system substantially, after applying lpsparunfold.
+     x==1 -> At(x,p|>r)=p;
+     1<x && x<=N -> At(x,p|>r)=At(Int2Nat(x-1),r);
+     x==0 || x>N -> At(x,p|>r)=None;
+     At(x,Put(p,z,r))=if(x==z,p,At(x,r));
+
+var  b,b':Board;
+     r:Row;
+     p,p':Piece;
+     x,y:Pos;
+     dx,dy:Int;
+     c,othercolorseen:Bool;
+     count_:Nat;
+eqn  y==1 -> Put(p,x,y,r|>b)=Put(p,x,r)|>b;
+     y>1 && y<=M -> Put(p,x,y,r|>b)=r|>Put(p,x,Int2Pos(y-1),b);
+     Put(p,x,y,if(c,b,b'))=if(c,Put(p,x,y,b),Put(p,x,y,b'));  % See comments for distribution of At over if.
+     x==1 -> Put(p,x,p'|>r)=p|>r;
+     x>1 && x<=N -> Put(p,x,p'|>r)=p'|>Put(p,Int2Pos(x-1),r);
+
+     Four_in_a_row(p,b)=
+            Four_in_a_row_horizontally(p,b)||
+            Four_in_a_row_vertically(p,b)||
+            Four_in_a_row_diagonally(p,b);
+
+     Four_in_a_row_horizontally(p,b)=Four_in_a_row_horizontally(p,1,b);
+     y<M -> Four_in_a_row_horizontally(p,y,b)=Count_rows_horizontally(p,1,y,b,0) ||
+                                              Four_in_a_row_horizontally(p,y+1,b);
+     y==M -> Four_in_a_row_horizontally(p,y,b)=Count_rows_horizontally(p,1,M,b,0);
+     x<N -> Count_rows_horizontally(p,x,y,b,count_)=
+                                       if(At(x,y,b)==p,
+                                         count_>=R-1 || Count_rows_horizontally(p,x+1,y,b,count_+1),
+                                         Count_rows_horizontally(p,x+1,y,b,0));
+     x==N -> Count_rows_horizontally(p,x,y,b,count_)=if(At(N,y,b)==p,count_>=R-1,false);
+
+     Four_in_a_row_vertically(p,b)=Four_in_a_row_vertically(p,1,b);
+     x<N -> Four_in_a_row_vertically(p,x,b)=Count_rows_vertically(p,x,1,b,0) ||
+                                              Four_in_a_row_vertically(p,x+1,b);
+     x==N -> Four_in_a_row_vertically(p,x,b)=Count_rows_vertically(p,N,1,b,0);
+     y<M ->  Count_rows_vertically(p,x,y,b,count_)=
+                                       if(At(x,y,b)==p,
+                                         count_>=R-1 || Count_rows_vertically(p,x,y+1,b,count_+1),
+                                         Count_rows_vertically(p,x,y+1,b,0));
+     y==M -> Count_rows_vertically(p,x,y,b,count_)=if(At(x,M,b)==p,count_>=R-1,false);
+
+     Four_in_a_row_diagonally(p,b)=Four_in_a_row_diagonally_column(p,2,b) ||
+                                   Four_in_a_row_diagonally_row(p,1,b);
+     x<N -> Four_in_a_row_diagonally_row(p,x,b)=Count_rows_diagonally(p,x,1,b,0) ||
+                                                Count_rows_diagonally'(p,x,1,b,0) ||
+                                                Four_in_a_row_diagonally_row(p,x+1,b);
+     x==N -> Four_in_a_row_diagonally_row(p,x,b)=Count_rows_diagonally'(p,N,1,b,0);
+     y<M -> Four_in_a_row_diagonally_column(p,y,b)=Count_rows_diagonally(p,1,y,b,0) ||
+                                                   Count_rows_diagonally'(p,N,y,b,0) ||
+                                                   Four_in_a_row_diagonally_column(p,y+1,b);
+     y>=M -> Four_in_a_row_diagonally_column(p,y,b)=false;
+     x<N && y<M ->  Count_rows_diagonally(p,x,y,b,count_)=
+                                       if(At(x,y,b)==p,
+                                         count_>=R-1 || Count_rows_diagonally(p,x+1,y+1,b,count_+1),
+                                         Count_rows_diagonally(p,x+1,y+1,b,0));
+     x==N || y==M -> Count_rows_diagonally(p,x,y,b,count_)=if(At(x,y,b)==p,count_>=R-1,false);
+     x>1 && y<M ->  Count_rows_diagonally'(p,x,y,b,count_)=
+                                       if(At(x,y,b)==p,
+                                         count_>=R-1 || Count_rows_diagonally'(p,max(1,x-1),y+1,b,count_+1),
+                                         Count_rows_diagonally'(p,max(1,x-1),y+1,b,0));
+
+     x==1 || y==M -> Count_rows_diagonally'(p,x,y,b,count_)=if(At(x,y,b)==p,count_>=R-1,false);
+
+
+act  YellowMoves,RedMoves:Pos#Pos;
+     YellowWins,RedWins;
+proc FourInaRow(b:Board,WhoMoves:Piece)=
+       sum x,y:Pos.(WhoMoves==Yellow &&
+                  x<=N && y<=M &&
+                  At(x,y,b)==None) ->
+             YellowMoves(x,y).
+                FourInaRow(Put(Yellow,x,y,b),Red)+
+
+       sum x,y:Pos.(WhoMoves==Red &&
+                  x<=N && y<=M &&
+                  At(x,y,b)==None) ->
+             RedMoves(x,y).
+                FourInaRow(Put(Red,x,y,b),Yellow)+
+
+       (WhoMoves==Yellow && Four_in_a_row(Red,b)) ->
+             RedWins.
+                FourInaRow(b,None)+
+
+       (WhoMoves==Red && Four_in_a_row(Yellow,b)) ->
+             YellowWins.
+                FourInaRow(b,None);
+
+% Note that the board is reversed. The bottom row is drawn at the top.
+map initial_board:Board;
+eqn initial_board= [[Red,    None,  None,    None,  None,  Red ],
+                    [None,   None,  None,    None,  None,  None],
+                    [None,   None,  None,    None,  None,  None],
+                    [None,   None,  None,    None,  None,  None],
+                    [None,   None,  None,    None,  None,  None],
+                    [Red,    None,  None,    None,  None,  Red ]];
+
+
+init FourInaRow(initial_board,Yellow);
+

@@ -1,0 +1,294 @@
+% This model is translated from the mCRL model used for analysing the Bilateral
+% Key Exchange (BKE) protocol. The analysis is described in a paper with the
+% name "Analysing the BKE-security protocol with muCRL", by Jan Friso Groote,
+% Sjouke Mauw and Alexander Serebrenik.
+%
+% The translation of the existing mCRL model into this mCRL2 model has been
+% performed manually.  The purpose was making use of the additional language
+% features of mCRL2 with respect to mCRL.
+%
+% The behaviour of this model should be bisimular with the original mcrl model
+% after renaming actions. Though this is not verified for all system
+% configurations below.
+%
+% Eindhoven, June 11, 2008, Jeroen van der Wulp
+
+% Agents. There are exactly three agents - A, B, E An order E < A < B is
+% imposed on agents to reduce the size of the state space.
+sort Agent = struct A | B | E;
+map  less : Agent # Agent -> Bool;
+var  a: Agent;
+eqn  less(A,a) = (a == B);
+     less(B,a) = false;
+     less(E,a) = (a != E);
+
+sort Address = struct address(agent : Agent);
+map  bad_address : Address;
+
+% A nonce is a random, unpredictable value which is used to make the
+% exchanged messages unique and thus helps to counter replay attacks.
+sort Nonce = struct nonce(value : Nat);
+
+% There are two kinds of keys used in the protocol: symmetric and 
+% asymmetric ones (functional keys).
+% Symmetric keys have form K(n) where n is a natural number.
+sort SymmetricKey = struct symmetric_key(value : Nat);
+
+% Sort for representing asymmetric keys
+sort AsymmetricKey = struct public_key(Agent)?is_public |
+                            secret_key(Agent)?is_secret |
+                            hash(value : Nonce)?is_hash;
+map  has_complementary_key: AsymmetricKey -> Bool;
+     complementary_key    : AsymmetricKey -> AsymmetricKey;
+var  a : Agent;
+     n : Nonce;
+eqn  has_complementary_key(public_key(a)) = true;
+     has_complementary_key(secret_key(a)) = true;
+     has_complementary_key(hash(n)) = false;
+     complementary_key(public_key(a)) = secret_key(a);
+     complementary_key(secret_key(a)) = public_key(a);
+
+sort Key = struct key(SymmetricKey)?is_symmetric | key(AsymmetricKey)?is_asymmetric;
+map  has_complementary_key: Key -> Bool;
+     complementary_key : Key -> Key; % gets the complementary key if key is asymmetric
+var  a,a1   : Agent;
+     n,n1   : Nat;
+     k,k1   : Key;
+     ak,ak1 : AsymmetricKey;
+eqn
+     % gets the complementary key if key is asymmetric
+     complementary_key(key(ak)) = key(complementary_key(ak));
+     has_complementary_key(key(ak)) = has_complementary_key(ak);
+
+sort Message = struct
+        encrypt(Nonce, Address, AsymmetricKey)?is_message_1 |
+        encrypt(AsymmetricKey, Nonce, SymmetricKey, AsymmetricKey)?is_message_2 |
+        encrypt(AsymmetricKey, SymmetricKey)?is_message_3;
+map  valid_message_1 : Message # AsymmetricKey -> Bool;
+     valid_message_2 : Message # AsymmetricKey -> Bool;
+     valid_message_3 : Message # SymmetricKey  -> Bool;
+     used_key : Message -> Key;                  % key used to encrypt
+var  sk, sk1 : SymmetricKey;
+     ak, ak1, ak2 : AsymmetricKey;
+     n, n1  : Nonce;
+     m, m1   : Message;
+     a, a1   : Address;
+eqn  used_key(encrypt(n,a,ak)) = key(ak);
+     used_key(encrypt(ak,n1,sk,ak1)) = key(ak1);
+     used_key(encrypt(ak,sk)) = key(sk);
+     valid_message_1(m, ak) = is_message_1(m) && (used_key(m) == key(ak));
+     valid_message_2(m, ak) = is_message_2(m) && (used_key(m) == key(ak));
+     valid_message_3(m, sk) = is_message_3(m) && (used_key(m) == key(sk));
+
+% Type for message sets; currently cannot use Set() because set iteration is not possible
+sort MessageSet = List(Message);
+map  insert                : Message # MessageSet -> MessageSet;
+     select_crypted_by     : Key # MessageSet -> MessageSet;
+     select_not_crypted_by : Key # MessageSet -> MessageSet;
+     select                : (Message -> Bool) # MessageSet -> MessageSet;
+var  k,k1 : Key;
+     m,m1 : Message;
+     ms   : MessageSet;
+     c    : Message -> Bool;
+eqn 
+     % inserts a message m, if it is not in the list
+     insert(m,[]) = [m];
+     m < m1  -> insert(m,m1|>ms) = m|>m1|>ms;
+     m == m1 -> insert(m,m1|>ms) = m1|>ms;
+     m1 < m  -> insert(m,m1|>ms) = m1|>insert(m,ms);
+
+     % the set (as ordered list) of messages in m that are signed by sk
+     select_crypted_by(k,ms) = select(lambda x : Message.k == used_key(x),ms);
+     select_not_crypted_by(k,ms) = select(lambda x : Message.k != used_key(x),ms);
+
+     select(c,[]) = [];
+     select(c,m|>ms) = if(c(m),m|>r,r) whr r = select(c, ms) end;
+
+% The eavesdropper's knowledge consists of:
+%  * a list of addresses
+%  * a list of nonces
+%  * a list of keys (both symmetric and asymmetric)
+%  * a list of messages of which the key is not known
+sort Knowledge = struct
+        knowledge(addresses : Set(Address),
+                  nonces : Set(Nonce),
+                  keys : Set(Key),
+                  messages : MessageSet);
+map  update_knowledge : Message # Knowledge -> Knowledge;
+     propagate : MessageSet # Knowledge -> Knowledge;
+     propagate : Key # Knowledge -> Knowledge;
+     add_key : Key # Knowledge -> Knowledge;
+     add_nonce : Nonce # Knowledge -> Knowledge;
+     add_address : Address # Knowledge -> Knowledge;
+var  m  : Message;
+     as : Set(Address);
+     ns : Set(Nonce);
+     ks : Set(Key);
+     ms : MessageSet;
+     k  : Knowledge;
+     sk : SymmetricKey;
+     ak,hk : AsymmetricKey;
+     ck : Key;
+     n, n1 : Nonce;
+     a  : Address;
+eqn
+     % adds keys to knowledge that are part of known messages encrypted with a new key
+     has_complementary_key(ak) && complementary_key(key(ak)) in keys(k) ->
+         update_knowledge(encrypt(n,a,ak),k) =
+                propagate(key(ak), add_key(key(ak),
+                        add_address(a, add_nonce(n, k))));
+     has_complementary_key(ak) && complementary_key(key(ak)) in keys(k) ->
+         update_knowledge(encrypt(hk,n1,sk,ak),k) =
+                propagate(key(sk), propagate(key(ak),
+                      add_key(key(sk),add_key(key(ak),k))));
+     key(sk) in keys(k) ->
+         update_knowledge(encrypt(ak,sk),k) =
+                propagate(key(ak), add_key(key(ak),k));
+
+     % adds a message that cannot be decrypted with any known key
+     ((is_symmetric(ck) && !(ck in keys(k))) ||
+       (is_asymmetric(ck) && !(has_complementary_key(ck) &&
+                (complementary_key(ck) in keys(k))))) whr ck = used_key(m) end ->
+         update_knowledge(m,k) =
+                knowledge(addresses(k),nonces(k),keys(k),insert(m,messages(k)));
+
+     % adds a key to knowledge
+     add_key(ck,knowledge(as,ns,ks,ms)) = knowledge(as,ns,ks + {ck},ms);
+     add_nonce(n,knowledge(as,ns,ks,ms)) = knowledge(as,ns + {n},ks,ms);
+     add_address(a,knowledge(as,ns,ks,ms)) = knowledge(as + {a},ns,ks,ms);
+
+     % adds keys to knowledge that are part of messages encrypted with a key k
+     propagate([],k) = k;
+     propagate(m|>ms,k) = propagate(ms, update_knowledge(m, k));
+     propagate(ck,knowledge(as,ns,ks,ms)) =
+        propagate(select_crypted_by(ck,ms),
+                knowledge(as,ns,ks,select_not_crypted_by(ck,ms)));
+
+act  call_secret, hear_secret, secrecy_claim : SymmetricKey;    % result handshake
+     send, receive, communicate              : Agent # Message; % (sender, message)
+     send, receive, communicate              : Agent # Nat;     % (sender, nonce)
+     not_secret;                                                % forbidden action
+
+proc Initiator(self : Agent, n : Nat) =
+  (sum a : Agent.
+    receive(a, n). % initialisation
+    send(self, encrypt(nonce(n),address(self),public_key(a))).
+    (sum ak, ak1 : AsymmetricKey, nr : Nonce, sk : SymmetricKey.
+      (ak == hash(nonce(n)) &&
+        valid_message_2(encrypt(ak,nr,sk,ak1),public_key(self))) ->
+          receive(E, encrypt(ak,nr,sk,ak1)).
+          send(self, encrypt(hash(nr), sk)).
+          ((a != E) -> call_secret(sk))));
+
+proc Responder(self : Agent, n : Nat) =
+  (sum a : Agent.
+    receive(a, n). % initialisation
+    (sum ni : Nonce, ai : Address, aki : AsymmetricKey.
+      (ai == address(a) && valid_message_1(encrypt(ni,ai,aki),public_key(self))) ->
+        receive(E,encrypt(ni,ai,aki)).
+        send(self,encrypt(hash(ni),nonce(n),symmetric_key(n),public_key(a))).
+        (sum ak : AsymmetricKey, sk : SymmetricKey.
+          ((a != E && ak == hash(nonce(n)) &&
+             valid_message_3(encrypt(ak,sk),symmetric_key(n))) ->
+               receive(E, encrypt(ak,sk)).
+               call_secret(symmetric_key(n))))));
+
+% initialisation of processes
+%  p is the number of parties
+proc InitialEavesdropper(p : Nat, aI : Agent, aR : Agent) =
+  (p == 0) ->
+    Eavesdropper(knowledge({address(A),address(B),address(E)},
+      {nonce(0)},{key(public_key(A)), key(public_key(B)),
+       key(public_key(E)), key(secret_key(E)), key(symmetric_key(0))},[])) <>
+    (sum a : Agent.
+      send(a,p).
+      (p mod 2 == 0) ->
+        ((!less(a,aR)) ->
+          InitialEavesdropper(Int2Nat(p - 1),aI,if(p == 2,E,a))) <>
+        ((!less(a,aI) && ((p == 1 && aI == E) => (a != E))) ->
+          InitialEavesdropper(Int2Nat(p - 1),if(p == 1,E,a),aR)));
+
+proc Eavesdropper(k : Knowledge) =
+  % receives message and adds to knowledge
+  (sum a : Agent, m : Message.
+    receive(a, m).
+    Eavesdropper(update_knowledge(m,k))) +
+
+  % send an message of type 1 by combining arbitrary known information
+  (sum n : Nonce.(n in nonces(k)) ->
+    (sum a1 : Address.(a1 in addresses(k)) ->
+      (sum ak : AsymmetricKey.(key(ak) in keys(k)) ->
+        send(E, encrypt(n,a1,ak)).Eavesdropper(k)))) +
+
+  % send an message of type 2 by combining arbitrary known information
+  (sum n : Nonce.(n in nonces(k)) ->
+    (sum sk : SymmetricKey.(key(sk) in keys(k)) ->
+      (sum ak : AsymmetricKey.(key(ak) in keys(k)) ->
+        ((sum n1 : Nonce.(n1 in nonces(k)) ->
+           send(E,encrypt(hash(n1),n,sk,ak)).Eavesdropper(k)) +
+         (sum ak1 : AsymmetricKey.(key(ak1) in keys(k)) ->
+           send(E,encrypt(ak1,n,sk,ak)).Eavesdropper(k)))))) +
+
+  % send an message of type 3 by combining arbitrary known information
+  (sum sk : SymmetricKey.(key(sk) in keys(k))  ->
+    ((sum n : Nonce.(n in nonces(k)) ->
+      send(E,encrypt(hash(n),sk)).Eavesdropper(k)) +
+     (sum ak : AsymmetricKey.(key(ak) in keys(k)) ->
+      send(E,encrypt(ak,sk)).Eavesdropper(k)))) +
+
+  % send a known message (unchanged)
+  (sum m : Message.(m in messages(k)) ->
+    send(E,m).Eavesdropper(k)) +
+
+  % deal with secrecy claim
+  (sum sk : SymmetricKey.hear_secret(sk).
+     (key(sk) in keys(k)) ->
+       not_secret.Eavesdropper(k) <>
+       Eavesdropper(k));
+
+proc System1 =
+       InitialEavesdropper(1,E,E) ||
+       Initiator(A,1);
+
+proc System2 =
+       InitialEavesdropper(2,E,E) ||
+       Initiator(A,1) || Responder(B,2);
+
+proc System3 =
+       InitialEavesdropper(3,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3);
+
+proc System4 =
+       InitialEavesdropper(4,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4);
+
+proc System5 =
+       InitialEavesdropper(5,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4) ||
+       Initiator(A,5);
+
+proc System6 =
+       InitialEavesdropper(6,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4) ||
+       Initiator(A,5) || Responder(B,6);
+
+proc System7 =
+       InitialEavesdropper(7,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4) ||
+       Initiator(A,5) || Responder(B,6) || Initiator(A,7);
+
+proc System8 =
+       InitialEavesdropper(8,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4) ||
+       Initiator(A,5) || Responder(B,6) || Initiator(A,7) || Responder(B,8);
+
+proc System9 =
+       InitialEavesdropper(9,E,E) ||
+       Initiator(A,1) || Responder(B,2) || Initiator(A,3) || Responder(B,4) ||
+       Initiator(A,5) || Responder(B,6) || Initiator(A,7) || Responder(B,8) ||
+       Initiator(A,9);
+
+init allow({communicate,secrecy_claim,not_secret},
+       comm({call_secret|hear_secret->secrecy_claim,
+             send|receive->communicate}, System4
+     ));

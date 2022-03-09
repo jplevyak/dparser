@@ -1,0 +1,25 @@
+% This file describes a simple ball game.
+% It is necessary to put as many balls into a bucket in
+% a finite amount of time (10 seconds). But if a player fails
+% to put a bal into the bucket within one second, the player
+% is disqualified. Actions are "put_ball", "disqualified"
+% and "finished". Simple properties that are valid for this
+% system are that if not disqualified, there will at least
+% be 10 balls in the bucket when finished, and for any number
+% n>=10, it is possible to have a run of the game in which
+% a player puts that number of balls into the bucket.
+%
+% Jan Friso Groote (September 2008).
+
+act put_ball,disqualified,finished;
+
+map N:Pos;
+eqn N=4;
+
+proc P(t:Real)=sum u:Real.(u<=t+1 && u<N)->put_ball@u.P(u)+
+               sum u:Real.(u>t+1 && u<N)->disqualified@u.delta+
+               (t>N-1)->finished@N.delta;
+
+init P(0);
+
+

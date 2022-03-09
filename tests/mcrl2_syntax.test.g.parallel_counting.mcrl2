@@ -1,0 +1,44 @@
+% This example describes a parallel counting process,
+% with a global variable c and local variables x. 
+% A single counter is best described as
+%
+%     do forever { x:=c; x:=x+c; c:=x }.
+%
+% If only one counter is running, then the values for
+% c can only be 1, 2, 4, 8, 16, etc. A remarkable
+% observation by Hans Zantema (who provided this example)
+% is that if the two processes are put in parallel, 
+% c can attain any value.
+%
+% Using the modal formula 
+%
+%     <true*.report(738)>true
+%
+% it can be checked that an particular value can
+% be reached. This property can easily be checked 
+% using pbes2bool (still requiring >500.000) bes
+% variables.
+%
+% The formula 
+%
+%    forall n:Pos.<true*.report(n)>true
+%
+% expresses that any value can be attained. As it
+% stands this can not be solved using the model
+% checking tools
+%
+% April 26, 2014. Jan Friso Groote
+
+act set_c,set_c_,set,get_c,get_c_,get,report_c:Pos;
+
+proc P= sum x:Pos.get_c(x).
+        sum x':Pos.get_c(x').
+        set_c(x+x').P;
+
+proc C(c:Pos)=get_c_(c).C(c)+
+              sum c':Pos.set_c_(c').C(c')+
+              report_c(c).C(c);
+
+init allow({get,set,report_c},
+     comm({get_c|get_c_->get,set_c|set_c_->set},
+       P||P||C(1)));

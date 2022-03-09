@@ -1,0 +1,6 @@
+% This example specifies a simple clock, ticking every time unit.
+act tick;
+
+proc Clock(t:Real) = tick@t . Clock(t+1);
+
+init Clock(0);

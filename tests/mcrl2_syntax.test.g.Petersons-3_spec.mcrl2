@@ -1,0 +1,62 @@
+% This file describes  Peterson's mutual exclusion protocol for three processes using a filter lock.
+
+act enter, leave, wish: Nat;
+    get_flag_r, get_flag_s, get_flag,
+      set_flag_r, set_flag_s, set_flag: Nat # Nat;
+    get_wait_r, get_wait_s, get_wait,
+      set_wait_r,set_wait_s,set_wait: Nat # Nat;
+
+map N: Nat;
+eqn N = 3;
+
+map other_is: Nat -> List(Nat);
+    other_is_between: Nat # Nat # Nat # List(Nat) -> List(Nat);
+var l,r,n: Nat; ns: List(Nat);
+eqn other_is(n) = other_is_between(1,N,n,[]);
+    (l == r) -> other_is_between(l,r,n,ns) = l |> ns;
+    (l < r && l != n) -> other_is_between(l,r,n,ns) = l |> other_is_between(l+1,r,n,ns);
+    (l < r && l == n) -> other_is_between(l,r,n,ns) = other_is_between(l+1,r,n,ns);
+
+
+proc
+  Flag(i: Nat, n: Nat)=
+    sum n': Nat. set_flag_r(i, n').Flag(n = n') +
+    get_flag_s(i, n).Flag();
+
+  Wait(l: Nat, n: Nat)=
+    sum n': Nat. set_wait_r(l, n').Wait(n = n') + get_wait_s(l, n).Wait();
+
+  Process(i: Nat, l: Nat) =
+    ((l == 1) -> wish(i)|set_flag_s(i, l) <> set_flag_s(i,l)) .
+    set_wait_s(l, i) .
+    Await(i,l);
+
+  Await(i: Nat, l: Nat) =
+    sum i': Nat . get_wait_r(l, i') .
+    (
+      (i' != i && l == N - 1) -> CS(i, l)
+    + (i' != i && l != N - 1) -> Process(i, l+1)
+    + (i' == i) -> CheckFlags(i, l, other_is(i))
+    );
+
+  CheckFlags(i: Nat, l: Nat, is: List(Nat)) =
+    sum l': Nat . get_flag_r(head(is), l') .
+    (
+      (l' >= l) -> Await(i, l)
+    + (l' < l && #is == 1 && l == N - 1) -> CS(i, l)
+    + (l' < l && #is == 1 && l != N - 1) -> Process(i, l+1)
+    + (l' < l && #is > 1) -> CheckFlags(i, l, tail(is))
+    );
+
+  CS(i: Nat, l: Nat) =
+    enter(i) . leave(i) . set_flag_s(i, 0) . Process(i, 1);
+
+init
+    allow({ wish|set_flag, enter, leave,
+            get_flag, set_flag, get_wait, set_wait},
+      comm({ get_flag_r | get_flag_s -> get_flag,
+             set_flag_r | set_flag_s -> set_flag,
+             get_wait_r | get_wait_s -> get_wait,
+             set_wait_r | set_wait_s -> set_wait },
+      Process(1, 1) || Process(2, 1) || Process(3, 1) ||
+      Flag(1,0) || Flag(2,0) || Flag(3,0) || Wait(1,1) || Wait(2,1)));

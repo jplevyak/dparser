@@ -1,0 +1,456 @@
+% Specification of the Storage Management System of the DIRAC Community Grid Solution [1] 
+% for the LHCb [2] experiment at CERN. This subsystem provides the logic for pre-staging files
+% from tape to a disk cache frontend, before a job is able to process them. 
+% A series of agents (modeled as recursive processes) observe and update the states of the 
+% centralized storage entities (Tasks and CacheReplicas). These shared storage entities are
+% modeled as processes continuously listening and responding to requests from other processes (agents).
+%
+% [1] A. Tsaregorodtsev et al. ""DIRAC: A community grid solution,"" in Proc. Computing in
+% High Energy Physics, 2007
+%
+% [2] Large Hadron Collider beauty experiment.
+% [Online] http://lhcb-public.web.cern.ch/lhcb-public
+%
+%
+% Authors: Daniela Remenska, Tim Willemse
+% October 2011
+%
+% The following commands will generate a state space:
+% mcrl22lps SMS.mcrl2 SMS.lps
+% lps2lts -vrjittyc SMS.lps
+% State space statistics: 36 levels, 18417 states and 123478 transitions
+
+sort CacheReplicas = struct 
+			    Start?is_start | 
+				New?is_new | 
+			Waiting?is_waiting | 
+	  StageSubmitted?is_stageSubmitted | 
+			  Staged?is_staged | 
+			  Failed?is_failed | 
+		  	 Deleted?is_deleted;
+
+sort Tasks = struct 
+		    tStart?is_tStart | 
+			tNew?is_tNew | 
+  tStageSubmitted?is_tStageSubmitted | 
+		  tStaged?is_tStaged | 
+		      tDone?is_tDone | 
+		  tFailed?is_tFailed | 
+		 tDeleted?is_tdeleted;
+
+sort Tuple = struct p(t_:Nat,r:Nat,link:Bool);
+
+% tasks-to-ids mapping: given a list of Tasks, and a Tasks value, get the positions of the list matching the value
+% example t2id([one,two,two,three],two)->[1,2] 
+map t2id:List(Tasks)#Tasks->List(Nat);
+map t2id':List(Tasks)#Tasks#Nat->List(Nat);
+
+var 
+	t:List(Tasks);
+	s:Tasks;
+	n:Nat;
+	a:Tasks;
+	l:List(Tasks);
+eqn
+	t2id(t,s) = t2id'(t,s,0);
+	t2id'([],s,n) = [];
+	a == s -> t2id'(a|>l,s,n) = n|>t2id'(l,s,n+1);
+	a != s -> t2id'(a|>l,s,n) = t2id'(l,s,n+1);
+
+% ids-to-tasks mapping: given a list of Tasks, a list of positions(IDs) in the list, and a Tasks value, update those positions with the new value
+%example id2t([2,3],[two,three,three,two],one)->[two,three,one,one]
+map id2t:List(Nat)#List(Tasks)#Tasks->List(Tasks);
+map id2t':List(Nat)#List(Tasks)#Tasks#Nat->List(Tasks);
+
+var 
+	listIDs:List(Nat);
+	listTasks:List(Tasks);
+	newState:Tasks;
+	n:Nat;
+	a:Tasks;
+	l:List(Tasks);
+eqn 
+	id2t(listIDs,listTasks,newState) = id2t'(listIDs,listTasks,newState,0);
+	id2t'(listIDs,[],newState,n) = []; 
+	n in listIDs -> id2t'(listIDs,a|>l,newState,n) = newState|>id2t'(listIDs,l,newState,n+1);
+	!(n in listIDs) -> id2t'(listIDs,a|>l,newState,n) = a|>id2t'(listIDs,l,newState,n+1);
+
+%---------------------------------------------
+
+% same as t2id only mapping from List(CacheReplicas) instead of List(Tasks)
+map cr2id:List(CacheReplicas)#CacheReplicas->List(Nat);
+map cr2id':List(CacheReplicas)#CacheReplicas#Nat->List(Nat);
+
+var 
+	t:List(CacheReplicas);
+	s:CacheReplicas;
+	n:Nat;
+	a:CacheReplicas;
+	l:List(CacheReplicas);
+eqn
+	cr2id(t,s) = cr2id'(t,s,0);
+	cr2id'([],s,n) = [];
+	a == s -> cr2id'(a|>l,s,n) = n|>cr2id'(l,s,n+1);
+	a != s -> cr2id'(a|>l,s,n) = cr2id'(l,s,n+1);
+
+%example id2cr([2,3],[two,three,three,two],one)->[two,three,one,one]
+map id2cr:List(Nat)#List(CacheReplicas)#CacheReplicas->List(CacheReplicas);
+map id2cr':List(Nat)#List(CacheReplicas)#CacheReplicas#Nat->List(CacheReplicas);
+
+var 
+	listIDs:List(Nat);
+	listCR:List(CacheReplicas);
+	newState:CacheReplicas;
+	n:Nat;
+	a:CacheReplicas;
+	l:List(CacheReplicas);
+eqn 
+	id2cr(listIDs,listCR,newState) = id2cr'(listIDs,listCR,newState,0);
+	id2cr'(listIDs,[],newState,n) = []; 
+	n in listIDs -> id2cr'(listIDs,a|>l,newState,n) = newState|>id2cr'(listIDs,l,newState,n+1);
+	!(n in listIDs) -> id2cr'(listIDs,a|>l,newState,n) = a|>id2cr'(listIDs,l,newState,n+1);
+
+%------------------------------------
+%example id2cr1([0,1],[four,one,two,three]->[four,one])
+map id2cr1:List(Nat)#List(CacheReplicas)->List(CacheReplicas);
+map id2cr1':List(Nat)#List(CacheReplicas)#Nat->List(CacheReplicas);
+
+var
+	listIDs,l:List(Nat);
+	n,a:Nat;
+	listCR:List(CacheReplicas);
+eqn
+	id2cr1(listIDs,listCR) = id2cr1'(listIDs,listCR,0);
+	id2cr1'([],listCR,n) = [];
+	id2cr1'(a|>l,listCR,n) = listCR.n|>id2cr1'(l,listCR,n+1);
+
+%------------------------------------
+%example allStaged([Staged,Staged,Staged])->True; allStaged([Staged,New])->False;
+
+map allStaged:List(CacheReplicas)->Bool;
+map allStaged':List(CacheReplicas)#Nat->Bool;
+var
+	listCR,l:List(CacheReplicas);
+	cr:CacheReplicas;
+	n:Nat;
+eqn
+	allStaged(listCR) = allStaged'(listCR,0);
+	allStaged'([],n) = true;
+	is_staged(cr) -> allStaged'(cr|>l,n)  = allStaged'(l,n+1) && true;
+	!is_staged(cr) -> allStaged'(cr|>l,n) = allStaged'(l,n+1) && false;
+
+
+%------------------------------------
+
+%tasks-for-replicas: given a list of tuples of the form p(taskID,replicaID) [many-to-many relation possible], and a list of replica positions(IDs), return a list of all task IDs corresponding to the replica IDs.
+%example t4r([p(0, 0), p(0, 1), p(1, 0), p(1, 1), p(0, 2), p(2, 3)],[0,3])->[0,1,2]
+map t4r:List(Tuple)#List(Nat)->List(Nat);
+map t4r':List(Tuple)#List(Nat)#Nat->List(Nat);
+
+var 
+	lt,listTuples:List(Tuple);
+	RepIDs:List(Nat);
+	n:Nat;
+	tuple:Tuple;
+eqn
+	%listTuples = [p(0,0),p(0,1),p(1,0),p(1,1),p(0,2),p(2,3)];
+	t4r(listTuples,RepIDs) = t4r'(listTuples,RepIDs,0);
+	t4r'([],RepIDs,n) = [];
+	r(tuple) in RepIDs -> t4r'(tuple|>lt,RepIDs,n) = t_(tuple)|>t4r'(lt,RepIDs,n+1);
+	!(r(tuple) in RepIDs) -> t4r'(tuple|>lt,RepIDs,n) = t4r'(lt,RepIDs,n+1);
+%------------------------------------
+
+%given a list of tuples of the form p(taskID,replicaID) , and a list of Task IDs, set all tuples with the corresponding TaskIDs to false (third parameter of the tuple)
+%example removeLinks([p(0,0,true),p(0,1,true),p(1,0,true),p(1,1,true)],[0])-> [p(0,0,false),p(0,1,false),p(1,0,true),p(1,1,true)]
+
+map removeLinks:List(Tuple)#List(Nat)->List(Tuple);
+map removeLinks':List(Tuple)#List(Nat)#Nat->List(Tuple);
+var 
+	lt,listTuples:List(Tuple);
+	TaskIDs:List(Nat);
+	n:Nat;
+	tuple:Tuple;
+eqn
+	removeLinks(listTuples,TaskIDs) = removeLinks'(listTuples,TaskIDs,0);
+	removeLinks'([],TaskIDs,n) = [];
+	t_(tuple) in TaskIDs -> removeLinks'(tuple|>lt,TaskIDs,n) = p(t_(tuple),r(tuple),false)|>removeLinks'(lt,TaskIDs,n+1);
+	!(t_(tuple) in TaskIDs) -> removeLinks'(tuple|>lt,TaskIDs,n) = tuple|>removeLinks'(lt,TaskIDs,n+1);
+%------------------------------------
+
+%given a list of tuples of the form p(taskID,replicaID,bool) , select a list of replica IDs such that there is no link(third parameter of the tuple is false) between a replica and any task
+%example selectUnlinked([p(0,0,true),p(0,1,true),p(1,0,false),p(1,1,false),p(2,2,false)])->[2]
+
+map selectUnlinked:List(Tuple)->List(Nat);
+map selectUnlinked':List(Tuple)#List(Nat)#Nat->List(Nat);
+
+%helper transformation to select all the linked replica IDs
+map selectLinked:List(Tuple)->List(Nat);
+map selectLinked':List(Tuple)#Nat->List(Nat);
+var 
+	lt,listTuples:List(Tuple);
+	linked:List(Nat);
+	n,m:Nat;
+	tuple:Tuple;
+eqn
+	selectLinked(listTuples) = selectLinked'(listTuples,0);
+	selectLinked'([],n) = [];
+	link(tuple) -> selectLinked'(tuple|>lt,n) = r(tuple)|>selectLinked'(lt,n+1);
+	!link(tuple) -> selectLinked'(tuple|>lt,n) = selectLinked'(lt,n+1);
+
+	selectUnlinked(listTuples) = selectUnlinked'(listTuples,selectLinked(listTuples),0);
+	selectUnlinked'([],linked,m) = [];
+	!(link(tuple)) && !(r(tuple) in linked) -> selectUnlinked'(tuple|>lt,linked,m) = r(tuple)|>selectUnlinked'(lt,linked,m+1);
+	link(tuple) || r(tuple) in linked -> selectUnlinked'(tuple|>lt,linked,m) = selectUnlinked'(lt,linked,m+1);
+%------------------------------------
+
+act RPAgent_selectTasks_,_RPAgent_selectTasks:List(Nat)#Tasks;
+act RPAgent_selectTasks:List(Nat)#Tasks;
+act RPAgent_prepareNewReplicasT_,_RPAgent_prepareNewReplicasT,RPAgent_prepareNewReplicasT:List(Nat)#Tasks;
+
+act SRAgent_selectTasks_,_SRAgent_selectTasks:List(Nat)#Tasks;
+act SRAgent_selectTasks:List(Nat)#Tasks;
+act SRAgent_issuePrestageRequestsT_,_SRAgent_issuePrestageRequestsT,SRAgent_issuePrestageRequestsT:List(Nat)#Tasks;
+
+act SMAgent_selectTasks_,_SMAgent_selectTasks:List(Nat)#Tasks;
+act SMAgent_selectTasks:List(Nat)#Tasks;
+act SMAgent_monitorStageRequestsT_,_SMAgent_monitorStageRequestsT,SMAgent_monitorStageRequestsT:List(Nat)#Tasks;
+
+act RFAgent_selectTasks_,_RFAgent_selectTasks:List(Nat)#Tasks;
+act RFAgent_selectTasks:List(Nat)#Tasks;
+act RFAgent_clearFailedTasksT_,_RFAgent_clearFailedTasksT,RFAgent_clearFailedTasksT:List(Nat)#Tasks;
+act RFAgent_callbackStagedTasksT_,_RFAgent_callbackStagedTasksT,RFAgent_callbackStagedTasksT:List(Nat)#Tasks;
+
+act RPAgent_selectCacheReplicas_,_RPAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act RPAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act RPAgent_prepareNewReplicas_,_RPAgent_prepareNewReplicas,RPAgent_prepareNewReplicas:List(Nat)#CacheReplicas;
+
+act SRAgent_selectCacheReplicas_,_SRAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act SRAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act SRAgent_issuePrestageRequests_,_SRAgent_issuePrestageRequests,SRAgent_issuePrestageRequests:List(Nat)#CacheReplicas;
+
+act SMAgent_selectCacheReplicas_,_SMAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act SMAgent_selectCacheReplicas:List(Nat)#CacheReplicas;
+act SMAgent_monitorStageRequests_,_SMAgent_monitorStageRequests,SMAgent_monitorStageRequests:List(Nat)#CacheReplicas;
+
+act RPAgent_selectTaskReplicas_,_RPAgent_selectTaskReplicas:List(Nat)#List(Nat);
+act RPAgent_selectTaskReplicas:List(Nat)#List(Nat);
+
+act SRAgent_selectTaskReplicas_,_SRAgent_selectTaskReplicas:List(Nat)#List(Nat);
+act SRAgent_selectTaskReplicas:List(Nat)#List(Nat);
+
+
+act SMAgent_selectTaskReplicas_,_SMAgent_selectTaskReplicas:List(Nat)#List(Nat);
+act SMAgent_selectTaskReplicas:List(Nat)#List(Nat);
+
+act RFAgent_removeLinks_,_RFAgent_removeLinks:List(Nat);
+act RFAgent_removeLinks:List(Nat);
+
+act RFAgent_selectUnlinkedReplicas_,_RFAgent_selectUnlinkedReplicas:List(Nat);
+act RFAgent_selectUnlinkedReplicas:List(Nat);
+
+act RFAgent_removeUnlinkedReplicas_,_RFAgent_removeUnlinkedReplicas:List(Nat)#CacheReplicas;
+act RFAgent_removeUnlinkedReplicas:List(Nat)#CacheReplicas;
+
+act StorageManagerHandler_createTask_,_StorageManagerHandler_createTask:Tasks;
+act StorageManagerHandler_createTask:Tasks;
+
+act StorageManagerHandler_setRequest;
+
+act StorageManagerHandler_insertReplicaInfo_,_StorageManagerHandler_insertReplicaInfo:List(CacheReplicas);
+act StorageManagerHandler_insertReplicaInfo:List(CacheReplicas);
+
+act StorageManagerHandler_insertTaskReplicaInfo_,_StorageManagerHandler_insertTaskReplicaInfo:List(Tuple);
+act StorageManagerHandler_insertTaskReplicaInfo:List(Tuple);
+
+act StorageManagerHandler_getReplicaStates_,_StorageManagerHandler_getReplicaStates:List(Nat)#List(CacheReplicas);
+act StorageManagerHandler_getReplicaStates:List(Nat)#List(CacheReplicas);
+
+act StorageManagerHandler_updateTaskStatus_,_StorageManagerHandler_updateTaskStatus:List(Nat)#Tasks;
+StorageManagerHandler_updateTaskStatus:List(Nat)#Tasks;
+
+act internal;
+act state:List(Tasks); % for verification
+act stateCR:List(CacheReplicas); % for verification
+
+%----------------------Tasks memory simulation via process
+proc Tasksproc(d:List(Tasks)) = 
+sum t:Tasks. RPAgent_selectTasks_(t2id(d,t),t).Tasksproc(d) + 
+sum l:List(Nat),t:Tasks. RPAgent_prepareNewReplicasT_(l,t).Tasksproc(id2t(l,d,t))+
+sum t:Tasks. SRAgent_selectTasks_(t2id(d,t),t).Tasksproc(d) + 
+sum l:List(Nat),t:Tasks. SRAgent_issuePrestageRequestsT_(l,t).Tasksproc(id2t(l,d,t)) +
+sum t:Tasks. SMAgent_selectTasks_(t2id(d,t),t).Tasksproc(d) + 
+sum l:List(Nat),t:Tasks. SMAgent_monitorStageRequestsT_(l,t).Tasksproc(id2t(l,d,t)) + 
+sum t:Tasks. RFAgent_selectTasks_(t2id(d,t),t).Tasksproc(d) + 
+sum l:List(Nat),t:Tasks. RFAgent_clearFailedTasksT_(l,t).Tasksproc(id2t(l,d,t)) + 
+sum l:List(Nat),t:Tasks. RFAgent_callbackStagedTasksT_(l,t).Tasksproc(id2t(l,d,t))+
+sum t:Tasks. StorageManagerHandler_createTask_(t).Tasksproc(d<|t) + 
+sum l:List(Nat),t:Tasks. StorageManagerHandler_updateTaskStatus_(l,t).Tasksproc(id2t(l,d,t)) +
+state(d).Tasksproc(d);
+
+%----------------------CacheReplicas memory simulation via process
+proc CacheReplicasproc(d:List(CacheReplicas)) = 
+sum t:CacheReplicas. RPAgent_selectCacheReplicas_(cr2id(d,t),t).CacheReplicasproc(d) + 
+sum l:List(Nat),t:CacheReplicas. RPAgent_prepareNewReplicas_(l,t).CacheReplicasproc(id2cr(l,d,t))+
+sum t:CacheReplicas. SRAgent_selectCacheReplicas_(cr2id(d,t),t).CacheReplicasproc(d) + 
+sum l:List(Nat),t:CacheReplicas. SRAgent_issuePrestageRequests_(l,t).CacheReplicasproc(id2cr(l,d,t)) +
+sum t:CacheReplicas. SMAgent_selectCacheReplicas_(cr2id(d,t),t).CacheReplicasproc(d) + 
+sum l:List(Nat),t:CacheReplicas. SMAgent_monitorStageRequests_(l,t).CacheReplicasproc(id2cr(l,d,t)) +
+sum l:List(Nat),t:CacheReplicas. RFAgent_removeUnlinkedReplicas_(l,t).CacheReplicasproc(id2cr(l,d,t))+
+sum l:List(CacheReplicas). StorageManagerHandler_insertReplicaInfo_(l).CacheReplicasproc(d++l)+ 
+sum l:List(Nat). StorageManagerHandler_getReplicaStates_(l,id2cr1(l,d)).CacheReplicasproc(d)+
+stateCR(d).CacheReplicasproc(d);
+
+%----------------------TaskReplicas memory simulation via process
+proc TaskReplicasproc(tuple:List(Tuple)) = 
+sum c:List(Nat). RPAgent_selectTaskReplicas_(t4r(tuple,c),c).TaskReplicasproc(tuple) +
+sum c:List(Nat). SRAgent_selectTaskReplicas_(t4r(tuple,c),c).TaskReplicasproc(tuple) +
+sum c:List(Nat). SMAgent_selectTaskReplicas_(t4r(tuple,c),c).TaskReplicasproc(tuple) +
+sum c:List(Nat). RFAgent_removeLinks_(c).TaskReplicasproc(removeLinks(tuple,c)) +
+RFAgent_selectUnlinkedReplicas_(selectUnlinked(tuple)).TaskReplicasproc(tuple) +
+sum l:List(Tuple). StorageManagerHandler_insertTaskReplicaInfo_(l).TaskReplicasproc(tuple++l);
+
+%----------------------
+
+RPAgent = 
+	 sum cc:List(Nat)._RPAgent_selectCacheReplicas(cc,New).
+	((cc!=[])->
+	 (_RPAgent_prepareNewReplicas(cc,Failed).
+	 sum tt:List(Nat)._RPAgent_selectTaskReplicas(tt,cc).
+		((tt!=[])->_RPAgent_prepareNewReplicasT(tt,tFailed) <> internal)
+			+
+	 _RPAgent_prepareNewReplicas(cc,Waiting))
+			
+	  <> internal)
+.RPAgent;
+%----------------------
+
+SRAgent = 
+	sum cc:List(Nat)._SRAgent_selectCacheReplicas(cc,Waiting).
+	((cc!=[])->
+	(_SRAgent_issuePrestageRequests(cc,Failed).
+	sum tt:List(Nat)._SRAgent_selectTaskReplicas(tt,cc).
+	((tt!=[])->_SRAgent_issuePrestageRequestsT(tt,tFailed) <> internal)
+	 + 
+	_SRAgent_issuePrestageRequests(cc,StageSubmitted).
+	sum tt:List(Nat)._SRAgent_selectTaskReplicas(tt,cc).
+	((tt!=[])->_SRAgent_issuePrestageRequestsT(tt,tStageSubmitted) <> internal) %here the two actions action1.action2 should happen without interleaving
+	) <> internal)
+.SRAgent;
+%----------------------
+
+SMAgent = 
+	sum cc:List(Nat)._SMAgent_selectCacheReplicas(cc,StageSubmitted).
+	((cc!=[])->
+	(_SMAgent_monitorStageRequests(cc,Failed).
+	sum tt:List(Nat)._SMAgent_selectTaskReplicas(tt,cc).
+	((tt!=[])->_SMAgent_monitorStageRequestsT(tt,tFailed) <> internal)
+	 + 
+	_SMAgent_monitorStageRequests(cc,Staged).
+	sum tt:List(Nat)._SMAgent_selectTaskReplicas(tt,cc).
+	((tt!=[])->_SMAgent_monitorStageRequestsT(tt,tStaged) <> internal)
+	) <> internal)
+.SMAgent;
+%----------------------
+
+RFAgent = 
+	sum tf:List(Nat)._RFAgent_selectTasks(tf,tFailed).((tf!=[])->_RFAgent_clearFailedTasksT(tf,tDeleted)<>internal).
+	sum ts:List(Nat)._RFAgent_selectTasks(ts,tStaged).((ts!=[])->_RFAgent_callbackStagedTasksT(ts,tDeleted)<>internal).
+	sum td:List(Nat)._RFAgent_selectTasks(td,tDeleted).((td!=[])->_RFAgent_removeLinks(td)<>internal).
+	sum ulr:List(Nat)._RFAgent_selectUnlinkedReplicas(ulr)
+	.((ulr!=[])->_RFAgent_removeUnlinkedReplicas(ulr,Deleted)<>internal)
+.RFAgent;
+%----------------------
+StorageManagerHandler = 
+	StorageManagerHandler_setRequest.
+		_StorageManagerHandler_createTask(tNew).
+		_StorageManagerHandler_insertReplicaInfo([New,New]).
+		_StorageManagerHandler_insertTaskReplicaInfo([p(0, 0, true), p(0, 1, true)]).
+		sum repStates:List(CacheReplicas)._StorageManagerHandler_getReplicaStates([0,1],repStates).
+		(Failed in repStates)->_StorageManagerHandler_updateTaskStatus([0],tFailed) <> 
+		(allStaged(repStates))->_StorageManagerHandler_updateTaskStatus([0],tDone) <> internal;
+% should be added: select all replica states, if all of them are Staged, then move to tDone state, else internal
+% if some CR is Failed, move to tFailed
+
+%----------------------
+
+init hide ({internal},
+ allow({internal,state,stateCR,RPAgent_selectTasks,RPAgent_prepareNewReplicasT,SRAgent_selectTasks,SRAgent_issuePrestageRequestsT,
+RPAgent_selectCacheReplicas,RPAgent_prepareNewReplicas,SRAgent_selectCacheReplicas,SRAgent_issuePrestageRequests,
+RPAgent_selectTaskReplicas,SRAgent_selectTaskReplicas,
+SMAgent_selectTasks,SMAgent_monitorStageRequestsT,SMAgent_monitorStageRequests,SMAgent_selectCacheReplicas,
+SMAgent_selectTaskReplicas, 
+RFAgent_selectTasks, RFAgent_clearFailedTasksT, RFAgent_callbackStagedTasksT, RFAgent_removeLinks,RFAgent_selectUnlinkedReplicas,RFAgent_removeUnlinkedReplicas,
+StorageManagerHandler_setRequest,
+StorageManagerHandler_createTask,
+StorageManagerHandler_insertReplicaInfo,
+StorageManagerHandler_insertTaskReplicaInfo,
+StorageManagerHandler_getReplicaStates,
+StorageManagerHandler_updateTaskStatus
+},
+comm({
+RPAgent_selectTasks_|_RPAgent_selectTasks->
+RPAgent_selectTasks,
+RPAgent_prepareNewReplicasT_|_RPAgent_prepareNewReplicasT->
+RPAgent_prepareNewReplicasT,
+SRAgent_selectTasks_|_SRAgent_selectTasks->
+SRAgent_selectTasks,
+SRAgent_issuePrestageRequestsT_|_SRAgent_issuePrestageRequestsT->
+SRAgent_issuePrestageRequestsT,
+RPAgent_selectTaskReplicas_|_RPAgent_selectTaskReplicas->
+RPAgent_selectTaskReplicas,
+SRAgent_selectTaskReplicas_|_SRAgent_selectTaskReplicas->
+SRAgent_selectTaskReplicas,
+RPAgent_selectCacheReplicas_|_RPAgent_selectCacheReplicas->
+RPAgent_selectCacheReplicas,
+RPAgent_prepareNewReplicas_|_RPAgent_prepareNewReplicas->
+RPAgent_prepareNewReplicas,
+SRAgent_selectCacheReplicas_|_SRAgent_selectCacheReplicas->
+SRAgent_selectCacheReplicas,
+SRAgent_issuePrestageRequests_|_SRAgent_issuePrestageRequests->
+SRAgent_issuePrestageRequests,
+
+SMAgent_selectTasks_|_SMAgent_selectTasks->
+SMAgent_selectTasks,
+SMAgent_monitorStageRequestsT_|_SMAgent_monitorStageRequestsT->
+SMAgent_monitorStageRequestsT,
+SMAgent_selectTaskReplicas_|_SMAgent_selectTaskReplicas->
+SMAgent_selectTaskReplicas,
+SMAgent_selectCacheReplicas_|_SMAgent_selectCacheReplicas->
+SMAgent_selectCacheReplicas,
+SMAgent_monitorStageRequests_|_SMAgent_monitorStageRequests->
+SMAgent_monitorStageRequests,
+
+RFAgent_selectTasks_|_RFAgent_selectTasks->
+RFAgent_selectTasks,
+RFAgent_clearFailedTasksT_|_RFAgent_clearFailedTasksT->
+RFAgent_clearFailedTasksT,
+RFAgent_callbackStagedTasksT_|_RFAgent_callbackStagedTasksT->
+RFAgent_callbackStagedTasksT,
+RFAgent_selectUnlinkedReplicas_|_RFAgent_selectUnlinkedReplicas->
+RFAgent_selectUnlinkedReplicas,
+RFAgent_removeLinks_|_RFAgent_removeLinks->
+RFAgent_removeLinks,
+RFAgent_removeUnlinkedReplicas_|_RFAgent_removeUnlinkedReplicas->
+RFAgent_removeUnlinkedReplicas,
+StorageManagerHandler_createTask_|_StorageManagerHandler_createTask->
+StorageManagerHandler_createTask,
+StorageManagerHandler_insertReplicaInfo_|_StorageManagerHandler_insertReplicaInfo->
+StorageManagerHandler_insertReplicaInfo,
+StorageManagerHandler_insertTaskReplicaInfo_|_StorageManagerHandler_insertTaskReplicaInfo->
+StorageManagerHandler_insertTaskReplicaInfo,
+StorageManagerHandler_getReplicaStates_|_StorageManagerHandler_getReplicaStates->
+StorageManagerHandler_getReplicaStates,
+StorageManagerHandler_updateTaskStatus_|_StorageManagerHandler_updateTaskStatus->
+StorageManagerHandler_updateTaskStatus
+
+}, 
+		    StorageManagerHandler ||
+			    Tasksproc([]) || 
+	     	    CacheReplicasproc([]) || 
+				  RPAgent || 
+		 	   	  SRAgent || 
+				  SMAgent || 
+				  RFAgent || 
+TaskReplicasproc([]) 
+)));
+

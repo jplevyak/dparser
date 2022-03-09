@@ -1,0 +1,149 @@
+% This specification describes the game `Othello' or `Reversi', which is a two
+% player board game. There is a board of N = R + 1 by M = C + 1 where N and M 
+% are generally both 8 (i.e., R=C=3). One player has white pieces (W) and the
+% other has red pieces (R). Initially, the board is set up as follows (in the
+% example, R=C=2):
+%
+%   . . . . . . 
+%   . . . . . . 
+%   . . R W . . 
+%   . . W R . . 
+%   . . . . . .
+%   . . . . . . 
+%
+% Red makes the first move and the players alternatingly put a piece on the 
+% board, unless a player cannot put a piece on the board, in which case he
+% must skip his turn. A move is made by putting a piece on the board such 
+% that at least one piece of the opponent is enclosed with two opposite 
+% colors. Subsequently all pieces that are enclosed will change color.
+%
+% The game ends when both players cannot do a move anymore. The player with
+% the largest number of pieces on the board wins. If both players have the 
+% same number of pieces it is a draw.
+%
+% The following formula expresses that with a perfect play white can always 
+% win the game: if white is not victorious already, then either white can do 
+% a move to bring it closer to a victory, or red moves and all moves that red
+% can do will bring white closer to a victory, or a player passes, in which
+% case again white will be closer to victory.
+% 
+% mu X.((<Outcome(win(white))>true) || 
+%       (exists x,y:Nat.<Put(x, y, white)>X) ||
+%       ((exists x,y:Nat.<Put(x, y, red)>true) &&
+%        (forall x,y:Nat.[Put(x, y, red)]X)) ||
+%       ((<Pass>X) && ([Pass]X)))
+%
+% On a 4x4 board this formula is true, i.e. white can always win the game.
+% The converse (the same formula with red and white interchanged) obviously
+% does not hold.
+%
+% This specification is loosely based on the 2009 specification by Jan Friso
+% Groote.
+
+sort Player = struct red | white;
+     Square = struct piece(Player) | empty | invalid;
+     Outcome = struct win(Player) | draw;
+     Direction = List(Int);
+     Row = List(Square);
+     Board = List(Row);
+map N, M, R, C: Pos;
+    B: Board;
+    alldirections: List(Direction);
+    outcome: Board -> Outcome;
+    ccount: Board # Player -> Nat;
+    ccount: Row # Player -> Nat;
+    canplay: Board # Nat # Nat # Player -> Bool;
+    at: Board # Int # Int -> Square;
+    updated: Board # Nat # Nat # Player # Direction -> Board;
+    update: Board # Nat # Nat # Player # List(Direction) -> Board;
+    update: Board # Nat # Nat # Player -> Board;
+    replace: Board # Nat # Nat # Player -> Board;
+    replace: Row # Nat # Player -> Row;
+    nextn, nextm: Nat # Direction -> Nat;
+    opponent: Player -> Player;
+    pad: Row # Nat -> Row;
+    pad: Board # Nat -> Board;
+var n, m: Nat;
+    i, j: Int;
+    b: Board;
+    r: Row;
+    s: Square;
+    P: Player;
+    d: Direction;
+    l: List(Direction);
+eqn % Directions to search in, as (n,m) vectors
+    alldirections = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]];
+    
+    % Generalize the board to have sentinels ("invalid") at the borders
+    0 <= i && i < N && 0 <= j && j < M -> at(b, i, j) = b.Int2Nat(i).Int2Nat(j);
+    0 > i || i >= N || 0 > j || j >= M -> at(b, i, j) = invalid;
+
+    % Calculate outcome of board
+    outcome(b) = if(i == j, draw, if(i > j, win(red), win(white)))
+                 whr i = Nat2Int(ccount(b, red)), j = Nat2Int(ccount(b, white)) end;
+    ccount(r |> b, P) = ccount(r, P) + ccount(b, P);
+    b == [] -> ccount(b, P) = 0;
+    s == piece(P) -> ccount(s |> r, P) = ccount(r, P) + 1;
+    s != piece(P) -> ccount(s |> r, P) = ccount(r, P);
+    r == [] -> ccount(r, P) = 0;
+
+    % Calculate whether player p may place a piece on (n,m)
+    canplay(b, n, m, P) = at(b, n, m) == empty && update(b, n, m, P) != b;
+
+    % Let player P place a piece on position (n,m) of b. Return
+    % the altered board. If this is not a valid move, the same
+    % board is returned.
+    update(b, n, m, P) = update(b, n, m, P, alldirections);
+    at(b, n + d . 0, m + d . 1) == piece(opponent(P)) ->
+      update(b, n, m, P, d |> l) = if(newboard != b,
+                                      update(replace(newboard, n, m, P), n, m, P, l),
+                                      update(b, n, m, P, l)) 
+                                   whr newboard = updated(b, n, m, P, d) end;
+    at(b, n + d . 0, m + d . 1) != piece(opponent(P)) ->
+      update(b, n, m, P, d |> l) = update(b, n, m, P, l);
+    update(b, n, m, P, []) = b; 
+    ((lookahead == empty || lookahead == invalid) whr lookahead = at(b, n + d . 0, m + d . 1) end) -> 
+           updated(b, n, m, P, d) = b;
+    (lookahead == piece(P) whr lookahead = at(b, n + d . 0, m + d . 1) end) ->
+           updated(b, n, m, P, d) = replace(b, n, m, P);
+    ((lookahead != empty && lookahead != invalid && lookahead != piece(P)) whr lookahead = at(b, n + d . 0, m + d . 1) end) ->
+           updated(b, n, m, P, d) = updated(b, Int2Nat(n + d . 0), Int2Nat(m + d . 1), P, d);
+   
+    % Assign a piece of player P to position (n, m) of board b
+    n > 0 -> replace(r |> b, n, m, P) = r |> replace(b, Int2Nat(n - 1), m, P);
+    n == 0 -> replace(r |> b, n, m, P) = replace(r, m, P) |> b;
+    m > 0 -> replace(s |> r, m, P) = s |> replace(r, Int2Nat(m - 1), P);
+    m == 0 -> replace(s |> r, m, P) = piece(P) |> r;
+
+    % Opponent definition
+    opponent(red) = white;
+    opponent(white) = red;
+
+    % Initial board:
+    B = pad([pad([piece(red), piece(white)], 0), pad([piece(white),piece(red)], 0)], 0); 
+    R = 1;          % Extra rows
+    C = 1;          % Extra columns
+    N = 2 * R + 2;  % Board height
+    M = 2 * C + 2;  % Board width
+    n < C -> pad(r, n) = pad(empty |> r <| empty, n + 1);
+    n == C -> pad(r, n) = r;
+    n < C -> pad(b, n) = pad(r |> b <| r, n + 1) whr r = pad([empty, empty], 0) end;
+    n == C -> pad(b, n) = b;
+
+act Put: Nat # Nat # Player; % A player puts a piece on the board
+    Outcome: Outcome;        % The game has ended with this outcome
+    Pass;                    % A player is forced to skip a turn
+
+proc Othello(board: Board, turn: Player, canpass: Bool) =
+  % All next moves for the current player
+  sum n, m: Nat . 
+    canplay(board, n, m, turn) -> Put(n, m, turn) . Othello(update(board, n, m, turn), opponent(turn), true)
+  % If no next moves exist for the current player, and the opponent
+  % did not pass in the last turn, then this player can pass.
++ ( canpass && !exists n, m: Nat . canplay(board, n, m, turn)) -> Pass . Othello(board, opponent(turn), false)
+  % If both players have passed, then the game is finished and the
+  % outcome is reported.
++ (!canpass && !exists n, m: Nat . canplay(board, n, m, turn)) -> Outcome(outcome(board)) . Othello()
++ delta;
+
+init Othello(B, red, true);

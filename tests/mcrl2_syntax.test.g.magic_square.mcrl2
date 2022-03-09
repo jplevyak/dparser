@@ -1,0 +1,33 @@
+% The magical square is a well known puzzle.
+% Consider the number from 1 to 9.
+% Can these numbers be arranged in the following form:
+%
+%        n1  n2  n3
+%        n4  n5  n6
+%        n7  n8  n9
+%
+% such that the sum of each colum, row and diagonal is 15.
+% The example below shows how this can be phrased in mCRL2.
+%
+% Jan Friso Groote. February 2008.
+
+map all_unique:List(Pos)->Bool;
+
+var n:Pos; L:List(Pos);
+eqn all_unique([])=true;
+    all_unique(n|>L)= !(n in L) && all_unique(L);
+act a:Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos;
+
+init sum n1,n2,n3,n4,n5,n6,n7,n8,n9:Pos.
+             (n1+n2+n3==15 &&
+              n4+n5+n6==15 &&
+              n7+n8+n9==15 &&
+              n1+n4+n7==15 &&
+              n2+n5+n8==15 &&
+              n3+n6+n9==15 &&
+              n1+n5+n9==15 &&
+              n7+n5+n3==15 &&
+              all_unique([n1,n2,n3,n4,n5,n6,n7,n8,n9])) ->
+                         a(n1,n2,n3,n4,n5,n6,n7,n8,n9).delta<>delta;
+
+

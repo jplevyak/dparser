@@ -1,0 +1,56 @@
+% Dekker's algorithm for mutual exclusion as described on Wikipedia
+% https://en.wikipedia.org/wiki/Dekker%27s_algorithm
+% Accessed 2021-03-08.
+
+act enter, leave,wish: Nat;
+    get_flag_r, get_flag_s, get_flag,
+      set_flag_r, set_flag_s, set_flag: Nat # Bool;
+    get_turn_r, get_turn_s, get_turn,
+      set_turn_r,set_turn_s,set_turn: Nat;
+
+
+map other: Nat -> Nat;
+eqn other(0) = 1;
+    other(1) = 0;
+
+proc
+  % Shared variables flag (array).
+  Flag(i: Nat, b: Bool)=
+    sum b': Bool. set_flag_r(i, b').Flag(i, b')
+	+ get_flag_s(i, b).Flag(i, b);
+
+  % Shared variable turn.
+  Turn(n:Nat)=
+    sum n': Nat. set_turn_r(n').Turn(n')
+  + get_turn_s(n).Turn(n);
+
+  % Main process for Dekker's algorithm.
+  Dekker(i: Nat) =
+    wish(i)|set_flag_s(i, true) .
+	Dekker_outer_loop(i);
+
+  Dekker_outer_loop(i: Nat) =
+      % Read shared variable flag
+	  sum flag_other: Bool . get_flag_r(other(i), flag_other) .
+	  flag_other -> ( sum turn: Nat . get_turn_r(turn) .   % Read shared variable turn
+                    (turn != i) -> (set_flag_s(i, false) . % flag[i] := false
+                                    get_turn_r(i) .        % while turn != i { /* busy wait */}
+                                    set_flag_s(i, true) .  % flag[i] := true
+                                    Dekker_outer_loop(i)   % loop
+                                   )
+                                <> Dekker_outer_loop(i))  % if turn == i, loop
+               <> (set_turn_s(other(i)) .                 % turn := other(i)
+                   enter(i) .
+                   leave(i) .
+                   set_flag_s(i, false) .                 % flag[i] := false
+                  Dekker(i));
+
+init
+    allow({ wish|set_flag, enter, leave,
+            get_flag, set_flag, get_turn, set_turn},
+      comm({ get_flag_r | get_flag_s -> get_flag,
+             set_flag_r | set_flag_s -> set_flag,
+             get_turn_r | get_turn_s -> get_turn,
+             set_turn_r | set_turn_s -> set_turn },
+      Dekker(0) || Dekker(1) ||
+      Flag(0,false) || Flag(1,false) || Turn(0)));

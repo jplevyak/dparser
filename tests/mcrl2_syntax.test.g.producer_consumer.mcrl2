@@ -1,0 +1,26 @@
+% producer consumer example
+% Chilo van Best, June 2008
+%
+% This is a simple example of a process containing a deadlock.
+
+% Actions
+act  P_in_start, P_out_started, Q_out_started, Q_in_start; act c1, c2;
+
+
+% Processes.
+proc
+% P
+  P = P_in_start.P_out_started.P;
+
+% Q okay
+%  Q = Q_out_started.Q_in_start.Q;
+% Q deadlock
+  Q = Q_in_start.Q_out_started.Q;
+
+
+% And now make a network
+init allow({    c1, c2  },
+           comm({ P_in_start | Q_out_started -> c1,
+                  P_out_started | Q_in_start -> c2
+                },
+              P || Q ));

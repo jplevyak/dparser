@@ -1,0 +1,109 @@
+% This specification describes the `Hex' game, invented by Piet
+% Hein, said to be a descendant of a Dutch, in the Netherlands
+% much heralded pirate, Piet Hein.
+% The game has two players and a board consisting of NxM hexagonal
+% fields. The neighbouring fields of field (x,y) are (x+1,y),
+% (x+1,y-1), (x,y-1), (x-1,y), (x-1,y+1), (x,y+1). There are
+% two players that alternatingly put a piece on an empty field.
+% The first players put red pieces, the second one blue pieces.
+% The goal of the game for the first player is to have a
+% connecting sequence of red pieces from left to right. The
+% second player must connect the bottom with the top with blue
+% pieces. The player that first establishes its goal is the
+% winner.
+% A typical property of this game is that a draw is not possible.
+% From this it appears to be derivable that the first player
+% that starts the game has a winning strategy. However, this
+% strategy is not known.
+%
+% Thanks to Mark Winands.
+% Reijkjavik, 12 May 2006, Jan Friso Groote.
+
+
+sort Position = struct Red | Blue | Empty;
+
+map N,M:Pos;
+eqn N=4; M=4;
+
+sort Row=List(Position);
+     Board=List(Row);
+map  At:Nat#Nat#Board->Position;
+     At:Nat#Row->Position;
+     Put:Position#Nat#Nat#Board->Board;
+     Put:Position#Nat#Row->Row;
+     Wins:Position#Board->Bool;
+     CheckRedInLeftMostColumn:Nat#Board->Bool;
+     CheckBlueInBottomRow:Nat#Board->Bool;
+     Connect:Nat#Nat#Board#Position->Bool;
+
+var b:Board;
+    r:Row;
+    p,p':Position;
+    x,y:Nat;
+eqn At(x,y,[])=Empty;
+    x==0 -> At(x,y,r|>b)=Empty;
+    y==0 -> At(x,y,r|>b)=Empty;
+    y==1 -> At(x,y,r|>b)=At(x,r);
+    y>1 -> At(x,y,r|>b)=At(x,Int2Pos(y-1),b);
+    At(x,[])=Empty;
+    x==1 -> At(x,p|>r)=p;
+    x>1 -> At(x,p|>r)=At(Int2Pos(x-1),r);
+    y==1 -> Put(p,x,y,r|>b)=Put(p,x,r)|>b;
+    y>1 -> Put(p,x,y,r|>b)=r|>Put(p,x,Int2Pos(y-1),b);
+    x==1 -> Put(p,x,p'|>r)=p|>r;
+    x>1 -> Put(p,x,p'|>r)=p'|>Put(p,Int2Pos(x-1),r);
+
+    Wins(Red,b)=CheckRedInLeftMostColumn(1,b);
+    y<M -> CheckRedInLeftMostColumn(y,b)=
+                  Connect(1,y,b,Red) || CheckRedInLeftMostColumn(y+1,Put(Empty,1,y,b));
+    y==M -> CheckRedInLeftMostColumn(y,b)=Connect(1,y,b,Red);
+
+    Wins(Blue,b)=CheckBlueInBottomRow(1,b);
+    x<N -> CheckBlueInBottomRow(x,b)=
+                  Connect(x,1,b,Blue) || CheckBlueInBottomRow(x+1,Put(Empty,x,1,b));
+    x==N -> CheckBlueInBottomRow(x,b)=Connect(x,1,b,Blue);
+
+    At(x,y,b)!=p -> Connect(x,y,b,p)=false;
+    x==0 -> Connect(x,y,b,p)=false;
+    y==0 -> Connect(x,y,b,p)=false;
+    x>N -> Connect(x,y,b,p)=false;
+    y>M -> Connect(x,y,b,p)=false;
+    x==N && At(x,y,b)==Red && 0<y && y<=M -> Connect(x,y,b,Red)=true;
+    y==M && At(x,y,b)==Blue && 0<x && x<=N -> Connect(x,y,b,Blue)=true;
+    At(x,y,b)==p && 0<x && (x<N || (x==N && p==Blue)) &&
+                    0<y && (y<M || (y==M && p==Red)) ->
+         Connect(x,y,b,p) = Connect(x+1,y,b',p) || Connect(x+1,Int2Nat(y-1),b',p) ||
+                            Connect(x,Int2Nat(y-1),b',p) || Connect(Int2Nat(x-1),y,b',p) ||
+                            Connect(Int2Nat(x-1),y+1,b',p) || Connect(x,y+1,b',p)
+                whr b'=Put(Empty,x,y,b) end;
+
+
+act RedMove,BlueMove:Pos#Pos;
+    RedWins,BlueWins;
+
+proc Hex(b:Board,RedMoves:Bool)=
+       sum x,y:Pos.
+           (RedMoves &&
+            x<=N &&
+            y<=M &&
+            At(x,y,b)==Empty &&
+            !Wins(Blue,b))
+           -> RedMove(x,y).Hex(Put(Red,x,y,b),false)+
+       sum x,y:Pos.
+           (!RedMoves &&
+            x<=N &&
+            y<=M &&
+            At(x,y,b)==Empty &&
+            !Wins(Red,b))
+           -> BlueMove(x,y).Hex(Put(Blue,x,y,b),true)+
+       Wins(Red,b) -> RedWins.Hex(b,RedMoves)+
+       Wins(Blue,b) -> BlueWins.Hex(b,RedMoves)+
+       delta;
+
+init Hex([[Empty,Empty,Empty,Empty],
+          [Empty,Empty,Empty,Empty],
+          [Empty,Empty,Empty,Empty],
+          [Empty,Empty,Empty,Empty]], true);
+
+
+

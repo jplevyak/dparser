@@ -1,0 +1,62 @@
+% This file describes the onebit sliding window protocol as documented
+% M.A. Bezem and J.F. Groote. A correctness proof of a one bit sliding
+% window protocol in muCRL. The Computer Journal, 37(4): 289-307, 1994.
+% This sliding window protocol is a bidirectional sliding window protocol
+% with piggy backing, where the window sizes at the receiving and
+% sending side have size 1. The behaviour of this sliding window protocol
+% is that of two bidirectional buffers sending data from channel ra to
+% sb, and from rc to sd. Both buffers have capacity 2.
+%   The external behaviour of the onebit protocol is rather complex.
+% However, making only the behaviour visible at gates ra and sb reduced
+% modulo branching bisimulation clearly shows the behaviour of
+% a buffer of capacity 2.
+%
+% Jan Friso Groote, translated from muCRL 30/12/2006
+
+sort Bit = struct e0 | e1;
+     D= struct dat0 | dat1;
+     Frame=struct frame(dat:D,bit1:Bit,bit2:Bit);
+     Status=struct read?eq_read | choice?eq_choice | del?eq_del;
+
+map inv:Bit-> Bit;
+eqn  inv(e0)=e1;
+     inv(e1)=e0;
+
+act  ra,sb,rc,sd:D;
+     rcl,scl,i_del,i_lost,ccl;
+     r,s,c,s2,r2,c2,s4,r4,c4:Frame;
+
+proc S(ready:Bool,rec:Bool,sts:Bool,d:D,e:D,p:Bit,q:Bit)=
+       ready -> sum d:D.ra(d).S(false,rec,false,d,e,inv(p),q) +
+       !rec -> sb(e).S(ready,true,sts,d,e,p,q) +
+       rcl.S(ready,rec,false,d,e,p,q)+
+       sum f:D,b1:Bit,b2:Bit.
+           r4(frame(f,b1,b2)).
+              (rec && b1==inv(q)) -> S(b2==p,false,sts,d,f,p,inv(q))
+                                  <> S(b2==p,rec,sts,d,e,p,q) +
+       !sts -> s(frame(d,p,q)).S(ready,rec,true,d,e,p,q) +
+       delta;
+
+proc Tim= scl.Tim;
+
+proc C(f:Frame,st:Status)=
+       eq_read(st) -> sum f:Frame.r(f).C(f,choice)<>delta+
+       eq_choice(st) -> (i_del.C(f,del)+i_lost.C(f,read))<>delta+
+       eq_del(st) -> s2(f).C(f,read)<>delta ;
+
+init hide ({c4,c2,ccl,c,i_del},
+       allow({c,ccl,c2,c4,i_del,i_lost,ra,sb,rc,sd},
+         comm({r2|s2->c2,r4|s4->c4},
+           rename({sb->sd},
+             allow({c,ccl,ra,sb,s2,r4,i_del,i_lost},
+               comm({rcl|scl->ccl,r|s->c},
+                 S(true,true,true,dat0,dat0,e0,e0)||
+                 Tim||
+                 C(frame(dat0,e0,e0),read))))||
+           rename({ra->rc,s2->s4,r4->r2},
+             allow({c,ccl,ra,sb,s2,r4,i_del,i_lost},
+               comm({rcl|scl->ccl,r|s->c},
+                 S(true,true,true,dat0,dat0,e0,e0)||
+                 Tim||
+                 C(frame(dat0,e0,e0) ,read)))))));
+

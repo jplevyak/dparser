@@ -1,0 +1,21 @@
+% This file contains an example of a timed light switch inspired by
+% an Uppaal tutorial. The idea is that there is light that can either
+% be off, dimmed or shine brightly. When the light switch is pressed
+% the light goes from off to on and vice versa. If off, and the switch
+% is pressed more than once within 5 seconds the lamp will shine brightly.
+% The exact time when the press action happens is always x+y time since
+% the last reset of x. There is no time tag in the press action to
+% reflect this. This example can be used as a test case for lpsrealelm
+% that replace parameters of sort real by finite domains.
+%
+% Jan Friso Groote, December 2008
+
+act  press_on,press_off,press_bright;
+     status:Light;
+sort Light=struct off | on | bright;
+proc P(x:Real,l:Light) = (l==off)->press_on.P(0,on)
+                       + sum y:Real.(l!=off && 0<y && x+y<5)->press_bright.P(x+y,bright)
+                       + sum y:Real.(l!=off && 0<y && x+y>=5)->press_off.P(0,off)
+                       + status(l).P(x,l);
+
+init P(0,off);

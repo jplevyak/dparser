@@ -1,0 +1,49 @@
+% This file contains a specification of the well known
+% problem of the wolf, the goat and the cabbage, which
+% dates back to the French 8th century mathematician Alcuin.
+%
+% There are a man with a wolf, a goat and a cabbage standing
+% at one side of a river. He wants to cross and for this
+% purpose he has a small boat that can only contain him and
+% one item. If the wolf is left with the goat, the goat will
+% be eaten. If the goat is left with the cabbage, the cabbage
+% is consumed. The question is to find a strategy to bring the
+% man to the other shore without losing any of his items.
+%
+% This example shows the use of sets in mCRL2.
+%
+% Jan Friso Groote & Aad Mathijssen, January 2009
+%
+% Linearisation of this model is quickest using the -lregular2 option of
+% mcrl22lps
+
+sort Item     = struct wolf | goat | cabbage;
+     Position = struct left | right;
+     Shores   = struct shores(Set(Item), Set(Item));
+
+map  opp: Position -> Position;
+     items: Shores # Position -> Set(Item);
+     update: Shores # Position # Item -> Shores;
+var  s,t: Set(Item); i: Item;
+eqn  opp(left) = right;
+     opp(right) = left;
+     items(shores(s, t), left)  = s;
+     items(shores(s, t), right) = t;
+     update(shores(s,t), right, i)  = shores(s - {i}, t + {i});
+     update(shores(s,t), left,  i)  = shores(s + {i}, t - {i});
+
+act  is_eaten: Item;
+     move: Position;
+     move: Position # Item;
+     done;
+
+proc WGC(s: Shores, p: Position) =
+       ({wolf,goat}    <= items(s, opp(p))) -> is_eaten(goat)    . delta
+     + ({goat,cabbage} <= items(s, opp(p))) -> is_eaten(cabbage) . delta
+     + (!({wolf,goat} <= items(s, opp(p))) && !({goat,cabbage} <= items(s, opp(p)))) ->
+       ( move(opp(p)) . WGC(s, opp(p))
+       + sum i:Item. (i in items(s, p)) -> move(opp(p), i) . WGC(update(s, opp(p), i), opp(p))
+       + (items(s, right) == {wolf,goat,cabbage}) -> done . delta
+       );
+
+init WGC(shores({wolf,goat,cabbage}, {}), left);

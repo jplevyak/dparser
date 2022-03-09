@@ -1,0 +1,89 @@
+% The magical hexagon is a variant of a magic square. 
+% Consider the numbers from 1 to 19.
+% Can these numbers be arranged in the following form:
+%               
+%              n3
+%           n2    n7
+%        n1    n6    n12
+%           n5    n11   
+%        n4    n10   n16
+%           n9    n15
+%        n8    n14   n19
+%           n13   n18
+%              n17
+%
+%
+% such that the sum of each column, left-up to right-down diagonal and
+% right-up to left-down diagonal is equal to 38. This gives rise to 15
+% constraints. 
+%
+% To remove symmetric cases, it can be seen that n1>=6 && n1<=14 and 
+% n3>=2 && n3<=18, as the numbers 
+%
+% The example below shows how this can be phrased in mCRL2. By formulating
+% them in the form of n1==max(1,...) sum elimination can be performed before
+% solving the puzzle. 
+%
+% To solve the puzzle the following commands can be used.
+%    mcrl22lps -vo magic_hexagon.mcrl2 temp.lps &&
+%    lpssumelm -v temp.lps temp1.lps --timings &&
+%    lps2lts -v -rjittyc temp1.lps temp.aut
+%
+% As it stands this does not seem to be enough to solve the puzzle. Most
+% of the time is spent on rewriting with numbers. This may substantially improve
+% when the numbers have been replaced by machine dependent numbers. 
+%
+% As it stands the toolset is not able to solve this at all. 
+%
+% Jan Friso Groote. June 2018.
+
+map all_unique, all_smaller_equal19:List(Pos)->Bool;
+
+var n:Pos; L:List(Pos);
+eqn all_unique([])=true;
+    all_unique(n|>L)= !(n in L) && all_unique(L);
+    all_smaller_equal19([])=true;
+    all_smaller_equal19(n|>L)= (n<=19) && all_smaller_equal19(L);
+act a:Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos#Pos;
+    center,corner:Pos;
+ 
+% Generating the solution by only using the sum operator over all variables does not 
+% work. It requires too much space. However, by splitting the sum in multiple steps,
+% by first generating concrete values for the central value, en then one for a corner
+% case allows to toolset to solve this puzzle. This suggests that enumeration can
+% be improved. 
+%
+% The equations below have been obtained by taking the original equations derived 
+% from the puzzle and simplifying them. 
+init sum central_value:Pos.(central_value<=19)->center(central_value).
+     sum corner_value:Pos.(corner_value>=6 && corner_value<=14) -> corner(corner_value).
+     sum n2,n3,n4,n5,n6,n7,n8,n9,n11,n12,n13,n14,n15,n16,n17,n18,n19,n1,n10:Pos.
+             (n1==max(1,38 - n15 - n18 - n19 + n6) && 38 +n6 > n15 + n18 + n19 &&
+              n2==max(1,n10 + n14 + n15) &&
+              n3==max(1,-n10 - n14 + n18 + n19 - n6) && n18 + n19 > n6+n10+n14 &&
+              n4==max(1,n10 + n11 + n15) &&
+              n5==max(1,-n10 + n18 - n6) && n18>n10 + n6 &&
+              n6==n6 && 
+              n7==max(1,38 - n11 - n15 - n18) && 38 > n11 + n15 + n18 &&
+              n8==max(1,-n10 - n11 + n18 + n19 - n6) && n18 + n19 > n6+n10+n11 &&
+              n9==max(1,38 - n10 - n11 - n14 - n15 - n18) && 38 >n10 + n11 + n14 + n15 + n18 &&
+              n10==n10 &&
+              n11==n11 &&
+              n12==max(1,n10 + n11 + n14 + n15 - n19 + n6) && n10 + n11 + n14 + n15 + n6>n19 &&
+              n13==max(1,n10 + n11 + n6) &&
+              n14==n14 &&
+              n15==n15 &&
+              n16==max(1,38 - n10 - n11 - n14 - n15 - n6) && 38>n10 + n11 + n14 + n15 + n6 &&
+              n17==max(1,38 - n18 - n19) && % 38 > n18 + n19 &&
+              n18==n18 &&
+              n19==n19 &&
+              all_unique([n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n17,n18,n19]) &&
+              all_smaller_equal19([n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n17,n18,n19]) &&
+              n19>=6 && n19<=14 && % Due to symmetry, we know that the values in one corner must satisfy
+              n18>=7 && n18<=18 && % this constraint. 
+              n10==central_value &&  % This is part of the known solution, so should not be given. The only solution is 5. 
+              n19==corner_value &&  
+              true) ->
+                   a(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n17,n18,n19).delta;
+
+

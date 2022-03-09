@@ -1,0 +1,31 @@
+% This is the dining philosophers problem
+% Variable K indicates the number of philosophers (and forks)
+%
+% Note: When changing the value of K, change the KForkPhil process accordingly!
+
+eqn K = 8;
+
+map K: Pos;
+
+act get,put,up,down,lock,free: Pos#Pos;
+    eat: Pos;
+
+proc 
+  Phil(n:Pos) = get(n,n).get(n,if(n==K,1,n+1)).eat(n).put(n,n).put(n,if(n==K,1,n+1)).Phil(n);
+  Fork(n:Pos) = sum m:Pos.up(m,n).down(m,n).Fork(n);
+
+  ForkPhil(n:Pos) = Fork(n) || Phil(n);
+  KForkPhil(k:Pos) =
+       % ForkPhil(1) || ... || ForkPhil(k);
+       % or 
+       % (k>1) -> (ForkPhil(k)||KForkPhil(max(k-1,1))) <> ForkPhil(k);
+       ForkPhil(1) || ForkPhil(2) ||
+       ForkPhil(3) || ForkPhil(4) ||
+       ForkPhil(5) || ForkPhil(6) ||
+       ForkPhil(7) || ForkPhil(8);
+
+init allow( { lock, free, eat },
+       comm( { get|up->lock, put|down->free },
+         KForkPhil(K)
+     ));
+

@@ -1,0 +1,18 @@
+% This process has the behaviour of a binary tree.
+% It has in total 2N+1 states and 2N transitions.
+% Each node is represented by a positive number,
+% which if written as a binary number indicates
+% the path from the root to the node. The first
+% digit is always one, and must be ignored. If a
+% subsequent digit is 0 go to the left, and if
+% 1 go to the right.
+
+% Jan Friso Groote, September 3, 2006.
+
+act left,right;
+map N:Pos;
+eqn N=512;
+
+proc X(n:Pos)=(n<=N)->(left.X(2*n)+right.X(2*n+1))<>delta;
+
+init X(1);

@@ -1,0 +1,13 @@
+% This example specifies a clock with time drift.
+% This is a clock where each subsequent tick can
+% come up to eps too early or too late.
+% (Taken from Designing and Understanding the Behaviour of Systems, J.F. Groote
+% and M. Reniers).
+act tick;
+
+% Arbitrary drift
+map eps:Real;
+
+proc Clock (t:Real) = sum y:Real . (t+1-eps <= y && y <= t+1+eps) -> tick@y . Clock(y);
+
+init Clock(0);

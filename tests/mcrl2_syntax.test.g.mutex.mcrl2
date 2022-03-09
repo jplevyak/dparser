@@ -1,0 +1,224 @@
+sort Label =
+  struct
+    a_assign_readyA | a_read_readyA | a_assign_readyB| a_read_readyB |
+    a_assign_turnA | a_assign_turnB | a_read_turnA | a_read_turnB |
+    a_critA | a_critB | a_noncritA | a_noncritB
+  ;
+
+sort
+  TurnType= struct A | B;
+act
+  assign_readyA,r_assign_readyA,s_assign_readyA: Bool;
+  assign_readyB,r_assign_readyB,s_assign_readyB: Bool;
+  assign_turnA,r_assign_turnA,s_assign_turnA;
+  assign_turnB,r_assign_turnB,s_assign_turnB;
+  read_readyA,r_read_readyA,s_read_readyA: Bool;
+  read_readyB,r_read_readyB,s_read_readyB: Bool;
+  read_turnA,r_read_turnA,s_read_turnA;
+  read_turnB,r_read_turnB,s_read_turnB;
+  noncritA, critA, noncritB, critB;
+  label:Label;
+  
+proc
+  ReadyA(b: Bool) =
+    sum b':Bool.r_assign_readyA(b').ReadyA(b')
+  + s_read_readyA(b)|label(a_read_readyA).ReadyA();
+  
+  ReadyB(b: Bool) =
+    sum b':Bool.r_assign_readyB(b').ReadyB(b')
+  + s_read_readyB(b)|label(a_read_readyB).ReadyB();
+  
+  Turn(t: TurnType) =
+    r_assign_turnA.Turn(A)
+  + r_assign_turnB.Turn(B)
+  + (t==A) -> s_read_turnA|label(a_read_turnA).Turn()
+  + (t==B) -> s_read_turnB|label(a_read_turnB).Turn();
+  
+  procA =
+    noncritA|label(a_noncritA).
+      s_assign_readyA(true)|label(a_assign_readyA).
+        s_assign_turnB|label(a_assign_turnB).
+	  sum rA,rB: Bool, t:TurnType.
+	    (r_read_readyB(false)+r_read_turnA).
+              critA|label(a_critA).
+	        s_assign_readyA(false)|label(a_assign_readyA).procA;
+	    
+  procB =
+    noncritB|label(a_noncritB).
+      s_assign_readyB(true)|label(a_assign_readyB).
+        s_assign_turnA|label(a_assign_turnA).
+	  sum rA,rB: Bool, t:TurnType.
+	    (r_read_readyA(false)+r_read_turnB).
+	      critB|label(a_critB).
+	        s_assign_readyB(false)|label(a_assign_readyB).procB;
+
+init
+hide({assign_readyA,read_readyA,assign_readyB,read_readyB,
+      assign_turnA,assign_turnB,read_turnA,read_turnB,
+      critA,critB,noncritA,noncritB},
+  allow({assign_readyA|label, read_readyA|label,
+	 assign_readyB|label, read_readyB|label,
+  	 assign_turnA|label, assign_turnB|label,
+  	 read_turnA|label, read_turnB|label,
+  	 critA|label, critB|label, noncritA|label, noncritB|label},
+      comm({r_assign_readyA|s_assign_readyA->assign_readyA,
+	    r_read_readyA|s_read_readyA -> read_readyA,
+            r_assign_readyB|s_assign_readyB->assign_readyB,
+	    r_read_readyB|s_read_readyB -> read_readyB,
+ 	    r_assign_turnA|s_assign_turnA ->assign_turnA,
+ 	    r_assign_turnB|s_assign_turnB ->assign_turnB,
+	    r_read_turnA|s_read_turnA -> read_turnA,
+	    r_read_turnB|s_read_turnB -> read_turnB},
+	      procA||procB||ReadyA(false)||ReadyB(false)||Turn(A)
+      )
+  )
+);
+
+sort Labels=Set(Label);
+
+sort Component =
+  struct
+    c_ReadyA | c_ReadyB | c_Turn | c_procA | c_procB
+  ;
+sort Components=Set(Component);
+map
+  npc:Label -> Components;
+eqn
+  npc(a_assign_readyA)={c_procA,c_ReadyA};
+  npc(a_read_readyA)={c_procB, c_ReadyA};
+  npc(a_assign_readyB)={c_procB, c_ReadyB};
+  npc(a_read_readyB)={c_procA, c_ReadyB};
+  npc(a_assign_turnA)={c_procB, c_Turn};
+  npc(a_assign_turnB)={c_procA, c_Turn};
+  npc(a_read_turnA)={c_procA, c_Turn};
+  npc(a_read_turnB)={c_procB, c_Turn};
+  npc(a_critA)={c_procA};
+  npc(a_critB)={c_procB};
+  npc(a_noncritA)={c_procA};
+  npc(a_noncritB)={c_procB};
+
+map
+  afc:Label -> Components;
+eqn
+  afc(a_assign_readyA)={c_procA, c_ReadyA};
+  afc(a_read_readyA)={c_procB};
+%  afc(a_read_readyA)={c_procB, c_ReadyA};
+  afc(a_assign_readyB)={c_procB, c_ReadyB};
+  afc(a_read_readyB)={c_procA};
+%  afc(a_read_readyB)={c_procA, c_ReadyB};
+  afc(a_assign_turnA)={c_procB, c_Turn};
+  afc(a_assign_turnB)={c_procA, c_Turn};
+  afc(a_read_turnA)={c_procA};
+%  afc(a_read_turnA)={c_procA, c_Turn};
+  afc(a_read_turnB)={c_procB};
+%  afc(a_read_turnB)={c_procB, c_Turn};
+  afc(a_critA)={c_procA};
+  afc(a_critB)={c_procB};
+  afc(a_noncritA)={c_procA};
+  afc(a_noncritB)={c_procB};
+
+map
+  elim: Label -> Labels;
+  conflict: Label#Label -> Bool;
+var
+  a,a': Label;
+eqn
+  elim(a) = {a'':Label | exists c:Component. c in npc(a'') && c in afc(a)};
+  conflict(a,a')=exists c:Component.(c in npc(a) && c in afc(a'));
+  
+map
+  blocking:Label -> Bool;
+eqn
+  blocking(a_noncritA)=true;
+  blocking(a_noncritB)=true;
+  blocking(a_assign_readyA)=false;
+  blocking(a_read_readyA)=false;
+  blocking(a_assign_readyB)=false;
+  blocking(a_read_readyB)=false;
+  blocking(a_assign_turnA)=false;
+  blocking(a_assign_turnB)=false;
+  blocking(a_read_turnA)=false;
+  blocking(a_read_turnB)=false;
+  blocking(a_critA)=false;
+  blocking(a_critB)=false;
+
+
+%%%%%%%%%%%%%%%%%%%
+%% BLOCKING ACTIONS
+%%%%%%%%%%%%%%%%%%%
+%
+% noncritA
+%   necessary participants: procA
+%   affected participants: procA
+% noncritB
+%   necessary participants: procB
+%   affected participants: procB
+%
+%%%%%%%%%%%%%%%%%%%%%%%
+%% NON-BLOCKING ACTIONS
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+% assign_readyA
+%   necessary participants: procA, ReadyA
+%   affected components: procA, ReadyA
+% read_readyB
+%   necessary participants: procA, ReadyB
+%   affected components: procA
+% assign_readyB
+%   necessary participants: procB, ReadyB
+%   affected components: procB, ReadyB
+%% read_readyA:
+%   necessary participants: procB, ReadyA
+%   affected components: procB
+% assign_turn(A)
+%   necessary participants: procB, Turn
+%   affected components: procB, Turn
+% assign_turn(B):
+%   necessary participants: procA, Turn
+%   affected components: procA, Turn
+% read_turn(A)
+%   necessary participants: procA, Turn
+%   affected components: procA
+% read_turn(B):
+%   necessary participants: procB, Turn
+%   affected components: procB
+% critA
+%   necessary participants: procA
+%   affected components: procA
+% critB
+%   necessary participants: procB
+%   affected components: procB
+%
+%%%%%%%%%%%%%%%%%%%%
+%% AFFECTS COMPONENT
+%%%%%%%%%%%%%%%%%%%%
+%
+% ReadyA:
+%   assign_readyA
+% ReadyB:
+%   assign_readyB
+% Turn:
+%   assign_turn
+% ProcA:
+%   noncritA, assign_readyA, read_readyB, assign_turn(B),
+%   read_turn(A), critA
+% ProcB:
+%   noncritB, assign_readyB, read_readyA, assign_turn(A),
+%   read_turn(B), critB
+%
+%%%%%%%%%%%%%%%%%%
+%% NEEDS COMPONENT
+%%%%%%%%%%%%%%%%%%
+%
+% ReadyA:
+%   assign_readyA, read_readyA
+% ReadyB:
+%   assign_readyB, read_readyB
+% Turn:
+%   assign_turn, read_turn
+% ProcA:
+%   noncritA, assign_readyA, read_readyB, assign_turn(B),
+%   read_turn(A), critA
+% ProcB:
+%   noncritB, assign_readyB, read_readyA, assign_turn(A),
+%   read_turn(B), critB

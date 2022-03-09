@@ -1,0 +1,398 @@
+% This is a translation to mCRL2 of the mCRL specification of the
+% conference protocol that originally was specified in LOTOS.
+% The translation to mCRL2 was done by Jan Friso Groote in
+% February 2006.
+%
+% A description of the protocol can be found on http://fmt.cs.utwente.nl/tools/torx/confcase.html.
+% The description below is a summary from this page.
+%
+% The conference service provides a multicast service, resembling a `chatbox', to users
+% participating in a conference. A conference is a group of users that can exchange messages
+% to all conference partners in that conference. So, every user can send messages to, or
+% receive messages from, all its conference partners.
+%
+% The actions of each user are to join or leave a conference and to send a message
+% (datareq) or to receive a message (dataind).
+%
+% This conference service protocol has extensively been used for testing software using
+% Torx. The first paper on this topic is: Formal Test Automation: A Simple Experiment, by
+% A. Belinfante, J. Feenstra, R.G. de Vries, J. Tretmans, N. Goga, L. Feijs, S. Mauw and
+% L. Heerink. In: G. Csopaki and S. Dibuz and K. Tarnay, editors, Int. Workshop on Testing
+% of Communicating Systems XII, Kluwer Academic Publishers, pages: 179 - 196, published in 1999.
+%
+% Note: on 13/2/2006 Axel Belinfante detected a flaw in the datatypes by testing the
+% specification in mCRL2 against the one in mCRL.
+
+
+%********************************************************************************************
+%*********************** standard definitions ***********************************************
+%********************************************************************************************
+
+map  IsUDPaddrIn:UDPAddress # List(CFPartner) -> Bool;
+var  c1,c2:UDPAddress;
+     s,s': List(CFPartner);
+     u:UserTitle;
+     f,f':CFPartner;
+eqn  IsUDPaddrIn(c1,[])=false;
+     IsUDPaddrIn(c1,Pair(c2,u)|>s)= c1==c2 || IsUDPaddrIn(c1,s);
+
+sort Queue = List(CFsp);
+sort UDPspQ=List(UDPsp);
+sort UOQ=List(CFsp);
+sort LOQ=List(LOQItem);
+sort Pair=struct Pair(fst:CFsp,snd:PDU);
+
+%********************************************************************************************
+%************************ type definitions **************************************************
+%********************************************************************************************
+
+sort PduType = struct J | A | L | D;
+sort UserTitleOpt = struct noUt | yesUt(UtOf:UserTitle);
+sort ConfIdentOpt = struct noCi | yesCi(CiOf:ConfIdent);
+
+%********************************************************************************************
+%****************** Definition of Service Primitives and PDUs *******************************
+%********************************************************************************************
+
+sort CFsp = struct datareq(MsgOf1:DataField)?IsDataReq
+                |  dataind(UtOf1:UserTitle,MsgOf2:DataField)?IsDataInd
+                |  join(UtOf2:UserTitle,CiOf:ConfIdent)?IsJoin
+                |  leave?IsLeave;
+
+map UtOf:CFsp -> UserTitle;
+    MsgOf:CFsp -> DataField;
+var u:CFsp;
+eqn UtOf(u)=if(IsDataInd(u),UtOf1(u),UtOf2(u));
+    MsgOf(u)=if(IsDataReq(u),MsgOf1(u),MsgOf2(u));
+
+% definition of PDUs and operations on these PDUs
+
+sort PDU = struct PDU_J(UtOf_J:UserTitle,CiOf_J:ConfIdent)?IsPDU_J
+               |  PDU_A(UtOf_A:UserTitle,CiOf_A:ConfIdent)?IsPDU_A
+               |  PDU_L(UtOf_L:UserTitle,CiOf_L:ConfIdent)?IsPDU_L
+               |  PDU_D(DataFieldLenOf:DataFieldLen,DataFieldOf:DataField)?IsPDU_D;
+map  TypeOf : PDU -> PduType;
+     CiOf : PDU -> ConfIdent;
+     UtOf : PDU -> UserTitle;
+var  u:UserTitle;
+     c:ConfIdent;
+     df:DataField;
+     dl:DataFieldLen;
+     p : PDU;
+eqn  TypeOf(PDU_J(u, c)) = J;
+     TypeOf(PDU_L(u, c)) = L;
+     TypeOf(PDU_A(u, c)) = A;
+     TypeOf(PDU_D(dl, df)) = D;
+     CiOf(p)=if(IsPDU_J(p),CiOf_J(p),
+              if(IsPDU_A(p),CiOf_A(p),
+               if(IsPDU_L(p),CiOf_L(p),CiOf_L(p))));
+     UtOf(p)=if(IsPDU_J(p),UtOf_J(p),
+              if(IsPDU_A(p),UtOf_A(p),
+               if(IsPDU_L(p),UtOf_L(p),UtOf_L(p))));
+
+% definition of conference service SPs and operations on these SPs
+
+sort UDPsp = struct udp_datareq(DestOf1:UDPAddress,PduOf1:PDU)?IsDataReq
+                 |  udp_dataind(DestOf2:UDPAddress,PduOf2:PDU)?IsDataInd;
+map  SrcOf,DestOf : UDPsp -> UDPAddress;
+     PduOf : UDPsp -> PDU;
+var  sp:UDPsp;
+eqn  DestOf(sp)=if(IsDataReq(sp),DestOf1(sp),DestOf2(sp));
+     SrcOf(sp)=DestOf(sp);
+     PduOf(sp)=if(IsDataReq(sp),PduOf1(sp),PduOf2(sp));
+
+%********************************************************************************************
+%***************************** Sets and Queues **********************************************
+%********************************************************************************************
+
+% definition of an address-pair consists of a CFAddress and a Nat
+sort AddressPair=struct Pair(CFaddrOf:CFAddress,UDPaddrOf:UDPAddress);
+
+% definition of a conference partner set item: pair of Nat and user title
+sort CFPartner=struct Pair(AddrOf:UDPAddress,UtOf:UserTitle);
+map  RemovePartnerByUDPaddr : UDPAddress# List(CFPartner) -> List(CFPartner);
+     IsIn : CFPartner # List(CFPartner) -> Bool;
+var  a, b : UDPAddress;
+     c,c' : CFPartner;
+     xs : List(CFPartner);
+     u:UserTitle;
+eqn  RemovePartnerByUDPaddr(a, Pair(b, u)|>xs)=
+                  if(a==b,xs,Pair(b,u)|>RemovePartnerByUDPaddr(a, xs));
+     RemovePartnerByUDPaddr(a, []) = [];
+     IsIn(c,[])=false;
+     IsIn(c,c'|>xs)= c==c' || IsIn(c,xs);
+
+%********************************************************************************************
+
+sort LOQItem=struct Pair(AddrSetOf:List(UDPAddress),PduOf:PDU);
+map MakeRemoteAddrSet : List(CFPartner) -> List(UDPAddress);
+    MakeRemoteAddrSet2 : UDPAddress # List(AddressPair) -> List(UDPAddress);
+var u:UDPAddress;
+    x:CFPartner;
+    xs:List(CFPartner);
+    y:AddressPair;
+    ys:List(AddressPair);
+eqn MakeRemoteAddrSet(x|>xs) = AddrOf(x)|>MakeRemoteAddrSet(xs);
+    MakeRemoteAddrSet([]) = [];
+    MakeRemoteAddrSet2(u, []) = [];
+    MakeRemoteAddrSet2(u, y|>ys) =
+            if(u==UDPaddrOf(y), MakeRemoteAddrSet2(u, ys),
+                                UDPaddrOf(y)|>MakeRemoteAddrSet2(u, ys));
+
+%*********************************************************************************************
+%************************* constant definitions for simulation only **************************
+%*********************************************************************************************
+
+sort DataField = struct m1 | m2 | m3 | m4;
+sort UserTitle = struct ut_A | ut_B | ut_C | ut_D;
+sort ConfIdent = struct ci_one | ci_two;
+sort DataFieldLen = struct l_1;
+sort CFAddress = struct cf4 | cf2 | cf3 | cf1;
+sort UDPAddress = struct udp1 | udp2 | udp3;
+
+map  ConfigurationSet : List(AddressPair);
+     ChooseConfig : List(AddressPair) -> AddressPair;
+     IsIn : UDPAddress # List(UDPAddress) -> Bool;
+     Remove : UDPAddress # List(UDPAddress) -> List(UDPAddress);
+
+var r : List(AddressPair);
+    ap : AddressPair;
+    xs : List(UDPAddress);
+    u,u' : UDPAddress;
+eqn ChooseConfig(ap|>r) = ap;
+    ConfigurationSet = [Pair(cf1, udp1), Pair(cf2, udp2), Pair(cf3, udp3)];
+    IsIn(u,[])=false;
+    IsIn(u,u'|>xs)= u==u' || IsIn(u,xs);
+    Remove(u,[])=[];
+    Remove(u,u'|>xs)= if(u==u',xs,u'|>Remove(u,xs));
+
+
+
+map  TestSet : List(UDPAddress);
+eqn  TestSet = [udp1,udp2,udp3];
+
+
+%***************************************************************************************
+%**************************** End of Data Type Part ************************************
+%***************************************************************************************
+
+
+act  UTin_buffer, UTin_LSI, UTin : CFAddress # CFsp;
+     CFSAP_out_UpperLSI, CFSAP_out_ProtocolFunctions, UTout  : CFAddress # CFsp;
+     LTin_UDPLC_LT, LTin_UDP, LTin_LowerTestContext : UDPAddress # UDPsp;
+     LTout_UDPLC_LT, LTout_UDP, LTout_LowerTestContext : UDPAddress # UDPsp;
+     CFSAP_in_UpperLSI, CFSAP_in_ProtocolFunctions, Xin_Buffer, Xin,
+		tempabXin, tempacXin : CFAddress # CFsp;
+     Yin_UDPLC_Y, Yin_UDP, udp_in_LowerLSI , udp_in_ProtocolFunctions,
+ 		tempabYin, tempacYin, tempadYin, tempbcYin, tempbdYin, tempcdYin,
+                tempabcYin, tempabdYin, tempbcdYin, Yin : UDPAddress # UDPsp;
+     Yout_UDPLC_Y , Yout_UDP, udp_out_LowerLSI , udp_out_ProtocolFunctions,
+ 		tempabYout, tempacYout, tempadYout, tempbcYout, tempbdYout, tempcdYout,
+                tempabcYout, tempabdYout, tempbcdYout, Yout : UDPAddress # UDPsp;
+     udp_in,udp_out : UDPAddress # UDPsp;
+     CFSAP_in, CFSAP_out  : CFAddress # CFsp;
+
+init rename(
+       { LTout_LowerTestContext->udp_out,
+         LTin_LowerTestContext->udp_in,
+         UTin->CFSAP_in, UTout->CFSAP_out},
+       SystemUnderTest);
+
+proc SystemUnderTest=
+  hide({Xin, Yin, Yout},
+    allow({Xin, Yin, Yout, UTin, UTout, LTin_LowerTestContext, LTout_LowerTestContext},
+      comm({
+        UTin_buffer | UTin_LSI -> UTin,
+        CFSAP_out_UpperLSI | CFSAP_out_ProtocolFunctions -> UTout,
+        LTin_UDPLC_LT | LTin_UDP -> LTin_LowerTestContext,
+        LTout_UDPLC_LT | LTout_UDP -> LTout_LowerTestContext,
+        CFSAP_in_UpperLSI | CFSAP_in_ProtocolFunctions | Xin_Buffer -> Xin,
+        Yin_UDPLC_Y | Yin_UDP | udp_in_LowerLSI | udp_in_ProtocolFunctions -> Yin,
+        Yout_UDPLC_Y | Yout_UDP | udp_out_LowerLSI | udp_out_ProtocolFunctions -> Yout},
+
+    UpperTestContext||
+    ConferenceProtocolEntity(cf1, udp1)||
+    LowerTestContext
+  )));
+
+
+proc ConferenceProtocolEntity(myCFaddr:CFAddress, myUDPaddr:UDPAddress)=
+       UpperLSI(myCFaddr)||
+       LowerLSI(myUDPaddr)||
+       ProtocolFunctions([], [], [], noUt, noCi, myCFaddr, myUDPaddr);
+
+proc UpperLSI(myCFaddr:CFAddress)=
+     sum addr:CFAddress,sp:CFsp.(IsJoin(sp) && myCFaddr==addr)->
+                     CFSAP_in_UpperLSI(addr,sp).EngagedUpperLSI(myCFaddr);
+
+proc EngagedUpperLSI(myCFaddr:CFAddress)=
+     sum addr:CFAddress, sp:CFsp.(IsDataReq(sp) && myCFaddr==addr)->
+                     CFSAP_in_UpperLSI(addr,sp).EngagedUpperLSI(myCFaddr)+
+     sum addr:CFAddress, sp:CFsp.(IsDataInd(sp) &&  myCFaddr==addr)->
+                     CFSAP_out_UpperLSI(addr,sp).EngagedUpperLSI(myCFaddr)+
+     sum addr:CFAddress, sp:CFsp.(IsLeave(sp) && myCFaddr==addr) ->
+                     CFSAP_in_UpperLSI(addr,sp).IdleUpperLSI(myCFaddr);
+
+proc IdleUpperLSI(myCFaddr:CFAddress)=
+     sum addr:CFAddress, sp:CFsp.(IsDataInd(sp) && myCFaddr==addr)->
+                     CFSAP_out_UpperLSI(addr,sp).EngagedUpperLSI(myCFaddr)+
+      sum addr:CFAddress, sp:CFsp.(IsJoin(sp) && myCFaddr==addr)->
+                     CFSAP_in_UpperLSI(addr,sp).EngagedUpperLSI(myCFaddr);
+
+proc LowerLSI(myUDPaddr:UDPAddress)=
+     sum addr:UDPAddress, sp:UDPsp.(IsDataInd(sp) && myUDPaddr==addr)->
+                     udp_in_LowerLSI(addr,sp).LowerLSI(myUDPaddr)+
+     sum addr:UDPAddress, sp:UDPsp.(IsDataReq(sp) && myUDPaddr==addr)->
+                     udp_out_LowerLSI(addr,sp).LowerLSI(myUDPaddr);
+
+proc ProtocolFunctions(Qyo:LOQ, Qxo:UOQ, CPs:List(CFPartner), myUt:UserTitleOpt,
+                myCi:ConfIdentOpt, myCFaddr:CFAddress, myUDPaddr:UDPAddress)=
+     sum addr:CFAddress, sp:CFsp.
+       (addr==myCFaddr && !IsDataInd(sp))->CFSAP_in_ProtocolFunctions(addr,sp).
+            ( IsJoin(sp)->
+               ( (MakeRemoteAddrSet2(myUDPaddr, ConfigurationSet)!=[])->
+                   ProtocolFunctions(Pair(MakeRemoteAddrSet2(myUDPaddr, ConfigurationSet),
+                      PDU_J(UtOf(sp), CiOf(sp)))|>Qyo,Qxo, CPs, yesUt(UtOf(sp)),
+                          yesCi(CiOf(sp)), myCFaddr, myUDPaddr) <>
+                   ProtocolFunctions(Qyo, Qxo, CPs, yesUt(UtOf(sp)),
+                          yesCi(CiOf(sp)), myCFaddr, myUDPaddr)
+               )+
+             IsLeave(sp)->
+               ( (MakeRemoteAddrSet(CPs)!=[])->
+                   ProtocolFunctions(Pair(MakeRemoteAddrSet(CPs),PDU_L(UtOf(myUt), CiOf(myCi)))|>Qyo,
+                               Qxo, [], noUt, noCi, myCFaddr, myUDPaddr) <>
+                   ProtocolFunctions(Qyo, Qxo, [], noUt, noCi, myCFaddr, myUDPaddr)
+               ) +
+             IsDataReq(sp)->
+               ( (MakeRemoteAddrSet(CPs)!=[])->
+                   ProtocolFunctions(Pair(MakeRemoteAddrSet(CPs), PDU_D(l_1, MsgOf(sp)))|>Qyo,
+                        Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr) <>
+                   ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+               )
+             ) +
+
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataInd(sp) && addr==myUDPaddr) -> udp_in_ProtocolFunctions(addr,sp).
+         ( (myCi==noCi) -> ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr) +
+
+           ( TypeOf(PduOf(sp))==J && myCi!=noCi)->
+              ( (CiOf(PduOf(sp))==CiOf(myCi))->
+                  ( IsUDPaddrIn(SrcOf(sp),CPs)->
+                      ProtocolFunctions(Pair([SrcOf(sp)], PDU_A(UtOf(myUt),
+                               CiOf(myCi)))|>Qyo, Qxo, CPs, myUt, myCi,
+			       myCFaddr, myUDPaddr) <>
+                      ProtocolFunctions(Pair([SrcOf(sp)],PDU_A(UtOf(myUt),
+                               CiOf(myCi)))|>Qyo, Qxo, Pair(SrcOf(sp),UtOf(PduOf(sp)))|>CPs,
+                                       myUt, myCi, myCFaddr, myUDPaddr)
+                  ) <>
+                  ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+              )+
+
+           ( TypeOf(PduOf(sp))==L && myCi!=noCi)->
+              ( (CiOf(PduOf(sp))==CiOf(myCi))->
+                  ProtocolFunctions(Qyo, Qxo, RemovePartnerByUDPaddr(SrcOf(sp), CPs),
+                         myUt, myCi, myCFaddr, myUDPaddr) <>
+                  ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+              )+
+
+           ( TypeOf(PduOf(sp))==A && myCi!=noCi)->
+              ( (CiOf(PduOf(sp))==CiOf(myCi))->
+                 ( IsUDPaddrIn(SrcOf(sp),CPs)->
+                     ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr,
+		     myUDPaddr) <>
+                     ProtocolFunctions(Qyo, Qxo, Pair(SrcOf(sp), UtOf(PduOf(sp)))|>CPs,
+                                   myUt, myCi, myCFaddr, myUDPaddr)
+                 ) <>
+                 ProtocolFunctions(Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+              )+
+
+           ( TypeOf(PduOf(sp))==D && myCi!=noCi)->
+               ( (IsUDPaddrIn(SrcOf(sp),CPs))->
+                 ( sum p:CFPartner. %receive from a conference partner
+                     (IsIn(p,CPs) && AddrOf(p)==SrcOf(sp))->
+                        ProtocolFunctions(Qyo, dataind(UtOf(p), DataFieldOf(PduOf(sp)))|>Qxo,
+                                 CPs, myUt, myCi, myCFaddr, myUDPaddr)
+                 ) <>
+                 ProtocolFunctions(Pair([SrcOf(sp)], PDU_J(UtOf(myUt),
+                            CiOf(myCi)))|>Qyo, Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+               )
+         ) +
+
+         (Qxo!=[])->
+           CFSAP_out_ProtocolFunctions(myCFaddr, rhead(Qxo)).
+             ProtocolFunctions(Qyo,  rtail(Qxo), CPs, myUt, myCi, myCFaddr, myUDPaddr)+
+
+         (Qyo!=[])->
+         ( sum dest:UDPAddress.
+             IsIn(dest,AddrSetOf(rhead(Qyo)))->
+               udp_out_ProtocolFunctions(myUDPaddr,udp_datareq(dest,  PduOf(rhead(Qyo)))).
+                  ( (Remove(dest, AddrSetOf(rhead(Qyo)))==[])->
+                      ProtocolFunctions(rtail(Qyo), Qxo, CPs, myUt, myCi,
+		      myCFaddr, myUDPaddr) <>
+                      ProtocolFunctions(rtail(Qyo)<|Pair(Remove(dest, AddrSetOf(rhead(Qyo))),
+                          PduOf(rhead(Qyo))), Qxo, CPs, myUt, myCi, myCFaddr, myUDPaddr)
+                  )
+         );
+
+
+proc LowerTestContext=
+       (UDPLC_Y(udp1)||UDPLC_LT(udp2, udp1)||UDPLC_LT(udp3, udp1)) ||
+         (UDP(udp1, [])||UDP(udp2, [])||UDP(udp3, []));
+
+
+proc UDP(dest_addr:UDPAddress, q:UDPspQ)=
+     sum sp:UDPsp.
+       (IsDataReq(sp) && DestOf(sp)==dest_addr && udp1!=dest_addr)->
+          Yout_UDP(udp1,sp).UDP(dest_addr, udp_dataind(udp1, PduOf(sp))|>q)+
+
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataReq(sp) && DestOf(sp)==dest_addr && udp1==dest_addr && addr!=udp1)->
+        LTin_UDP(addr,sp).UDP(dest_addr, udp_dataind(addr, PduOf(sp))|>q)+
+
+     ((q!=[]) && dest_addr==udp1)->
+        Yin_UDP(dest_addr,rhead(q)).UDP(dest_addr, rtail(q))+
+
+     ((q!=[]) && dest_addr!=udp1)->
+        LTout_UDP(dest_addr,rhead(q)).UDP(dest_addr, rtail(q));
+
+
+proc UDPLC_LT(an_addr:UDPAddress, dest_addr:UDPAddress)=
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataReq(sp) && addr==an_addr && DestOf(sp)==dest_addr)->
+           LTin_UDPLC_LT(addr,sp).UDPLC_LT(an_addr, dest_addr)+
+
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataInd(sp) && addr==an_addr && SrcOf(sp)==dest_addr)->
+           LTout_UDPLC_LT(addr,sp).UDPLC_LT(an_addr, dest_addr);
+
+proc UDPLC_Y(an_addr:UDPAddress)=
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataReq(sp) && addr==an_addr)->
+         Yout_UDPLC_Y(addr,sp).UDPLC_Y(an_addr)+
+     sum addr:UDPAddress, sp:UDPsp.
+       (IsDataInd(sp) && addr==an_addr)->
+         Yin_UDPLC_Y(addr,sp).UDPLC_Y(an_addr);
+
+proc UpperTestContext=InputUpperLSI(cf1)|| Buffer(cf1, []);
+
+proc Buffer(my_addr:CFAddress, q:UOQ)=
+      sum sp:CFsp.
+        (IsJoin(sp) || IsLeave(sp) || IsDataReq(sp))->
+            UTin_buffer(my_addr,sp).Buffer(my_addr, sp|>q)+
+        (q!=[])->
+            Xin_Buffer(my_addr,rhead(q)).Buffer(my_addr, rtail(q));
+
+proc InputUpperLSI(myCFaddr:CFAddress)=
+       sum addr:CFAddress, sp:CFsp.
+         (IsJoin(sp) && myCFaddr==addr)->
+           UTin_LSI(addr,sp).NextInputUpperLSI(myCFaddr);
+
+proc NextInputUpperLSI(myCFaddr:CFAddress)=
+   sum addr:CFAddress, sp:CFsp.
+     (IsDataReq(sp) && myCFaddr==addr)->
+        UTin_LSI(addr,sp).NextInputUpperLSI(myCFaddr)+
+   sum addr:CFAddress, sp:CFsp.
+          (IsLeave(sp) && myCFaddr==addr)->UTin_LSI(addr,sp).
+       ( sum addr:CFAddress, sp:CFsp.
+          (IsJoin(sp) && myCFaddr==addr)->
+             UTin_LSI(addr,sp).NextInputUpperLSI(myCFaddr));

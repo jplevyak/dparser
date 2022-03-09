@@ -1,0 +1,24 @@
+% This describes a puzzle [New York Times, August 12, 2013, http://wordplay.blogs.nytimes.com//2013/08/12/ants-2/]
+% There is an ant sitting on a 8x8 2-D grid board. The ant is initially at the intersection of the third 
+% horizontal line and the fifth vertical line. The ant moves to an adjacent intersection along the grid lines,
+% where it is equally likely that it will choose any of the four directions. If the ant arrives at a horizontal
+% boundary it lives. If it arrives at a vertical boundary it dies. The question is what is the probability for
+% the ant to survive.
+
+% A description in stochastic mCRL2 is the following.
+
+act dead,live,step;
+
+proc X(x,y:Pos)=
+     (x==1 || x==8) -> dead.X(x,y) <>
+     (y==1 || y==8) -> live.X(x,y) <>
+     (
+       dist b1,b2:Bool[1/4].
+       (( b1 &&  b2) -> step.X(x+1,y)+
+        ( b1 && !b2) -> step.X(max(1,x-1),y)+
+        (!b1 &&  b2) -> step.X(x,y+1)+
+        (!b1 && !b2) -> step.X(x,max(1,y-1))
+     ) );
+
+init X(3,5);
+

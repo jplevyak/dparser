@@ -1,0 +1,399 @@
+%% The FTS model we use is the one that closely follows the Promela code distributed with SNIP, i.e. the 
+%% one used in the IEEE TSE paper, which is slightly different from the one described (also graphically)
+%% in both the TR and in Classen's PhD thesis: the difference is the distinction of the two sub-features 
+%% MethaneAlarm and MethaneQuery (put in an or-relation) of the (optional) Methane (detection or sensor) 
+%% feature, leading to 128 rather than 64 products. 
+%%
+%% The state space of the FTS is: 582 states and 1375 transitions.
+%%
+%% There are some more subtle differences, like the skip's from states 8, 13, and 20, and a methane test
+%% in the highlevel path, and a setStopped loop in s1. Furthermore, the three loops have been removed: 
+%% methaneRise - methaneLower in METHANELEVEL, pumpRunning between PUMP and WATERLEVEL and pumpRunning - 
+%% waterRise in WATERLEVEL.
+%%
+%% Sets of products are represented by means of a datastructure representing OBDDs. These data structures
+%% are essentially based on the rewriting rules by Van de Pol & Zantema (JLAP 2001).
+%%
+%% This case study is discussed in the paper 'Family-Based Model Checking with mCRL2' by Maurice H. ter Beek, 
+%% Erik P. de Vink and Tim A.C. Willemse, which appears in the FASE 2017 ETAPS conference.
+
+
+sort
+  Feature = struct B | C | Ct | Cp | M | Ma | Mq | L | Ll | Ln | Lh ;
+
+
+%% Sort to represent a set of products (feature expressions) as a
+%% ROBDD
+
+ FExpr = struct tt | ff | node(name:Feature, l:FExpr, h:FExpr);
+
+map
+  atom : Feature -> FExpr;                              % casts a feature to a Feature expression
+  neg: FExpr -> FExpr;                                  % negation of Feature expression
+  and: FExpr # FExpr -> FExpr;                          % conjunction of Feature expressions
+  or: FExpr # FExpr -> FExpr;                           % disjunction of Feature expressions
+  xor: FExpr # FExpr -> FExpr;                          % xor of Feature expressions
+  normalise: FExpr -> FExpr;                            % reduce operation for sharing in ROBDDs
+  normalise_aux: Feature # FExpr # FExpr -> FExpr;      % auxiliary reduce operation for sharing in ROBDDs
+
+
+var 
+  p,q:Feature;
+  x,y,z,w : FExpr;
+eqn
+  atom(p) = node(p,tt,ff);
+
+  normalise(tt) = tt;
+  normalise(ff) = ff;
+  normalise(node(p,x,y)) = normalise_aux(p,normalise(x),normalise(y));
+  x == y -> normalise_aux(p,x,y) = x;
+  x != y -> normalise_aux(p,x,y) = node(p,x,y);
+
+  neg( node(p,x,y)) = node(p, neg(x), neg(y));
+  and( node(p,x,y), node(p,z,w)) = node(p, and(x,z),and(y,w));
+  or( node(p,x,y), node(p,z,w)) = node(p, or(x,z),or(y,w));
+  xor( node(p,x,y), node(p,z,w)) = node(p, xor(x,z),xor(y,w));
+  p < q -> and( node(p,x,y), node(q,z,w)) = node(p, and(x,node(q,z,w)),and(y,node(q,z,w)));
+  p < q -> or( node(p,x,y), node(q,z,w)) = node(p, or(x,node(q,z,w)),or(y,node(q,z,w)));
+  p < q -> xor( node(p,x,y), node(q,z,w)) = node(p, xor(x,node(q,z,w)),xor(y,node(q,z,w)));
+  p < q -> and( node(q,x,y), node(p,z,w)) = node(p, and(node(q,x,y),z), and(node(q,x,y), w));
+  p < q -> or( node(q,x,y), node(p,z,w)) = node(p, or(node(q,x,y),z), or(node(q,x,y), w));
+  p < q -> xor( node(q,x,y), node(p,z,w)) = node(p, xor(node(q,x,y),z), xor(node(q,x,y), w));
+  neg(tt) = ff;
+  neg(ff) = tt;
+  or(tt,x) = tt;
+  or(x,tt) = tt;
+  or(ff,x) = x;
+  or(x,ff) = x;
+  and(tt,x) = x;
+  and(x,tt) = x;
+  and(ff,x) = ff;
+  and(x,ff) = ff;
+  xor(tt,x) = neg(x);
+  xor(x,tt) = neg(x);
+  xor(ff,x) = x;
+  xor(x,ff) = x;
+
+
+%% The expression FD describes the Feature Diagram for the Minepump. It essentially 
+%% excludes certain combinations of features (or lack thereof)
+
+map FD : FExpr;
+eqn
+  FD = normalise(
+         and(and(and( atom(L),or(or(neg(atom(M)),atom(Ma)),atom(Mq)))              % L /\ (¬M \/ Ma \/ Mq)
+                     ,                                                             % /\
+                      or(or(neg(atom(C)),atom(Ct)),atom(Cp)))                      % (¬C \/ Ct \/ Cp)
+            ,                                                                      % /\
+             and( and( or( neg(atom(Ct)), atom(C)), or( neg(atom(Cp)), atom(C)) )  % (¬Ct \/ C) /\ (¬Cp \/ C)
+                 ,                                                                 % /\
+                  and( or(neg(atom(Ma)),atom(M)), or(neg(atom(Mq)), atom(M)) ) )   % (¬Ma \/ M) /\ (¬Mq /\ M)
+            )
+       );
+
+act
+  isRunning_B, isRunning_C, isRunning,
+  isNotRunning_B, isNotRunning_C, isNotRunning,
+  setRunning_B, setRunning_C, setRunning,
+  pumpStart_C, pumpStart_P, pumpStart,
+  pumpStop_C, pumpStop_P, pumpStop,
+  setStop_B, setStop_C, setStop, endStop,
+  isReady_B, isReady_C, isReady,
+  isNotReady_B, isNotReady_C, isNotReady,
+  setReady_B, setReady_C, setReady,
+  endStart, endAlarm, endHigh, endLow,
+  isMethaneStop_B, isMethaneStop_C, isMethaneStop,
+  noMethaneStop_C, noMethaneStop_M, noMethaneStop,
+  setMethaneStop_B, setMethaneStop_C, setMethaneStop_M, setMethaneStop,
+  normalLevel_C, normalLevel_L, normalLevel,
+  highLevel_C, highLevel_L, highLevel,
+  lowLevel_C, lowLevel_L, lowLevel,
+  isLowStop_B, isLowStop_C, isLowStop,
+  isStopped_B, isStopped_C, isStopped,
+  setLowStop_B, setLowStop_C, setLowStop,skip : FExpr;
+
+% Non-featured actions; essentially signals and commands...
+act
+  stopCmd, startCmd, 
+  palarmMsg_C, palarmMsg_M, palarmMsg, 
+  pumpRunning_P, pumpRunning_L, pumpRunning, 
+  methaneRise, methaneLower, waterRise,
+  receiveMsg, commandMsg,levelMsg,
+  skip; 
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% MINE PUMP (state FTS)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc MINEPUMP( st:Int) = 
+  ( st == 1 ) -> (
+  sum f:FExpr. (
+    isStopped_B(f) . MINEPUMP(1) +
+    setStop_B(f) . MINEPUMP(1) +
+    isNotRunning_B(f) . MINEPUMP(1) +
+    isNotReady_B(f) . MINEPUMP(1) +
+    setMethaneStop_B(f) . MINEPUMP(2) +
+    setReady_B(f) . MINEPUMP(4) 
+    )
+  ) +
+  ( st == 2 ) -> (
+  sum f:FExpr. (
+    setStop_B(f). MINEPUMP(1) +
+    isMethaneStop_B(f) . MINEPUMP(2) +
+    setMethaneStop_B(f) . MINEPUMP(2) +
+    isNotRunning_B(f) . MINEPUMP(2) +
+    isNotReady_B(f) . MINEPUMP(2) + 
+    setReady_B(f) . MINEPUMP(4) 
+    )
+  ) +
+  ( st == 3 ) -> (
+  sum f:FExpr. (
+    setStop_B(f). MINEPUMP(1) +
+    setMethaneStop_B(f) . MINEPUMP(2) +
+    isLowStop_B(f) . MINEPUMP(3) +
+    isNotRunning_B(f) . MINEPUMP(3) +
+    isNotReady_B(f) . MINEPUMP(3) + 
+    setReady_B(f) . MINEPUMP(4) 
+    )
+  ) +
+  ( st == 4 ) -> (
+  sum f:FExpr. (
+    setStop_B(f). MINEPUMP(1) +
+    setMethaneStop_B(f) . MINEPUMP(2) +
+    isReady_B(f) . MINEPUMP(4) +
+    isNotRunning_B(f) . MINEPUMP(4) +
+    setReady_B(f) . MINEPUMP(4) + 
+    setRunning_B(f) . MINEPUMP(5) 
+    )
+  ) +
+  ( st == 5 ) -> (
+  sum f:FExpr. (
+    setStop_B(f) . MINEPUMP(1) +
+    setMethaneStop_B(f) . MINEPUMP(2) +
+    setLowStop_B(f) . MINEPUMP(3) +
+    isRunning_B(f). MINEPUMP(5) +
+    isNotReady_B(f) . MINEPUMP(5) 
+    )
+  ) ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% MINE PUMP (refined system FTS)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc CONTROLLER( st:Int) = 
+  ( st == 6 ) -> (
+    receiveMsg . CONTROLLER(7) 
+  ) +
+  ( st == 7 ) -> (
+    commandMsg . CONTROLLER(8) +
+    palarmMsg_C . CONTROLLER(16) +
+    levelMsg . CONTROLLER(20)  
+  ) +  
+  ( st == 8 ) -> (
+    stopCmd . (
+      CONTROLLER(9) +
+      (skip(neg(atom(Cp))) . CONTROLLER(6) )) +
+    startCmd . ( 
+      CONTROLLER(13) +
+      (skip(neg(atom(Ct))) . CONTROLLER(6) ) )
+  ) + 
+  ( st == 9 ) -> (
+    isRunning_C(atom(Cp)) . CONTROLLER(10) +
+    isNotRunning_C(atom(Cp)) . CONTROLLER(11) 
+  ) + 
+  ( st == 10 ) -> (
+    pumpStop_C(atom(Cp)) . CONTROLLER(11) 
+  ) +
+  ( st == 11 ) -> (
+    setStop_C(atom(Cp)) . CONTROLLER(12) 
+  ) +
+  ( st == 12 ) -> (
+    endStop(atom(Cp)) . CONTROLLER(6) 
+  ) +
+  ( st == 13 ) -> (
+      isNotRunning_C(atom(Ct)) . CONTROLLER(14) +
+      isRunning_C(atom(Ct)) . CONTROLLER(15) +
+      isReady_C(atom(Ct)) . CONTROLLER(15) 
+  ) + 
+  ( st == 14 ) -> (
+    setReady_C(atom(Ct)) . CONTROLLER(15) 
+  ) + 
+  ( st == 15 ) -> (
+    endStart(atom(Ct)) . CONTROLLER(6) 
+  ) +
+  ( st == 16 ) -> (
+      isRunning_C(atom(Ma)) . CONTROLLER(17) +
+      isNotRunning_C(atom(Ma)) . CONTROLLER(18) +
+    skip(neg(atom(Ma))) . CONTROLLER(6) 
+  ) +  
+  ( st == 17 ) -> (
+    pumpStop_C(atom(Ma)) . CONTROLLER(18) 
+  ) + 
+  ( st == 18 ) -> (
+    setMethaneStop_C(atom(Ma)) . CONTROLLER(19)
+  ) + 
+  ( st == 19 ) -> (
+    endAlarm(atom(Ma)) . CONTROLLER(6)
+  ) + 
+  ( st == 20 ) -> (
+    normalLevel_C(tt) . CONTROLLER(6) +
+    highLevel_C(atom(Lh)) . CONTROLLER(21) +
+    highLevel_C(neg(atom(Lh))) . CONTROLLER(6) +
+    lowLevel_C(atom(Ll)) . CONTROLLER(27) +
+    lowLevel_C(neg(atom(Ll))) . CONTROLLER(6)  
+  ) + 
+  ( st == 21 ) -> (
+    isLowStop_C(atom(Ll)) . CONTROLLER(22) +
+    isReady_C(atom(Lh)) . CONTROLLER(23) +
+    isRunning_C(atom(Lh)) . CONTROLLER(26) +
+    isStopped_C(atom(Lh)) . CONTROLLER(26) +
+    isMethaneStop_C(atom(M)) . CONTROLLER(26) 
+  ) +
+  ( st == 22 ) -> (
+    setReady_C(atom(Ll)) . CONTROLLER(23)
+  ) +
+  ( st == 23 ) -> (
+    noMethaneStop_C(atom(Mq)) . CONTROLLER(24) +
+    setMethaneStop_C(atom(Mq)) . CONTROLLER(26) +
+    skip(neg(atom(Mq))) . CONTROLLER(24) 
+  ) +
+  ( st == 24 ) -> (
+    pumpStart_C(atom(Lh)) . CONTROLLER(25) 
+  ) + 
+  ( st == 25 ) -> (
+    setRunning_C(atom(Lh)) . CONTROLLER(26) 
+  ) + 
+  ( st == 26 ) -> (
+    endHigh(atom(Lh)) . CONTROLLER(6)
+  ) + 
+  ( st == 27 ) -> (
+    isRunning_C(atom(Ll)) . CONTROLLER(28) +
+    isNotRunning_C(atom(Ll)) . CONTROLLER(30) 
+  ) +
+  ( st == 28 ) -> (
+    pumpStop_C(atom(Ll)) . CONTROLLER(29)
+  ) + 
+  ( st == 29 ) -> (
+    setLowStop_C(atom(Ll)) . CONTROLLER(30)
+  ) + 
+  ( st == 30 ) -> (
+    endLow(atom(Ll)) . CONTROLLER(6) 
+  ) ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% METHANE LEVEL (Methane detection feature)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc METHANELEVEL( st:Int) = 
+  ( st == 1 ) -> (
+  sum f:FExpr. (
+    noMethaneStop_M(f) . METHANELEVEL(1) + 
+    methaneRise . METHANELEVEL(2) 
+    )
+  ) +
+  ( st == 2 ) -> (
+  sum f:FExpr. (
+    palarmMsg_M . METHANELEVEL(3) +
+    setMethaneStop_M(f) . METHANELEVEL(3) 
+    )
+  ) +
+  ( st == 3 ) -> ( 
+  sum f:FExpr. (
+    methaneLower . METHANELEVEL(1) +
+    palarmMsg_M . METHANELEVEL(3) +
+    setMethaneStop_M(f) . METHANELEVEL(3) 
+    )
+  ) ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PUMP (Command feature)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc PUMP( st:Int) = 
+  ( st == 1 ) -> (
+  sum f:FExpr. (
+    pumpStart_P(f) . PUMP(2) 
+    )
+  ) +
+  ( st == 2 ) -> (
+  sum f:FExpr. (
+    pumpRunning_P . PUMP(2) +
+    pumpStop_P(f) . PUMP(1) 
+    )
+  ) ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% WATER LEVEL (Water regulation feature)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+proc WATERLEVEL( st:Int) = 
+  ( st == 1 ) -> (
+  sum f:FExpr. (
+    pumpRunning_L . WATERLEVEL(2) +
+    normalLevel_L(f) . WATERLEVEL(1) +
+    highLevel_L(f) . WATERLEVEL(3)
+    )
+  ) + 
+  ( st == 2 ) -> (
+  sum f:FExpr. (
+    lowLevel_L(f) . WATERLEVEL(2) +
+    normalLevel_L(f) . WATERLEVEL(1) 
+    )
+  ) +
+  ( st == 3 ) -> (
+  sum f:FExpr. (
+    pumpRunning_L . WATERLEVEL(1) +
+    highLevel_L(f) . WATERLEVEL(3) 
+    )
+  ) ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PARALLEL COMPOSITION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+init
+allow( { 
+    receiveMsg, commandMsg, palarmMsg, levelMsg,
+    stopCmd, startCmd, 
+    isRunning, isNotRunning, setRunning,
+    pumpStart, pumpStop, setStop, endStop,
+    isReady, isNotReady, setReady, 
+    endStart, endAlarm, endHigh, endLow,
+    isMethaneStop, noMethaneStop, setMethaneStop,
+    normalLevel, highLevel, lowLevel,
+    isLowStop, isStopped, setLowStop,
+    methaneRise, methaneLower,
+    pumpRunning, waterRise,
+    skip},
+  comm( { 
+    setStop_B | setStop_C -> setStop,
+    isStopped_B | isStopped_C -> isStopped,
+    setMethaneStop_B | setMethaneStop_C | setMethaneStop_M -> setMethaneStop,
+    noMethaneStop_C | noMethaneStop_M -> noMethaneStop,
+    isMethaneStop_B | isMethaneStop_C -> isMethaneStop,
+    setLowStop_B | setLowStop_C -> setLowStop,
+    isLowStop_B | isLowStop_C -> isLowStop,
+    setReady_B | setReady_C -> setReady,
+    isReady_B | isReady_C -> isReady,
+    isNotReady_B | isNotReady_C -> isNotReady,
+    setRunning_B | setRunning_C -> setRunning,
+    isRunning_B | isRunning_C -> isRunning,
+    isNotRunning_B | isNotRunning_C -> isNotRunning,
+    palarmMsg_C | palarmMsg_M -> palarmMsg,
+    pumpStart_C | pumpStart_P -> pumpStart,
+    pumpStop_C | pumpStop_P -> pumpStop,
+    lowLevel_C | lowLevel_L -> lowLevel,
+    normalLevel_C | normalLevel_L -> normalLevel,
+    highLevel_C | highLevel_L -> highLevel,
+    pumpRunning_P | pumpRunning_L -> pumpRunning
+    },  
+  ( MINEPUMP(1) ) || 
+  ( CONTROLLER(6) ) || 
+  ( METHANELEVEL(1) ) || 
+  ( PUMP(1) ) || 
+  ( WATERLEVEL(1) )
+  )  
+);
+
+
+

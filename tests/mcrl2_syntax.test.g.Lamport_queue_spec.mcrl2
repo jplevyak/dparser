@@ -1,0 +1,118 @@
+% Model of the Lamport Queue.
+% The queue is a lock-free single-producer/single-consumer (SPSC)
+% FIFO queue. The original description of the algorithm appears in
+% Lamport, L. Specifying Concurrent Program Modules.
+% In ACM TOPLAS, Vol. 5 Issue 2, April 1983. pp. 190-222.
+% DOI: 10.1145/69624.357207. The algorithm is described on p. 205
+%
+% Jeroen Keiren, 29/11/2019
+%
+% The mCRL2 model is described and explained in the paper
+% "Modelling and Analysing Software in mCRL2".
+
+% The process uses natural numbers as indices. Constant N represents
+% the size of the queue. The elements stored in the queue are of sort
+% Value. Value garbage represents an inconsistent state where no
+% reliable value is known. This happens, e.g., during writing.
+
+% The processes are as follows:
+% Head(i) holds the pointer i to the head of the queue.
+% Tail(i) holds the pointer i to the tail of the queue.
+% Queue(i,v) denotes the i-th position in the queue, which
+%     currently holds value v. No thread is currently reading
+%     or writing.
+% QueueW(i,v,w) is analogous to Queue(i,v), except that a thread
+%     is currently writing value w to position i.
+% QueueR(i,v) is analogous to Queue(i,v), except that a thread is
+%     currently reading from position i.
+% QueueRW(i,v,w) is the combination of QueueW(i,v,w)
+%     and QueueR(i,v), i.e., a thread is reading from i while
+%     simultaneously another thread is writing w to i.
+%
+% Producer repeatedly pushes a (non-garbage) value to the queue
+% Push(v) loops in a busy waiting fashion when the queue is full.
+%     when space is available, it will write v to the tail of the
+%     queue.
+% Consumer repeatedly pops a value from the queue.
+% Pop loops in a busy waiting fasion twhen the queue is empty.
+%     when the queue is non-empty it will read a value from the head
+%     of the queue.
+
+% The actions are as follows:
+% Reading and writing queue are non-atomic
+% Reading and writing head and tail pointers are atomic.
+% Call and return for push and pop operations are the
+% interfaces that we would like to verify.
+
+sort Value = struct garbage | d0 | d1;
+
+map N:Pos;
+eqn N=2;
+
+act
+  start_read_queue_s, start_read_queue_r, start_read_queue,
+  end_write_queue_r, end_write_queue_s, end_write_queue : Nat;
+  end_read_queue_s, end_read_queue_r, end_read_queue,
+  start_write_queue_r, start_write_queue_s, start_write_queue: Nat # Value;
+  get_head_s, get_head_r, get_head,
+  set_head_r, set_head_s, set_head,
+  get_tail_s, get_tail_r, get_tail,
+  set_tail_r, set_tail_s, set_tail: Nat;
+  call_push, ret_pop: Value;
+  call_pop, ret_push;
+
+proc
+  Head(i :Nat) = sum i': Nat. set_head_r(i').Head(i') + get_head_s(i).Head();
+  Tail(i: Nat) = sum i': Nat. set_tail_r(i').Tail(i') + get_tail_s(i).Tail();
+
+  Queue(i: Nat, v: Value) =
+    sum v': Value. start_write_queue_r(i, v').QueueW(v = garbage, w = v') +
+    start_read_queue_s(i).QueueR();
+  QueueW(i: Nat, v: Value, w: Value) =
+    end_write_queue_r(i).Queue(v = w) +
+    start_read_queue_s(i).QueueRW();
+  QueueR(i: Nat, v: Value) =
+    sum v': Value. start_write_queue_r(i, v').QueueRW(v = garbage, w = v') +
+    end_read_queue_s(i, v).Queue();
+  QueueRW(i: Nat, v: Value, w: Value) =
+    end_write_queue_r(i).QueueR(v = w) +
+    end_read_queue_s(i, v).QueueW();
+
+  Producer = sum v: Value. (v != garbage) -> call_push(v).Push(v).Producer;
+  Push(v:Value) =
+    sum t: Nat. get_tail_r(t).sum h: Nat. get_head_r(h).
+    (((t+1) mod N == h) -> Push()
+        <> ( start_write_queue_s(t, v).end_write_queue_s(t).
+             set_tail_s((t+1) mod N).
+             ret_push ));
+
+  Consumer = call_pop.Pop.Consumer;
+  Pop =
+    sum t: Nat. get_tail_r(t).sum h: Nat. get_head_r(h).
+    ((t == h) -> Pop
+        <> ( start_read_queue_r(h).
+             sum v: Value. end_read_queue_r(h, v).
+             set_head_s((h+1) mod N).
+             ret_pop(v) ));
+
+  Invalid =
+    sum i: Nat, v: Value. (i>=N) -> start_write_queue_r(i,v).Invalid +
+    sum i: Nat. (i>=N) -> start_read_queue_s(i).Invalid +
+    sum i: Nat. (i>=N) -> set_head_r(i).Invalid +
+    sum i: Nat. (i>=N) -> set_tail_r(i).Invalid;
+
+init
+  allow({ start_read_queue, end_read_queue, start_write_queue,
+          end_write_queue, get_head, set_head, get_tail, set_tail,
+          call_push, ret_push, call_pop, ret_pop },
+    comm({ start_read_queue_s | start_read_queue_r -> start_read_queue,
+           end_read_queue_s | end_read_queue_r -> end_read_queue,
+           start_write_queue_r | start_write_queue_s -> start_write_queue,
+           end_write_queue_r | end_write_queue_s -> end_write_queue,
+           get_head_s | get_head_r -> get_head,
+           set_head_r | set_head_s -> set_head,
+           get_tail_s | get_tail_r -> get_tail,
+           set_tail_r | set_tail_s -> set_tail },
+      Invalid ||
+      Queue(0,garbage) || Queue(1,garbage) || Head(0) || Tail(0) ||
+      Producer || Consumer));

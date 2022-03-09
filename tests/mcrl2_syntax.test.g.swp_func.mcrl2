@@ -1,0 +1,62 @@
+% This file contains an mCRL2 version of the sliding window protocol
+% as it occurs in the book "Modelling Reactive Systems" by Groote and Mousavi.
+% The buffers in this description are modelled using functions.
+%
+% The `constant' n is the size of the buffers in the protocol, set to 2.
+% There is a domain D of data elements. In this specification it is made
+% finite. It has two data elements d1 and d2. It also contains two
+% unspecified functions q1 and q2, which represent initial buffers with
+% garbage content.
+%
+% State space generation is currently (Oct 2008) impossible, even though
+% all buffers contain finitely many elements and only two data elements
+% are considered.
+% Proving absence of deadlock automatically is currently impossible;
+
+map  n: Pos;
+eqn  n=2;
+
+sort D = struct d1 | d2;
+     DBuf = Nat -> D;
+     BBuf = Nat -> Bool;
+map  empty: BBuf;
+     nextempty_mod: Nat#BBuf#Nat#Pos -> Nat;
+     q1,q2:DBuf;
+var  d:D; i,j,m: Nat; q: DBuf; c:Bool; n':Pos; b:BBuf;
+eqn  empty(m) = false;
+     b(i mod n') && m>0 ->
+         nextempty_mod(i,b,m,n') = nextempty_mod((i+1) mod 2*n', b,Int2Nat(m-1),n');
+     !(b(i mod n') && m>0) ->
+         nextempty_mod(i,b,m,n') =i mod 2*n';
+
+act  r1,s4: D;
+     s2,r2,c2,s3,r3,c3: D#Nat;
+     s5,r5,c5,s6,r6,c6: Nat;
+     i;
+
+proc S(l,m:Nat,q:DBuf) =
+        sum d:D. (m<n) ->
+                r1(d).S(l,m+1,q[((l+m) mod n)->d])<>delta+
+        sum k:Nat. (k<m) -> s2(q((l+k) mod n),(l+k) mod 2*n).S(l,m,q)<>delta+
+        sum k:Nat. r6(k).S(k,(m-k+l) mod 2*n,q);
+
+     R(l':Nat,q':DBuf,b:BBuf) =
+        sum d:D,k:Nat. r3(d,k).(((k-l') mod (2*n) < n)
+                  -> R(l',q'[(k mod n)->d],b[(k mod n)->true])
+                  <> R(l',q',b))+
+        b(l' mod n) -> s4(q'(l' mod n)).
+                          R((l'+1) mod 2*n,q',b[(l' mod n)->false])<>delta+
+        s5(nextempty_mod(l',b,n,n)).R(l',q',b);
+
+     K = sum d:D,k:Nat. r2(d,k).(i.s3(d,k)+i).K;
+     L = sum k:Nat. r5(k).(i.s6(k)+i).L;
+
+     SWP(q,q':DBuf)=
+        allow({c2,c3,c5,c6,i,r1,s4},
+           comm({r2|s2->c2, r3|s3->c3, r5|s5->c5, r6|s6->c6},
+              S(0,0,q) ||
+              K ||
+              L ||
+              R(0,q',empty)));
+
+init SWP(q1,q2);

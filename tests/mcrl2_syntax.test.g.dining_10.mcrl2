@@ -1,0 +1,36 @@
+% This is the dining philosophers problem
+% Variable K indicates the number of philosophers (and forks)
+%
+% Note: When changing the value of K, change the KForkPhil process accordingly!
+%
+% Note: Since revision 9975 the construct as used below to describe K processes in parallel
+% has been disabled. This example can not be linearised as it stands. 
+
+eqn K = 10;
+
+map K: Pos;
+
+act get,_get,__get,put,_put,__put: Pos#Pos;
+    eat: Pos;
+
+proc
+  Phil(n:Pos) = _get(n,n)._get(n,if(n==K,1,n+1)).eat(n)._put(n,n)._put(n,if(n==K,1,n+1)).Phil(n);
+  Fork(n:Pos) = sum m:Pos.get(m,n).put(m,n).Fork(n);
+
+  ForkPhil(n:Pos) = Fork(n) || Phil(n);
+  KForkPhil(p:Pos) =ForkPhil(1) ||
+                    ForkPhil(2) ||
+                    ForkPhil(3) ||
+                    ForkPhil(4) ||
+                    ForkPhil(5) ||
+                    ForkPhil(6) ||
+                    ForkPhil(7) ||
+                    ForkPhil(8) ||
+                    ForkPhil(9) ||
+                    ForkPhil(10);
+
+init allow( { __get, __put, eat },
+       comm( { get|_get->__get, put|_put->__put },
+         KForkPhil(K)
+     ));
+

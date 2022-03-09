@@ -1,0 +1,125 @@
+% This specification describes the game `Snake', which is a two
+% player board game. There is a board of N by M.
+% One player has white pieces (W) and the
+% other has black pieces (B). Initially, the board is set up as:
+%
+%      . . . B . . . .
+%      . . . . . . . .
+%      . . . . . . . .
+%      . . . . . . . .
+%      . . . . . . . .
+%      . . . . . . . .
+%      . . . . . . . .
+%      . . . . W . . .
+%
+% Black makes the first move, and players each do a move in turn.
+% Each player can put a piece at the head of the snake in vertical
+% or horizontal direction (not vertically) on an empty field of the
+% board. The first player that cannot do a move looses the game.
+%
+% Reijkjavik, May 15, 2006, Jan Friso Groote
+
+sort Position = struct Black | White | Empty;
+sort Direction = struct Up | Right | Down | Left;
+map N,M:Pos;
+eqn N=5;
+    M=5;
+
+sort Row=List(Position);
+     Board=List(Row);
+map  At:Pos#Pos#Board->Position;
+     At:Pos#Pos#Direction#Board->Position;
+     At:Pos#Row->Position;
+     Put:Position#Pos#Pos#Board->Board;
+     Put:Position#Pos#Pos#Direction#Board->Board;
+     Put:Position#Pos#Row->Row;
+     CanMove:Pos#Pos#Board->Bool;
+     PossibleMove:Pos#Pos#Direction#Board->Bool;
+     Xchange,Ychange:Pos#Direction->Pos;
+
+var b:Board;
+    r:Row;
+    p,p':Position;
+    x,y:Pos;
+eqn At(x,y,Up,b)=At(x,y+1,b);
+    At(x,y,Right,b)=At(x+1,y,b);
+    y>1 -> At(x,y,Down,b)=At(x,Int2Pos(y-1),b);
+    y==1 -> At(x,y,Down,b)=Empty;
+    x>1 -> At(x,y,Left,b)=At(Int2Pos(x-1),y,b);
+    x==1 -> At(x,y,Left,b)=Empty;
+    At(x,y,[])=Empty;
+    y==1 -> At(x,y,r|>b)=At(x,r);
+    y>M -> At(x,y,b)=Empty;
+    1<y && y<=M -> At(x,y,r|>b)=At(x,Int2Pos(y-1),b);
+    At(x,[])=Empty;
+    x==1 -> At(x,p|>r)=p;
+    x>N -> At(x,p|>r)=Empty;
+    1<x && x<=N -> At(x,p|>r)=At(Int2Pos(x-1),r);
+
+    Put(p,x,y,Up,b)=Put(p,x,y+1,b);
+    Put(p,x,y,Right,b)=Put(p,x+1,y,b);
+    y>1 -> Put(p,x,y,Down,b)=Put(p,x,Int2Pos(y-1),b);
+    x>1 -> Put(p,x,y,Left,b)=Put(p,Int2Pos(x-1),y,b);
+
+    y==1 -> Put(p,x,y,r|>b)=Put(p,x,r)|>b;
+    y>1 -> Put(p,x,y,r|>b)=r|>Put(p,x,Int2Pos(y-1),b);
+    x==1 -> Put(p,x,p'|>r)=p|>r;
+    x>1 -> Put(p,x,p'|>r)=p'|>Put(p,Int2Pos(x-1),r);
+
+    PossibleMove(x,y,Up,b)=
+       y+1<=M && At(x,y,Up,b)==Empty;
+
+    PossibleMove(x,y,Right,b)=
+       x+1<=N && At(x,y,Right,b)==Empty;
+
+    PossibleMove(x,y,Down,b)=
+       y>1 && At(x,y,Down,b)==Empty;
+
+    PossibleMove(x,y,Left,b)=
+       x>1 && At(x,y,Left,b)==Empty;
+
+    CanMove(x,y,b)=
+       PossibleMove(x,y,Up,b) ||
+       PossibleMove(x,y,Right,b) ||
+       PossibleMove(x,y,Down,b) ||
+       PossibleMove(x,y,Left,b);
+
+    Xchange(x,Up)=x;
+    Xchange(x,Right)=x+1;
+    Xchange(x,Down)=x;
+    Xchange(x,Left)=Int2Pos(x-1);
+
+    Ychange(y,Up)=y+1;
+    Ychange(y,Right)=y;
+    Ychange(y,Down)=Int2Pos(y-1);
+    Ychange(y,Left)=y;
+
+
+act WhiteMove,BlackMove:Pos#Pos#Direction;
+    WhiteWins,BlackWins;
+
+proc Snake(xblack,yblack,xwhite,ywhite:Pos,b:Board,WhiteMoves:Bool)=
+       sum dir:Direction.
+                    (WhiteMoves &&
+                     PossibleMove(xwhite,ywhite,dir,b)) ->
+           WhiteMove(xwhite,ywhite,dir).
+             Snake(xblack,yblack,Xchange(xwhite,dir),Ychange(ywhite,dir),
+                    Put(White,xwhite,ywhite,dir,b),false)+
+       sum dir:Direction.
+                    (!WhiteMoves &&
+                     PossibleMove(xblack,yblack,dir,b)) ->
+           BlackMove(xwhite,ywhite,dir).
+             Snake(Xchange(xblack,dir),Ychange(yblack,dir),xwhite,ywhite,
+                    Put(Black,xblack,yblack,dir,b),true)+
+       (WhiteMoves && !CanMove(xwhite,ywhite,b)) ->
+             BlackWins.Snake(xblack,yblack,xwhite,ywhite,b,WhiteMoves)+
+       (!WhiteMoves && !CanMove(xblack,yblack,b)) ->
+             WhiteWins.Snake(xblack,yblack,xwhite,ywhite,b,WhiteMoves)+
+       delta ;
+
+init Snake(3,1,3,5,
+             [[Empty,Empty,Black,Empty,Empty],
+              [Empty,Empty,Empty,Empty,Empty],
+              [Empty,Empty,Empty,Empty,Empty],
+              [Empty,Empty,Empty,Empty,Empty],
+              [Empty,Empty,White,Empty,Empty]],false);

@@ -1,0 +1,63 @@
+% A family of four people has to cross a bridge at night as quickly as
+% possible. Unfortunately, the bridge can only hold two persons at the time. To complicate matters
+% they only carry one light. Crossing the bridge without the light is impossible. 
+% The two younger people p1 and p2 can cross the bridge in 1 resp. 2 minutes. Unfortunately, the two older
+% people p3 and p4 require 5 resp. 10 minutes. How should they cross the bridge such that they are at the other
+% side in minimal time. The right answer is 17. This is shown by the following trace generated
+% from the mcrl2 description below:
+% 
+% move(p2, p1, far_side)
+% move(p1, this_side)
+% move(p4, p3, far_side)
+% move(p2, this_side)
+% move(p2, p1, far_side)
+% ready(17)
+% 
+% Note that the gist of this puzzle lies in the simultaneous crossing of p3 and p4.
+% 
+% This puzzle reflects the puzzle of the Cabbage, Wolf and Goat, except that the number of states
+% is substantially larger in this case. 
+% 
+% A way to systematically find the smallest crossing time is to search for the existence of a 
+% ready action using lps2lts and decrease the constant MAXIMAL_CROSSING_TIME until this time is
+% too small for a crossing to be possible. 
+% 
+% Jan Friso Groote, Oktober 2016.
+
+
+sort Position = struct this_side | far_side;
+     Person = struct p1 | p2 | p3 | p4;
+map  travel_time:Person->Nat;
+     initial_locations:Person->Position;
+     other_side:Position->Position;
+
+var  p:Person;
+eqn  travel_time(p1)=1;
+     travel_time(p2)=2;
+     travel_time(p3)=5;
+     travel_time(p4)=10;
+     initial_locations(p)=this_side;
+     other_side(this_side)=far_side;
+     other_side(far_side)=this_side;
+
+map  MAXIMAL_CROSSING_TIME:Nat;
+eqn  MAXIMAL_CROSSING_TIME=20;
+
+act  ready:Nat;
+     move:Person#Position;
+     move:Person#Person#Position; 
+
+proc X(light_position:Position, location:Person->Position, current_time:Nat)=
+          (current_time<=MAXIMAL_CROSSING_TIME && forall p:Person.location(p)==far_side) -> ready(current_time).delta+
+          sum p:Person.
+                 (current_time<=MAXIMAL_CROSSING_TIME && location(p)==light_position) -> move(p,other_side(location(p))).
+                 X(other_side(light_position),location[p->other_side(location(p))],current_time+travel_time(p)) +
+          sum p,p':Person.
+                 (p!=p' && current_time<=MAXIMAL_CROSSING_TIME && location(p)==light_position && location(p')==light_position) -> 
+                           move(p,p',other_side(location(p))).
+                 X(other_side(light_position),location[p->other_side(location(p))][p'->other_side(location(p'))],
+                         current_time+max(travel_time(p),travel_time(p')));
+          
+init X(this_side, initial_locations, 0);
+         
+         

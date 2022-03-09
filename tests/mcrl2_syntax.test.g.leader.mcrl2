@@ -1,0 +1,66 @@
+% This process contains a very simple leader election protocol
+% in a ring topology. Processes have initial numbers that are sent
+% around in the ring. Each process let values higher than their
+% own pass, and block values smaller than their own. If a process
+% receives its own initial number, it has the highest number, and
+% it must be the leader. More efficient versions of this protocol
+% exist, such as the Dolev, Klawe and Rodeh leader election protocol.
+% An important feature of this protocol is that the links between
+% the nodes are modelled by unbounded queues. As processes work in
+% parallel, the number of states of this protocol is exponential
+% in the number of processes. However, applying confluence will
+% reduce this number back to a linear number. As a consequence
+% rings of hundreds of nodes can be verified.
+
+% The following commands illustrate how to effectively generate
+% the state space using confluence reduction.
+
+% mcrl22lps -nv leader.mcrl2 leader.lps
+% lps2lts -v leader.lps                  // This indicates the
+%                                        // size of the non-reduced
+%                                        // state space
+% lpsconstelm -v leader.lps temp.lps     // find and eliminate the
+%                                        // constants representing
+%                                        // process id's
+% lpsconfcheck -o -t1 temp.lps temp1.lps // find confluent tau's
+%                                        // and rename these to ctau's.
+%                                        // The flag -o enables induction
+%                                        // on lists, which is necessary
+%                                        // to prove confluence
+% lps2lts -vcctau temp1.lps temp1.lts    // This shows the dramatically
+%                                        // reduced statespace, generated
+%                                        // by giving priority to ctau's
+
+% Jan Friso Groote (28/12/2006)
+
+map N:Pos;
+    f:Pos->Pos;
+var n:Pos;
+eqn N=5;
+    f(n)=(7*n mod N)+1;
+
+act rN,sN,rQ,sQ,c : Pos#Pos;
+    leader;
+
+proc N(i:Pos,v:Pos)=sN((i mod N)+1,v).M(i,v);
+
+     M(i:Pos,v:Pos)=
+        sum w:Pos.rN(i,w).
+               (w==v) -> leader.delta
+                      <> (w<v) -> sN((i mod N)+1,w).M(i,v)
+                               <> M(i,v);
+
+proc Q(i:Pos,q:List(Pos))=
+        sum w:Pos.rQ(i,w).Q(i,w|>q)+
+        (q!=[]) -> sQ(i,rhead(q)).Q(i,rtail(q))<>delta;
+
+init hide({c},
+       allow({c,leader},
+         comm({rN|sQ->c, sN|rQ->c},
+           N(1,f(1)) || Q(1,[]) ||
+           N(2,f(2)) || Q(2,[]) ||
+           N(3,f(3)) || Q(3,[]) ||
+           N(4,f(4)) || Q(4,[]) ||
+           N(5,f(5)) || Q(5,[]))));
+
+

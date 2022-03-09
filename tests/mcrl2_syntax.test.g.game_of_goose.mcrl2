@@ -1,0 +1,135 @@
+% The Royal Game of Goose (in Dutch: Het oudholands ganzenbord)
+% [This is a non-stochastic variant. For the stochastic variant see the
+%  directory with stochastic examples]
+% 
+% We model the Royal Game of Goose in mCRL2. Using this we can determine
+% what the probability is of the various players to win. Roughly the rules
+% of the game are as follows. There are two or more players (geese) taking part in
+% the game. The game has fields numbered from 0 to 63. All players start at position 0
+% and alternatingly throw two dice and move the indicated number of pips forward. 
+% The first player that arrives at position 63 wins the game.
+%
+% There are a number of rules that apply in addition when moving forward. There
+% are actually many variants of these rules for all variants of this game that exist in 
+% the world, including those where only one die is used. We follow the rules
+% for a popular Dutch version of the game, although even these rules turned
+% out to have been susceptible to variations.
+%
+% In the popular Dutch variant the player alternatingly throw two dice. The player
+% to start the game is the one who throws the hightest number first. This aspect of
+% determining the first player is not part of the model below. 
+% The player moves his goose forward as many steps as the dice indicate where
+% he must apply the following exceptions/extensions.
+% 
+% If the first throw is a 4 and a 5, the players goes to field 53. 
+% If the first throw exists of a 6 and a 3, the player moves to field 26. 
+% Without these rules, the player would end up immediately at position 63, winning
+% the game. There are variants of the Dutch rules where position 53 and 26 are
+% reversed. 
+% 
+% If a player ends on position  5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54 and 59, he will move
+% the same numbers of steps in the same direction as he was moving. So, if one is moving backwards,
+% after arriving at number 63 (see below) and number 59 is reached the player moves the same number
+% of steps further in the backward direction. 
+%
+% When the player arrives at one of the following fields he has to perform a special action.
+%     Field 6, `the bridge'. Move forward to position 12. 
+%     Field 19, `the inn'. Skip one turn.
+%     Field 31, `the well'. Wait until another player arrives at the well. If so, the first 
+%               player is released, and the second player must stay in the well. 
+%     Field 42, `the maze'. Go back to field 30.
+%     Field 52, `the prison'. Wait until released by another player.
+%     Field 58, `death'. Move to position 0.
+% 
+% If a player ends up at a position which is occupied by another player, then he must go back 
+% to its original position, except for the well and the prison. In those case the player already
+% at that position is released and the newly arriving player is captured.
+% 
+% To win the game one must end exactly at position 63. If too many pips are thrown, the player
+% must count back from number 63. 
+% 
+% In J.F. Groote and H. Zantema, Analysing the Game of the Goose a detailed analysis is provided
+% of the game, partly on the basis of the code below. 
+
+map number_of_players:Pos;
+    previous,next:Pos->Pos;
+    initial_positions:Pos->Nat;
+    adapt_after_63:Int->Nat;
+    next_position:Pos#(Pos->Nat)#Pos#Pos->Nat;
+    next_position2:Pos#(Pos->Nat)#Int#Nat->Nat;
+    occupied,occupied_pw:Pos#(Pos->Nat)->Bool; % occupied_pw is occupied, except for the prison and well.
+    occupied_rec:Pos#(Pos->Nat)#Pos->Bool;
+
+var player,other,throw1,throw2:Pos;
+    throw,n:Int;
+    position:Pos->Nat;
+    old_position:Nat;
+eqn number_of_players=4;
+    next(player)=if(player==number_of_players,1,player+1);
+    previous(player)=if(player>1,max(1,player-1),number_of_players);
+    initial_positions(player)=0;
+    adapt_after_63(n)=Int2Nat(if(n>63,63+63-n,n));
+
+    next_position(player,position,throw1,throw2)=
+        % If initially a 4 and 5, or a 3 and 6 one must go to 53 and 26 respectively.
+                 if(position(player)==0 && (throw1==4 && throw2==5 || throw1==5 && throw2==4), if(occupied(player,position[player->53]),0,53),
+                 if(position(player)==0 && (throw1==3 && throw2==6 || throw1==6 && throw2==3), if(occupied(player,position[player->26]),0,26),
+        % Otherwise do an ordinary step.
+                 next_position2(player,position[player->adapt_after_63(position(player)+throw1+throw2)],
+                                     if(position(player)+throw1+throw2>63,-throw1-throw2,throw1+throw2),position(player))));
+
+    (position(player)<65) -> % Trick to prevent infinite rewriting.
+    next_position2(player,position,throw,old_position)=
+        % At position 5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54, 59 proceed the same number of steps, in the current direction.
+                 if(position(player) in {5,9,14,18,23,27,32,36,41,45,50,54,59},
+                       next_position2(player,position[player->adapt_after_63(position(player)+throw)],if(position(player)+throw>63,-throw,throw),old_position),
+        % At position 6 you are at the bridge. Move to position 12.
+                 if(position(player)==6, next_position2(player,position[player->12],throw,old_position),
+        % At position 19 you are in the inn. Skip one turn by moving the the artificial position 64.
+                 if(position(player)==19, next_position2(player,position[player->64],throw,old_position),
+        % At position 42 you are in the maze. Go back to place 30.
+                 if(position(player)==42, next_position2(player,position[player->30],throw,old_position),
+        % At position 58 you die. Go back to position 0.
+                 if(position(player)==58, next_position2(player,position[player->0],throw,old_position),
+        % Otherwise
+                 if(occupied_pw(player,position),old_position,position(player)))))));
+
+    % Check whether the position of the player is occupied by another player, except when the player is in the prison or well.
+    occupied_pw(player,position)=!(position(player) in {31,52}) && occupied(player,position);
+ 
+    % Check whether the position of the player is occupied, starting at the position of other or higher.
+    occupied(player,position)=occupied_rec(player,position,1);
+    occupied_rec(player,position,other)=if(other<number_of_players,occupied_rec(player,position,other+1),false) ||  
+                                          (other!=player &&
+                                                  (position(player)==position(other) ||
+                                                   position(other)==19 && position(player)==64 ||
+                                                   position(other)==64 && position(player)==19));
+    
+        
+
+act throw:Pos#Pos#Pos;
+    skip,win:Pos;
+    player_at:Pos#Nat;
+    
+proc
+     % Throw two dice.
+     THROW(player:Pos,position:Pos->Nat)=
+        % Indicate the positions of all players.
+        sum player:Pos.(player<=number_of_players)->player_at(player,position(player)).delta+
+
+        % If a player won, indicate so and stop.
+        (position(previous(player))==63)->win(previous(player)).delta<>
+
+        % At position 31 you are in the well. Skip your turn, if nobody else is in the well.
+        % At position 52 you are in prison. Also skip your turn, if nobody else is in prison.
+        (position(player) in {31,52} && !occupied(player,position))
+                   -> skip(player).THROW(next(player),position) <>
+
+        % At position 64 you are resting in the inn. You can go back to position 19 where you can continue as usual in your next turn.
+        (position(player)==64) -> skip(player).THROW(next(player),position[player->19])<>
+        
+        % Otherwise throw the dice.
+        sum throw1,throw2:Pos.(throw1<=6 && throw2<=6)->throw(player,throw1,throw2).
+                         THROW(next(player),position[player->next_position(player,position,throw1,throw2)]);
+
+init THROW(1,initial_positions);

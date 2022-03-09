@@ -1,0 +1,124 @@
+
+map  MaximumWafers: Nat;
+eqn  MaximumWafers = 5;
+
+sort WaferState = struct fresh?is_fresh | measured?is_measured | exposed?is_exposed;
+
+sort Wafer = struct wafer(status : WaferState);
+map  DummyWafer:                   Wafer;
+     IsFresh,IsMeasured,IsExposed: Wafer -> Bool;
+     MakeMeasured,MakeExposed:     Wafer -> Wafer;
+var  s : WaferState;
+     w : Wafer;
+eqn  IsFresh(wafer(s))       = is_fresh(s);
+     IsMeasured(wafer(s))    = is_measured(s);
+     IsExposed(wafer(s))     = is_exposed(s);
+     MakeMeasured(wafer(s))  = wafer(measured);
+     MakeExposed(wafer(s))   = wafer(exposed);
+
+sort WaferList = List (Wafer);
+map  InitWaferList: Nat -> WaferList;
+var  n : Nat;
+eqn  InitWaferList(0)     = [];
+0 < n -> InitWaferList(n) = wafer(fresh) |> InitWaferList(max(n - 1,0));
+
+sort LockID  = struct L0 | L1 | L2 | L3;
+
+sort RobotID = struct R0 | R1;
+
+act  ALLE_HENS_AAN_BOORD;
+     Measure,Expose,Swap;
+     Rotate : RobotID;
+
+     T2L,L2T: Wafer#LockID;
+     L2R,R2L: Wafer#LockID#RobotID;
+     R2C,C2R: Wafer#RobotID;
+
+     T2L_T,L2T_T,T2L_L,L2T_L: Wafer#LockID;
+     L2R_L,R2L_L,L2R_R,R2L_R: Wafer#LockID#RobotID;
+     R2C_R,C2R_R,R2C_C,C2R_C: Wafer#RobotID;
+
+proc
+     % Tray process
+     T(wl:WaferList,n:Nat) =
+      (sum l:LockID.
+        (wl != []) -> T2L_T(head(wl),l).T(tail(wl),n)) +
+      (n == 0) ->
+        ALLE_HENS_AAN_BOORD.T(wl,n) <>
+        (sum w:Wafer, l:LockID.
+          L2T_T(w,l).T(wl,max(n - 1,0)));
+
+     % Lock process
+     L(id:LockID,occupied:Bool,w:Wafer)=
+      occupied ->
+       (IsExposed(w) -> L2T_L(w, id) +
+         IsFresh(w) -> L2R_L(w,id,if(id == L0 || id == L1,R0,R1))
+        ).L(id,false,DummyWafer) <>
+       (sum x:Wafer.(T2L_L(x,id) +
+         R2L_L(x,id,if(id == L0 || id == L1,R0,R1))).L(id,true,x));
+
+     % Robot process
+     R(id:RobotID,occupiedA:Bool,wA:Wafer,occupiedB:Bool,wB:Wafer,reversed:Bool) =
+       (sum w:Wafer, lid:LockID.
+         (!if(reversed,occupiedB,occupiedA)) ->
+           L2R_R(w,lid,id).
+           R(id,if(reversed,occupiedA,true),if(reversed,wA,w),
+                if(reversed,true,occupiedB),if(reversed,w,wB),reversed)) +
+       (sum lid:LockID.
+         (if(reversed,occupiedB && IsExposed(wB),occupiedA && IsExposed(wA))) ->
+           R2L_R(if(reversed,wB,wA),lid,id).
+           R(id,if(reversed,occupiedA,false),if(reversed,wA,DummyWafer),
+                if(reversed,false,occupiedB),if(reversed,DummyWafer,wB),reversed)) +
+       (if(reversed,
+         ((occupiedA && IsExposed(wA)) && (!occupiedB || IsFresh(wB))) ||
+         ((occupiedB && IsFresh(wB)) && (!occupiedA)),
+         ((occupiedB && IsExposed(wB)) && (!occupiedA || IsFresh(wA))) ||
+         ((occupiedA && IsFresh(wA)) && (!occupiedB)))) ->
+           Rotate(id).R(id,occupiedA,wA,occupiedB,wB,!reversed) +
+       (if(reversed,occupiedA && IsFresh(wA),occupiedB && IsFresh(wB))) ->
+         R2C_R(if(reversed,wA,wB),id).
+         R(id,if(reversed,false,occupiedA),if(reversed,DummyWafer,wA),
+              if(reversed,occupiedB,false),if(reversed,wB,DummyWafer),reversed) +
+       (sum w:Wafer.
+         ((!if(reversed,occupiedA,occupiedB)) ->
+           C2R_R(w,id).
+           R(id,if(reversed,true,occupiedA),if(reversed,w,wA),
+                if(reversed,occupiedB,true),if(reversed,wB,w),reversed)));
+
+     % Wafer stages
+     C(occupiedC0:Bool,w0:Wafer,occupiedC1:Bool,w1:Wafer) =
+       (occupiedC0 && IsFresh(w0)) ->
+         Measure.C(occupiedC0,MakeMeasured(w0),occupiedC1,w1) +
+       (occupiedC1 && IsMeasured(w1)) ->
+         Expose.C(occupiedC0,w0,occupiedC1,MakeExposed(w1)) +
+       ((occupiedC0 && !occupiedC1 && IsMeasured(w0)) ||
+        (occupiedC1 && if(occupiedC0,IsMeasured(w0),true) && IsExposed(w1))) ->
+           Swap.C(occupiedC1,w1,occupiedC0,w0) +
+       (sum rid:RobotID.
+         (occupiedC0 && IsExposed(w0)) ->
+           C2R_C(w0,rid).C(false,DummyWafer,occupiedC1,w1)) +
+       (sum w:Wafer, rid:RobotID.
+         (!occupiedC0) ->
+           R2C_C(w,rid).C(true,w,occupiedC1,w1));
+
+
+init
+
+hide({Measure,Expose,Swap,Rotate},
+  allow({T2L,L2T,L2R,R2L,R2C,C2R,Measure,Expose,Rotate,Swap,ALLE_HENS_AAN_BOORD},
+    comm({T2L_T|T2L_L -> T2L, L2T_T|L2T_L -> L2T,
+          L2R_L|L2R_R -> L2R, R2L_L|R2L_R -> R2L,
+          R2C_R|R2C_C -> R2C, C2R_R|C2R_C -> C2R
+         },
+      T(InitWaferList(MaximumWafers),MaximumWafers) ||
+      L(L0,false,DummyWafer) ||
+      L(L1,false,DummyWafer) ||
+      L(L2,false,DummyWafer) ||
+      L(L3,false,DummyWafer) ||
+      R(R0,false,DummyWafer,false,DummyWafer,false) ||
+      R(R1,false,DummyWafer,false,DummyWafer,false) ||
+      C(false,DummyWafer,false,DummyWafer)
+    )
+  )
+);
+

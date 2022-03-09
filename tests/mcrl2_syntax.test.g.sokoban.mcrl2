@@ -1,0 +1,154 @@
+% This file contains an mcrl2 model of the game Sokoban. The idea is that a Japanese shop keeper
+% must take care that boxes are put at the right spots marked with lights. He
+% can only push a box if he can position himself well behind the box, and 
+% when the position after the box is free. In particular he cannot push two
+% boxes at the same time. 
+%
+% Below a few concrete instances of the game are provided. These are taken from
+% the website http://sokoban.info. The first three are easy to solve. The fourth can
+% be solved using high-way search with a highway of 100000 on a 16GB main memory computer.
+% The last one appears quite impossible. 
+%
+% Jan Friso Groote. February, 2015.
+
+sort Piece = struct Empty | Solid | Man | Box | Light | ManOnLight | BoxOnLight;
+sort Direction = struct Up | Right | Left | Down;
+sort Row = List(Piece);
+     Board = List(Row);
+
+map InitialPosition,InitialPosition0,InitialPosition1,InitialPosition110,InitialPosition138,InitialPosition153: Board;
+
+eqn InitialPosition=InitialPosition1;  % Change this initial position to select one of the Sokoban puzzles below.
+
+eqn InitialPosition0= % A trivial Sokoban game.
+     [[Empty, Light],
+      [Empty, Box  ],
+      [Man,   Empty]];
+
+eqn InitialPosition1= % http://sokoban.info/?25_1
+     [[Empty, Light, Solid, Solid],
+      [Empty, Empty, Solid, Solid],
+      [BoxOnLight,Man,Empty,Empty],
+      [Empty, Empty, Box,   Empty],
+      [Empty, Empty, Solid, Solid]];
+
+eqn InitialPosition110= % http://sokoban.info/?25_110
+     [[Solid, Solid, Empty, Empty, Solid, Solid, Solid],
+      [Solid, Solid, Empty, Box,   Solid, Solid, Solid],
+      [Solid, Solid, Light, Empty, Light, Empty, Empty],
+      [Empty, Box,   Empty, Solid, Empty, Box,   Empty],
+      [Empty, Empty, Light, Empty, Light, Solid, Solid],
+      [Solid, Solid, Solid, Box,   Empty, Solid, Solid],
+      [Solid, Solid, Solid, Empty, Man,   Solid, Solid]];
+
+eqn InitialPosition138= % http://sokoban.info/?25_138
+     [[Solid, Solid, Empty, Empty, Solid, Solid, Solid, Solid, Solid, Solid],
+      [Empty, Empty, Empty, Empty, Solid, Solid, Solid, Solid, Solid, Solid],
+      [Empty, Solid, Empty, Light, Empty, Light, Solid, Solid, Solid, Solid],
+      [Empty, Man,   Empty, Light, Light, Light, Solid, Solid, Solid, Solid],
+      [Empty, Solid, Empty, Solid, Empty, Solid, Empty, Empty, Empty, Solid],
+      [Empty, Empty, Empty, Solid, Empty, Box,   Box,   Empty, Empty, Empty],
+      [Solid, Solid, Solid, Solid, Empty, Empty, Box,   Empty, Box,   Empty],
+      [Solid, Solid, Solid, Solid, Solid, Box,   Empty, Solid, Empty, Solid],
+      [Solid, Solid, Solid, Solid, Solid, Empty, Empty, Empty, Empty, Solid]];
+
+eqn InitialPosition153= % http://sokoban.info/?25_153
+      [[Light, Solid, Empty, Man,   Solid, Empty, Empty, Solid, Empty, Empty, Empty],
+       [Light, Solid, Box,   Box,   Empty, Empty, Empty, Solid, Empty, Box,   Empty],
+       [Light, Solid, Empty, Empty, Solid, Empty, Box,   Solid, Empty, Empty, Empty],
+       [Light, Solid, Empty, Box,   Solid, Empty, Empty, Solid, Empty, Box,   Solid],
+       [Light, Solid, Empty, Empty, Solid, Empty, Box,   Solid, Empty, Empty, Solid],
+       [Light, Solid, Empty, Box,   Solid, Empty, Empty, Solid, Empty, Box,   Solid],
+       [Light, Light, Empty, Empty, Solid, Empty, Box,   Empty, Empty, Empty, Solid],
+       [Light, Light, Empty, Empty, Solid, Empty, Empty, Solid, Empty, Empty, Solid]];
+
+
+map Columns, Rows:Pos;
+    startColumn,startRow:Board->Pos;
+    startColumn:Row->Pos;
+    nextR,next2R,nextC,next2C:Int#Direction->Int;
+    position_is_won:Board->Bool;
+    get:Int#Int#Board->Piece;
+    get:Int#Row->Piece;
+    set_man:Int#Int#Board->Board;
+    set_man:Int#Row->Row;
+    set_box:Int#Int#Board->Board;
+    set_box:Int#Row->Row;
+    set_empty:Int#Int#Board->Board;
+    set_empty:Int#Row->Row;
+var p,p':Piece; l:Row; b,b':Board;
+    i,j:Int;
+    c:Bool;
+eqn Columns=Nat2Pos(#(InitialPosition.0));
+    Rows=Nat2Pos(#InitialPosition);
+    (b==[]) -> startColumn(b)=Columns+1;
+    startColumn(l|>b)=min(startColumn(l),startColumn(b));
+    (l==[]) -> startColumn(l)=Columns+1;
+    startColumn(p|>l)=if(p==Man,1,1+startColumn(l));
+    startRow(l|>b)=if(Man in l,1,1+startRow(b));
+    nextC(i,Up)=i;
+    nextC(i,Down)=i;
+    nextC(i,Right)=i+1;
+    nextC(i,Left)=pred(i);
+    nextR(i,Down)=i+1;
+    nextR(i,Up)=pred(i);
+    nextR(i,Right)=i;
+    nextR(i,Left)=i;
+    next2C(i,Up)=i;
+    next2C(i,Down)=i;
+    next2C(i,Right)=i+2;
+    next2C(i,Left)=if(i==1,pred(i),i-2);
+    next2R(i,Down)=i+2;
+    next2R(i,Up)=if(i==1,pred(i),i-2);
+    next2R(i,Right)=i;
+    next2R(i,Left)=i;
+    get(i,j,[])=Solid;
+    get(i,j,l|>b)=if(j<=0,Solid,if(j==1,get(i,l),get(i,pred(j),b)));
+    get(j,[])=Solid;
+    get(j,p|>l)=if(j<=0,Solid,if(j==1,p,get(pred(j),l)));
+    set_man(i,j,l|>b)=if(j==1,set_man(i,l)|>b,l|>set_man(i,pred(j),b));
+    set_man(i,p'|>l)=if(i==1,if(p'==Solid,Solid,if(p'==Empty || p'==Box,Man,ManOnLight))|>l,p'|>set_man(pred(i),l));
+    set_box(i,j,l|>b)=if(j==1,set_box(i,l)|>b,l|>set_box(i,pred(j),b));
+    set_box(i,p'|>l)=if(i==1,if(p'==Solid,Solid,if(p'==Empty,Box,BoxOnLight))|>l,p'|>set_box(pred(i),l));
+    set_empty(i,j,l|>b)=if(j==1,set_empty(i,l)|>b,l|>set_empty(i,pred(j),b));
+    set_empty(i,p'|>l)=if(i==1,if(p'==Solid,Solid,if(p'==ManOnLight||p'==BoxOnLight,Light,Empty))|>l,p'|>set_empty(pred(i),l));
+
+    set_man(i,j,if(c,b,b'))=if(c,set_man(i,j,b),set_man(i,j,b'));
+    set_man(i,j,[])=[];
+    set_man(i,[])=[];
+    set_box(i,j,if(c,b,b'))=if(c,set_box(i,j,b),set_box(i,j,b'));
+    set_box(i,j,[])=[];
+    set_box(i,[])=[];
+    set_empty(i,j,if(c,b,b'))=if(c,set_empty(i,j,b),set_empty(i,j,b'));
+    set_empty(i,j,[])=[];
+    set_empty(i,[])=[];
+    
+map allowed:Int#Int#Direction#Board->Bool;
+    move,move_box, move_man:Int#Int#Direction#Board->Board;
+    is_empty,is_box:Piece->Bool;
+var i,j:Int; d:Direction;
+    b:Board; l:Row; p:Piece;
+eqn is_empty(p)=(p==Empty || p==Light);
+    is_box(p)=(p==Box || p==BoxOnLight);
+    allowed(i,j,d,b)=is_empty(get(nextC(i,d),nextR(j,d),b)) || 
+                     (is_box(get(nextC(i,d),nextR(j,d),b)) && is_empty(get(next2C(i,d),next2R(j,d),b)));
+
+    move(i,j,d,b)=move_man(i,j,d,if(is_box(get(nextC(i,d),nextR(j,d),b)),move_box(nextC(i,d),nextR(j,d),d,b),b));
+    move_man(i,j,d,b)=set_empty(i,j,set_man(nextC(i,d),nextR(j,d),b));
+    move_box(i,j,d,b)=set_box(nextC(i,d),nextR(j,d),b);
+    position_is_won([])=true;
+    position_is_won(l|>b)=!(Light in l) && !(ManOnLight in l) && position_is_won(b);
+
+act  step:Int#Int#Direction;
+     man,win:Int#Int;
+proc Sokoban(i,j:Int,b:Board)=
+       man(i,j).Sokoban(i,j,b)+
+       position_is_won(b)->win(i,j).Sokoban(i,j,b)+
+       sum d:Direction,i',j':Pos.(i'<=Columns && j'<=Rows && i'==i && j'==j && % Using i',j' in this way allows to use lpsparunfold.
+                allowed(i',j',d,b))->
+                step(i',j',d).
+                Sokoban(nextC(i',d),nextR(j',d),move(i',j',d,b));
+
+init Sokoban(startColumn(InitialPosition),
+             startRow(InitialPosition),
+             InitialPosition);

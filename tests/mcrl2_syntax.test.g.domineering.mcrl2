@@ -1,0 +1,89 @@
+% This file describes a game called `Domineering'. The idea is that
+% there are two players alternatingly putting a domino tile on a
+% rectangular NxM board. Each domino tile covers two squares on
+% the board. Player 1 starts and puts its tiles horizontally.
+% Player 2 subsequently puts its tile vertically. The first player
+% that cannot put a tile anymore looses the game
+%
+% Thanks to Mark Winands.
+% Reijkjavik, May 13, 2006, Jan Friso Groote
+
+sort Position = struct Full | Empty;
+
+map N,M:Pos;
+eqn N=5;
+    M=5;
+
+sort Row=List(Position);
+     Board=List(Row);
+map  At:Pos#Pos#Board->Position;
+     At:Pos#Row->Position;
+     Put:Position#Pos#Pos#Board->Board;
+     Put:Position#Pos#Row->Row;
+     NoHorizontalSpot,NoVerticalSpot:Pos#Pos#Board->Bool;
+
+var b:Board;
+    r:Row;
+    p,p':Position;
+    x,y:Pos;
+eqn At(x,y,[])=Empty;
+    y==1 -> At(x,y,r|>b)=At(x,r);
+    y>1 -> At(x,y,r|>b)=At(x,Int2Pos(y-1),b);
+    At(y,[])=Empty;
+    x==1 -> At(x,p|>r)=p;
+    x>1 -> At(x,p|>r)=At(Int2Pos(x-1),r);
+    y==1 -> Put(p,x,y,r|>b)=Put(p,x,r)|>b;
+    y>1 -> Put(p,x,y,r|>b)=r|>Put(p,x,Int2Pos(y-1),b);
+    x==1 -> Put(p,x,p'|>r)=p|>r;
+    x>1 -> Put(p,x,p'|>r)=p'|>Put(p,Int2Pos(x-1),r);
+
+    y==M -> NoVerticalSpot(x,y,b)=true;
+    x<N && y<M -> NoVerticalSpot(x,y,b)=
+                     (At(x,y,b)==Full ||
+                      At(x,y+1,b)==Full) &&
+                     NoVerticalSpot(x+1,y,b);
+    x==N && y<M -> NoVerticalSpot(x,y,b)=
+                     (At(x,y,b)==Full ||
+                      At(x,y+1,b)==Full) &&
+                     NoVerticalSpot(1,y+1,b);
+
+    x==N -> NoHorizontalSpot(x,y,b)=true;
+    x<N && y<M -> NoHorizontalSpot(x,y,b)=
+                     (At(x,y,b)==Full ||
+                      At(x+1,y,b)==Full) &&
+                     NoHorizontalSpot(x,y+1,b);
+    x<N && y==M -> NoHorizontalSpot(x,y,b)=
+                     (At(x,y,b)==Full ||
+                      At(x+1,y,b)==Full) &&
+                     NoHorizontalSpot(x+1,1,b);
+
+
+act Player1,Player2:Pos#Pos#Pos#Pos;
+    Player1Wins,Player2Wins;
+
+proc Domineering(b:Board,Player1Moves:Bool)=
+       sum x,y:Pos. (Player1Moves &&
+                     x<=N && y<M &&
+                     At(x,y,b)==Empty &&
+                     At(x,y+1,b)==Empty)->
+           Player1(x,y,x,y+1).
+           Domineering(Put(Full,x,y+1,Put(Full,x,y,b)),false)+
+       sum x,y:Pos. (!Player1Moves &&
+                     x<N && y<=M &&
+                     At(x,y,b)==Empty &&
+                     At(x+1,y,b)==Empty)->
+           Player2(x,y,x+1,y).
+           Domineering(Put(Full,x+1,y,Put(Full,x,y,b)),true)+
+       (Player1Moves && NoVerticalSpot(1,1,b))
+       -> Player2Wins.Domineering(b,Player1Moves)+
+       (!Player1Moves && NoHorizontalSpot(1,1,b))
+       -> Player1Wins.Domineering(b,Player1Moves)+
+       delta;
+
+
+
+init Domineering([[Empty,Empty,Empty,Empty,Empty],
+                  [Empty,Empty,Empty,Empty,Empty],
+                  [Empty,Empty,Empty,Empty,Empty],
+                  [Empty,Empty,Empty,Empty,Empty],
+                  [Empty,Empty,Empty,Empty,Empty]],true);

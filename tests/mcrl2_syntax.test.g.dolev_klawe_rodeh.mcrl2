@@ -1,0 +1,41 @@
+% This is a specification of the leader election protocol for a unidirectional
+% ring network by Dolev, Rodeh and Klawe. This was described in their paper
+% "An O(n log n) unidirectional distributed algorithm for extrema finding in a circle".
+% The specification is based on the specification from the paper
+% "Formal Verification of a Leader Election Protocol in Process Algebra" by
+% Fredlund, Groote and Korver.
+
+% This protocol is more efficient than a standard leader election protocol
+% which requires O(n^2) messages.
+
+map N:Pos;
+    id:Nat->Nat;
+var n:Nat;
+eqn N = 5;
+    id(n) = (7*n mod N);
+
+act
+	leader;
+	rN,sN,rQ,sQ,putQ,readQ: Nat # Nat;
+
+proc
+	Active(i,d:Nat) =
+		sN((i+1) mod N,d) .
+		sum e:Nat . rN(i, e) .
+		(d == e) -> (leader . delta) <> (
+		sN((i+1) mod N,e) .
+		sum f:Nat . rN(i, f) .
+		(e > max(d,f)) -> Active(i,e) <> Relay(i));
+	Relay(i:Nat) = sum d:Nat . rN(i, d) . sN((i+1) mod N,d) . Relay(i);
+	Q(i:Nat,q:List(Nat)) =
+		sum d:Nat . rQ(i,d) . Q(q = q <| d) +
+		(q != []) -> sQ(i, head(q)) . Q(q = tail(q));
+
+init allow({putQ,readQ,leader},
+		comm({sN|rQ->putQ,sQ|rN->readQ},
+           Active(0,id(1)) || Q(0,[]) ||
+           Active(1,id(2)) || Q(1,[]) ||
+           Active(2,id(3)) || Q(2,[]) ||
+           Active(3,id(4)) || Q(3,[]) ||
+           Active(4,id(5)) || Q(4,[])
+	));

@@ -1,0 +1,85 @@
+% This file contains the par protocol as described in section 3.4 of
+% S. Mauw and G.J. Veltink, editors, Algebraic Specification of Communication
+% Protocols, Cambridge tracts in theoretical computer science 36, Cambridge
+% University Press, Cambridge 1993.
+%
+% With two data elements, the generated transition system has 91 states.
+%
+% Note that the protocol is slightly different from the alternating bit protocol.
+% Is is interesting to see the subtle, but definitive differences between the
+% two implementations of the protocols, although the external behaviour is the
+% same.
+%
+% Translated from muCRL, 30/12/2006, Jan Friso Groote
+
+%-------------------------------  DATA  ----------------------------------
+
+sort DATA = struct d1 | d2;
+
+%-------------------------------  error  ----------------------------------
+
+sort  error = struct ce | ae;
+
+%-------------------------------  Bit ------------------------------------
+
+sort  Bit = struct bit0 | bit1;
+
+map   invert:Bit -> Bit;
+eqn   invert(bit1)=bit0;
+      invert(bit0)=bit1;
+
+%-------------------------------  Frame ----------------------------------
+
+sort Frame = struct frame (getd:DATA,getb:Bit);
+
+%------------------------------  ACK   -----------------------------------
+
+sort ACK = struct ac;
+
+%------------------------------  TimerSignal -----------------------------
+
+sort TimerSignal = struct st | ti | eto;
+
+%------------------------------  act   -----------------------------------
+
+act   r1,s2 : DATA;
+      c3,r3,s3,c4,s4,r4 : Frame;
+      c5,r5,s5,c6,r6,s6 : ACK;
+      c4,r4,s4,c6,r6,s6 : error;
+      c7,r7,s7,c8,r8,s8,c9,r9,s9 : TimerSignal;
+      skip;
+
+%------------------------------  proc  -----------------------------------
+
+proc  S = RM(bit0);
+      RM(b:Bit) = sum d:DATA.r1(d).ST(frame(d,b));
+      ST(f:Frame) = s7(st).SF(f);
+      SF(f:Frame) = s3(f).RA(f);
+      RA(f:Frame) = (r9(ti)+r6(ae)).ST(f)+r6(ac).RM(invert(getb(f)));
+
+      Ti  = r7(st).TR;
+      TR = r7(st).TR+r8(eto).TE;
+      TE = s9(ti).Ti;
+
+      K  = sum f:Frame.r3(f).K1(f);
+      K1(f:Frame) = (skip+skip.s4(ce)).K2 + skip.s4(f).K;
+      K2 = s8(eto).K;
+
+      R = RF(bit0);
+      RF(b:Bit) = sum d:DATA.r4(frame(d,b)).SM(frame(d,b))
+                     + sum d:DATA.r4(frame(d,invert(b))).SA(b)
+                     + r4(ce).RF(b);
+      SA(b:Bit) = s5(ac).RF(b);
+      SM(f:Frame) = s2(getd(f)).SA(invert(getb(f)));
+
+      L = r5(ac).L1;
+      L1 = ( skip.s6(ae) + skip.s6(ac) ). L + skip.L2;
+      L2 = s8(eto).L;
+
+
+init
+  hide({c3,c4,c5,c6,c7,c8,c9,skip},
+    allow({r1,s2,c3,c4,c5,c6,c7,c8,c9,skip},
+      comm({r3|s3->c3, r4|s4->c4, r5|s5->c5, r6|s6->c6,
+                     r7|s7->c7, r8|s8->c8, r9|s9->c9},
+               S || K || R || L || Ti )));

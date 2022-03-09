@@ -1,0 +1,46 @@
+% This is an MCRL2 description of Fischer's mutual exclusion protocol
+% for two processes. The idea is that two processes communicate within
+% certain time bounds to obtain exclusive access to a mututal resource.
+% This protocol is particularly interesting, because it crucially
+% relies on time, and is quite simple. This version has been made by
+% Yaroslav Usenko using a similar model in UPPAAL and the semantics of
+% Networks of Timed automata with shared variables in
+% [BW04] Timed Automata: Semantics, Algorithms and Tools,
+% Johan Bengtsson and Wang Yi. In Lecture Notes on Concurrency and
+% Petri Nets. W. Reisig and G. Rozenberg (eds.), LNCS 3098,
+% Springer-Verlag, 2004.
+
+eqn k=2;
+
+map k:Time;
+
+sort Time=Real;
+
+act
+  get,_get,__get:Nat;
+  set,_set,__set:Nat;
+  cs_in,cs_out:Pos;
+
+proc
+
+P(pid:Pos)=P_init(pid,0);
+
+P_init(pid:Pos,t:Time)=
+  sum u:Time._get(0)@(t+u).P_req(pid,t+u,0);
+
+P_req(pid:Pos,t:Time,x:Time)=
+  sum u:Time.(x+u<k)->_set(pid)@(t+u).P_wait(pid,t+u,0);
+
+P_wait(pid:Pos,t:Time,x:Time)=
+  sum u:Time.(x+u>=k)->(_get(pid)|cs_in(pid))@(t+u).P_cs(pid,t+u)
+ +sum u:Time._get(0)@(t+u).P_req(pid,t+u,0);
+
+P_cs(pid:Pos,t:Time)=
+  sum u:Time.(cs_out(pid)|_set(0))@(t+u).P_init(pid,t+u);
+
+
+ID(id:Nat) = sum n:Nat.set(n).ID(n) + get(id).ID(id);
+
+init hide({__get,__set},allow({cs_in|__get,cs_out|__set,__get,__set},
+  comm({get|_get->__get,set|_set->__set},ID(0)||P(1)||P(2)||P(3)||P(4))));
+

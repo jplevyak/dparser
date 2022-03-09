@@ -1,0 +1,95 @@
+% This file describes the randomized consensus shared coin protocol
+% described in "J. Aspnes, M. Herlihy. Fast Randomized Consensus Using 
+% Shared Memory. 1990". This example was taken from the PRISM Benchmark 
+% Suite: 
+% http://www.prismmodelchecker.org/casestudies/consensus_prism.php
+%
+% There is a global counter that is accessed by all processes.
+% When a process is initiated, it first flips a coin and decides whether to
+% increment or decrement the global counter depending on the result of the 
+% coin. The process then reads the counter, and if the read value is above
+% some threshold it decides "heads" and the process ends. Similarly, if the 
+% value is below another threshold it decides "tails". Finally, if the value
+% happens to be between both thresholds, the coin is flipped again and the process 
+% is repeated, until "heads" or "tails" is decided.
+%
+% Parameters:
+% N: Number of processes involved in the protocol. 
+%    Note: The number of processes that are initiated have to be adjusted accordingly.
+% K: Constant to determine range of values of counter
+%
+% Hector Joao Rivera Verduzco. November 2016.
+
+
+map N:Pos; K:Pos;
+    range:Pos;
+    counter_init:Pos;
+    left:Pos; right:Pos;
+     
+% Parameters
+eqn N=2;  % Number of processes involved in the protocol
+    K=18;  % Constant to determine range
+    range=2*(K+1)*N;
+    counter_init = (K+1)*N; % The counter is initially in the middle of the range
+    left = N;               % Left threshold to decide tails
+    right = 2*K*N+N;        % Right threshold to decide heads
+    
+act % Processes actions
+    flip_coin:Int;    flip_again:Int;
+    decide_tails:Int; decide_heads:Int;
+    done:Int;
+    
+    % Interactions with global counter
+    read_increment:Int;  send_increment:Int;  comm_increment:Int;
+    read_decrement:Int;  send_decrement:Int;  comm_decrement:Int;
+    read_cnt:Int#Int;    send_cnt:Int#Int;    comm_cnt:Int#Int;
+
+%%
+%   id: identifier of process
+%   pc: program counter
+%       0 - flip
+%       1 - write 
+%       2 - check
+%       3 - finished
+%   coin: result of flipping the coin
+proc P(id:Int, pc:Int, coin:Bool)=
+        (pc==0)->flip_coin(id).(
+                               dist b:Bool[1/2].
+                               b-> P(id,1,false)
+                               <>  P(id,1,true)
+                              )+
+        (pc==1 && coin==false)
+               -> send_decrement(id).P(id,2,coin) +
+        (pc==1 && coin==true)
+               -> send_increment(id).P(id,2,coin) +
+        (pc==2)
+               -> sum c:Nat.(c>=0&&c<=range) 
+                                 -> read_cnt(id,c).((c<=left) -> decide_tails(id).P(id,3,coin) <>
+                                                    (c>=right)-> decide_heads(id).P(id,3,coin) <>
+                                                    flip_again(id).P(id,0,coin)
+                                                   ) +
+        (pc==3) -> done(id).P(id,3,false)
+    ;
+      
+% Global counter      
+    Counter(c:Int) = 
+        sum id:Int.(
+                    (id>=0 && id<N)->read_increment(id).((c < range)->Counter(c+1)<>Counter(c))+
+                    (id>=0 && id<N)->read_decrement(id).((c > 0)->Counter(c-1)<>Counter(c))+
+                    (id>=0 && id<N)->send_cnt(id,c).Counter(c)
+                   )
+    ;
+    
+% 
+init 
+    hide({comm_cnt, comm_increment, comm_decrement, done},
+    allow({flip_coin, flip_again, comm_cnt, comm_increment,
+           comm_decrement, decide_tails, decide_heads, done},
+    comm({read_cnt | send_cnt -> comm_cnt,
+          read_increment | send_increment -> comm_increment,
+          read_decrement | send_decrement -> comm_decrement},
+         Counter(counter_init)||
+         P(0,0,false)||
+         P(1,0,false)%||
+         %P(2,0,false)
+    )));

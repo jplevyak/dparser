@@ -1,0 +1,267 @@
+% This example is a translation of the Sudoko example on https://github.com/Deducteam/Libraries/blob/master/examples/sudoku/sudoku.dk, 
+% version July s9, 2020.  This example is in particular useful to test the rewrite engine. 
+% In Gabriel Hondet and Frederique Blanqui. The new rewriting engine of Dedukti. 5th international conference on 
+% formal structures for computation and deduction (FSCD 2020). Editors Zena M. Ariola. Article no 35, pp. 35:1-35:16, 2020,
+% it is claimed that their new "fast" rewriter can solve the most difficult Sudoku example in 315s. mCRL2, version July 2020,
+% can solve the most difficult Sudoku in 10s using the compiling rewriter, and 53s using the interpreting rewriter. 
+%
+% The strategy of solving a Sudoku below is particularly simple. Try to add new digits on unoccupied places from left to right,
+% from up to down in a recursive way, and stop if a number is inserted that already occurs on a row, column or local 3x3 block.
+%
+% At the end of this file three Sudoko's are given, and easy, medium and hard one. The easy and medium ones can be solve by
+% replacing hard in hard_sudoku in the init line by easy, resp. medium. 
+%
+% Jan Friso Groote, July 2020.
+
+sort ind = struct s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9 | sX;
+
+map S, trunc3 : ind -> ind;      % Successor, Truncate.
+eqn S(s1) = s2;
+    S(s2) = s3;
+    S(s3) = s4;
+    S(s4) = s5;
+    S(s5) = s6;
+    S(s6) = s7;
+    S(s7) = s8;
+    S(s8) = s9;
+    S(s9) = sX;
+
+    trunc3(s1) = s1;
+    trunc3(s2) = s1;
+    trunc3(s3) = s1;
+    trunc3(s4) = s4;
+    trunc3(s5) = s4;
+    trunc3(s6) = s4;
+    trunc3(s7) = s7;
+    trunc3(s8) = s7;
+    trunc3(s9) = s7;
+
+% line : Type.
+% l : ind -> ind -> ind -> ind -> ind -> ind -> ind -> ind -> ind -> line.
+
+sort line = struct l(ind,ind,ind,ind,ind,ind,ind,ind,ind);
+map  getl:ind#line -> ind;
+var  x1,x2,x3,x4,x5,x6,x7,x8,x9:ind;
+eqn  getl(s1,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x1;
+     getl(s2,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x2;
+     getl(s3,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x3;
+     getl(s4,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x4;
+     getl(s5,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x5;
+     getl(s6,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x6;
+     getl(s7,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x7;
+     getl(s8,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x8;
+     getl(s9,l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x9;
+
+
+% def sudo : Type.
+% def c : line -> line -> line -> line -> line -> line -> line -> line -> line -> sudo.
+
+sort sudo = struct c(line,line,line,line,line,line,line,line,line);
+map  getc:ind#sudo -> line;
+var  x1,x2,x3,x4,x5,x6,x7,x8,x9:line;
+eqn  getc(s1,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x1;
+     getc(s2,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x2;
+     getc(s3,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x3;
+     getc(s4,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x4;
+     getc(s5,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x5;
+     getc(s6,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x6;
+     getc(s7,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x7;
+     getc(s8,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x8;
+     getc(s9,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = x9;
+
+map  setl : ind # ind -> line -> line;
+var  k: ind;
+     x1,x2,x3,x4,x5,x6,x7,x8,x9:ind;
+eqn  setl(s1,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(k,x2,x3,x4,x5,x6,x7,x8,x9);
+     setl(s2,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,k,x3,x4,x5,x6,x7,x8,x9);
+     setl(s3,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,k,x4,x5,x6,x7,x8,x9);
+     setl(s4,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,k,x5,x6,x7,x8,x9);
+     setl(s5,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,x4,k,x6,x7,x8,x9);
+     setl(s6,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,x4,x5,k,x7,x8,x9);
+     setl(s7,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,x4,x5,x6,k,x8,x9);
+     setl(s8,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,x4,x5,x6,x7,k,x9);
+     setl(s9,k)(l(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = l(x1,x2,x3,x4,x5,x6,x7,x8,k);
+
+map setc : ind #(line -> line) # sudo -> sudo;
+var  k:line -> line;
+     x1,x2,x3,x4,x5,x6,x7,x8,x9:line;
+eqn  setc(s1,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(k(x1),x2,x3,x4,x5,x6,x7,x8,x9);
+     setc(s2,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,k(x2),x3,x4,x5,x6,x7,x8,x9);
+     setc(s3,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,k(x3),x4,x5,x6,x7,x8,x9);
+     setc(s4,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,k(x4),x5,x6,x7,x8,x9);
+     setc(s5,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,x4,k(x5),x6,x7,x8,x9);
+     setc(s6,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,x4,x5,k(x6),x7,x8,x9);
+     setc(s7,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,x4,x5,x6,k(x7),x8,x9);
+     setc(s8,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,x4,x5,x6,x7,k(x8),x9);
+     setc(s9,k,c(x1,x2,x3,x4,x5,x6,x7,x8,x9)) = c(x1,x2,x3,x4,x5,x6,x7,x8,k(x9));
+
+map E : line;
+    empty_sudo : sudo;
+eqn E = l(sX,sX,sX,sX,sX,sX,sX,sX,sX);
+    empty_sudo = c(E,E,E,E,E,E,E,E,E);
+
+% def get : ind -> ind -> sudo -> ind.
+% [i,j,s] get i j s --> getl j (getc i s).
+
+map  get: ind # ind # sudo -> ind;
+var  i,j: ind;
+     s: sudo;
+eqn  get(i,j,s) = getl(j,getc(i,s));
+
+% def set : ind -> ind -> ind -> sudo -> sudo.
+% [i,j,k,s] set i j k s --> setc i (setl j k) s.
+
+map  set : ind # ind # ind # sudo -> sudo;
+var  i,j,k: ind;
+     s: sudo;
+eqn  set(i,j,k,s) = setc(i,setl(j,k),s);
+
+% def mem_line : ind -> ind -> ind -> sudo -> Bool.
+% [i,j,k,s] mem_line i j k s --> exists (i':ind => eq (get i' j s) k).
+
+map mem_line : ind#ind#ind#sudo -> Bool;
+var i,j,k:ind;
+    s:sudo;
+eqn mem_line(i,j,k,s) = exists i':ind. i'!=sX && get(i',j,s)==k;
+
+% def mem_col  : ind -> ind -> ind -> sudo -> Bool.
+% [i,j,k,s] mem_col i j k s --> exists (j':ind => eq (get i j' s) k).
+
+map mem_col  : ind#ind#ind#sudo -> Bool;
+var i,j,k:ind;
+    s:sudo;
+eqn mem_col(i,j,k,s) = exists j':ind. j'!=sX && get(i,j',s)==k;
+
+
+% def mem_squ  : ind -> ind -> ind -> sudo -> Bool.
+% [i,j,k,s] mem_squ i j k s -->
+%   (i':ind =>
+%    j':ind =>
+%     (or (eq (get i'         j'         s) k)
+%     (or (eq (get (S i')     j'         s) k)
+%      (or (eq (get (S (S i')) j'         s) k)
+%     (or (eq (get i'         (S j')     s) k)
+%      (or (eq (get (S i')     (S j')     s) k)
+%      (or (eq (get (S (S i')) (S j')     s) k)
+%     (or (eq (get i'         (S (S j')) s) k)
+%      (or (eq (get (S i')     (S (S j')) s) k)
+%          (eq (get (S (S i')) (S (S j')) s) k)))))))))
+%   )
+%   (trunc3 i) (trunc3 j).
+
+
+map mem_squ  : ind#ind#ind#sudo -> Bool;
+    mem_squ_aux : ind#ind#ind#sudo -> Bool;
+
+var i,j,k,i',j':ind;
+    s:sudo;
+eqn mem_squ(i,j,k,s) = mem_squ_aux(trunc3(i),trunc3(j),k,s);
+    mem_squ_aux (i,j,k,s) =
+          get(i,j,s)==k ||
+          get(S(i),j,s)==k ||
+          get(S(S(i)),j,s)==k ||
+          get(i,S(j),s)==k ||
+          get(S(i),S(j),s)==k ||
+          get(S(S(i)),S(j),s)==k ||
+          get(i,S(S(j)),s)==k ||
+          get(S(i),S(S(j)),s)==k ||
+          get(S(S(i)),S(S(j)),s)==k;
+
+
+% def check : ind -> ind -> ind -> sudo -> Bool :=
+% i => j => k => s =>
+%      and (not (mem_line i j k s))
+%    ( and (not (mem_col  i j k s))
+%          (not (mem_squ  i j k s))).
+
+map check : ind#ind#ind#sudo -> Bool;
+var i,j,k:ind;
+    s:sudo;
+eqn check(i,j,k,s) =
+            !mem_line(i,j,k,s) &&
+            !mem_col(i,j,k,s) &&
+            !mem_squ(i,j,k,s);
+
+sort solution = struct success(sudo) | fail;
+
+
+% def ite : Bool -> solution -> solution -> solution.
+% [x] ite T x _ --> x
+% [x] ite F _ x --> x.
+
+map iffail : solution # solution -> solution;
+var s:sudo;
+    d:solution;
+eqn iffail(success(s),d) = success(s);
+    iffail(fail,d) = d;
+
+map  solve : ind#ind#ind#sudo -> solution;
+var  i,j,k:ind;
+     s:sudo;
+eqn  solve(i,sX,k,s) = solve(S(i),s1,s1,s);
+     solve(sX,j,k,s) = success(s);
+     solve(i,j,sX,s) = fail;
+     (i!=sX && j!=sX && k!=sX) ->
+        solve(i,j,k,s) = if(get(i,j,s)==sX,
+                            if(check(i,j,k,s),
+                               iffail(solve(i,S(j),s1,set(i,j,k,s)), solve(i,j,S(k),s)),
+                               solve(i,j,S(k),s)),
+                            solve(i,S(j),s1,s));
+
+
+map solve_sudo : sudo -> solution;
+var s: sudo;
+eqn solve_sudo(s) = solve(s1,s1,s1,s);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% An EASY SUDOKU
+
+map easy_sudoku:sudo; 
+eqn easy_sudoku = c(l(sX,sX,sX,  s2,s6,sX,  s7,sX,s1),
+                    l(s6,s8,sX,  sX,s7,sX,  sX,s9,sX),
+                    l(s1,s9,sX,  sX,sX,s4,  s5,sX,sX),
+                  
+                    l(s8,s2,sX,  s1,sX,sX,  sX,s4,sX),
+                    l(sX,sX,s4,  s6,sX,s2,  s9,sX,sX),
+                    l(sX,s5,sX,  sX,sX,s3,  sX,s2,s8),
+                  
+                    l(sX,sX,s9,  s3,sX,sX,  sX,s7,s4),
+                    l(sX,s4,sX,  sX,s5,sX,  sX,s3,s6),
+                    l(s7,sX,s3,  sX,s1,s8,  sX,sX,sX));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% A MEDIUM SUDOKU
+
+map medium_sudoku:sudo;
+eqn medium_sudoku = c(l(sX,s2,sX,  s6,sX,s8,  sX,sX,sX),
+                      l(s5,s8,sX,  sX,sX,s9,  s7,sX,sX),
+                      l(sX,sX,sX,  sX,s4,sX,  sX,sX,sX),
+                    
+                      l(s3,s7,sX,  sX,sX,sX,  s6,sX,sX),
+                      l(s6,sX,sX,  sX,sX,sX,  sX,sX,s4),
+                      l(sX,sX,s8,  sX,sX,sX,  sX,s1,s3),
+                    
+                      l(sX,sX,sX,  sX,s2,sX,  sX,sX,sX),
+                      l(sX,sX,s9,  s8,sX,sX,  sX,s3,s6),
+                      l(sX,sX,sX,  s3,sX,s6,  sX,s9,sX));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% A HARD SUDOKU
+
+map hard_sudoku:sudo;
+eqn hard_sudoku = c(l(s8,sX,sX,  sX,sX,sX,  sX,sX,sX),
+                    l(sX,sX,s3,  s6,sX,sX,  sX,sX,sX),
+                    l(sX,s7,sX,  sX,s9,sX,  s2,sX,sX),
+                  
+                    l(sX,s5,sX,  sX,sX,s7,  sX,sX,sX),
+                    l(sX,sX,sX,  sX,s4,s5,  s7,sX,sX),
+                    l(sX,sX,sX,  s1,sX,sX,  sX,s3,sX),
+                  
+                    l(sX,sX,s1,  sX,sX,sX,  sX,s6,s8),
+                    l(sX,sX,s8,  s5,sX,sX,  sX,s1,sX),
+                    l(sX,s9,sX,  sX,sX,sX,  s4,sX,sX));
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+act  a:solution;
+init a(solve_sudo(hard_sudoku)).delta;
+
+

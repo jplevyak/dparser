@@ -1,0 +1,889 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Model of session setup of IEEE 11073-20601
+% based on IEEE 11073-20601-2008, augmented with information from the ratified
+% version of 2010.
+%
+% This model was analysed in J.J.A. Keiren and M. D. Klabbers, "Modelling and
+% verifying the IEEE Std 11073-20601 session setup using mCRL2".
+%
+% Model by Jeroen Keiren
+% Last change: 5 June 2012
+%
+% The configuration has two parameters that change the behaviour, see the
+% accompanying report for more information.
+% * enableFix1: fix deadlocks in the specification by allowing the Manager
+%               to receive ConfigEventReportReq in situations where this is not
+%               expected.
+% * enableFix2: fix deadlocks in the specification by allowing the Agent to
+%               receive ConfigEventReportRsp in situations where this is not
+%               expected.
+% * enableSessionIds: Fix the protocol by introducing session ids.
+% * wrapSessionIds: Make the model finite by counting session ids modulo
+%               maxSessionId + 1.
+% * clearBuffersOnWrap: If maxSessionId session ids has been used, and a new
+%               session id is needed, clear the buffers if wrapSessionIds is
+%               enabled. This models the fairness assumption that before
+%               maxSessionId + 1 session ids have been used, a message has been
+%               read from both buffers at least M times.
+%
+% Notes on the specification:
+% * Numbers in comments in processes indicate Signal IDs in the transition
+%   tables of the IEEE standard.
+% * (revised) indicates that the rule corresponds to the rule in the 2010
+%   ratified version of the standard, rather that the 2008 version.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% System sketch
+%
+% ---------                        -----                          ----------- 
+% |       | <--- agent_in(0)  ---- |A2M| <--- manager_out(1) ---- |         |
+% | Agent |                        -----                          | Manager |
+% |  (0)  | ---- agent_out(0) ---> |M2A| ---- manager_in(1)  ---> |   (1)   |
+% ---------                        -----                          -----------
+
+% Model parameters, can be used to toggle several versions of the model.
+map enableFix1,
+    enableFix2,
+    enableSessionIds,
+    wrapSessionIds,
+    clearBuffersOnWrap: Bool;
+eqn
+    % enableFix1: if set to true, ConfigEventReportReq messages are handled by
+    % the manager in every state, if false, this message is treated as in the
+    % 2008 version of the standard.
+    enableFix1 = true;
+    
+    % enableFix2: if set to true, ConfigEventReportRsp messages are handled by
+    % the agent in every state, if false, this message is treated as in the
+    % 2008 version of the standard.
+    enableFix2 = true;
+    
+    % enableSessionIds: if set to true, add session ids to the AssocReq and
+    % AssocRsp messages. This fixes correctness of the protocol.
+    enableSessionIds = true;
+    
+    % wrapSessionIds: if set to true, count session ids modulo maxSessionId,
+    % otherwise increment, leading to an infinite state space.
+    wrapSessionIds = true;
+    
+    % clearBuffersOnWrap: if set to true, the buffers are emptied once the
+    % session id is wrapped, otherwise the buffers are unchanged
+    clearBuffersOnWrap = true;
+
+% Max buffer size
+map M: Nat;
+eqn M = 1;
+
+% The maximum session id that should be used.
+% Only relevant if enableSessionIds is set.
+map maxSessionId: Nat;
+eqn maxSessionId = 1;
+
+% Process identifier (for introducing multiple agents/managers)
+sort Id = Nat;
+
+% SessionIds to session ids.
+sort SessionId = Nat;
+map session0: Nat;
+eqn session0 = 0;
+
+% Compute the next session id.
+map next: Nat -> Nat;
+var n: Nat;
+eqn
+    % Count modulo maxSessionId + 1, if we use session ids, and want to wrap.
+    (enableSessionIds && wrapSessionIds) -> next(n) = (n+1) mod Nat2Pos(maxSessionId+1);
+    % Just increment if we use session ids, and do not want to wrap.
+    (enableSessionIds && !wrapSessionIds) -> next(n) = n+1;
+    % Add the same session id to every message, in case we do not want to use
+    % session ids.
+    !enableSessionIds -> next(n) = n;
+
+% Communication channels
+sort ChannelId = struct agent_in(Id)
+                      | agent_out(Id)
+                      | manager_in(Id)
+                      | manager_out(Id);
+
+% Message content for association responce
+sort AssociationResponse = struct rejected
+                                | accepted(Configuration)
+                                | accepted_unknown_config;
+
+% Message content for configuration response
+sort ConfigEventReportResponse = struct accepted_config(Configuration)
+                                       | unsupported_config;
+
+% Dummy configurations, used for showing differences in configurations
+sort Configuration = struct c1 | c2;
+
+% Abstract type for data; abstracts from concrete messages that can be sent in
+% the operating state.
+sort Data = struct datum1;
+
+% Signals that can be sent in the system
+sort Signal = struct sig_AssocReq(SessionId)
+                   | sig_AssocRelReq
+                   | sig_AssocAbort
+                   | sig_AssocRelRsp
+                   | sig_AssocRsp(SessionId, AssociationResponse)
+                   | sig_ConfigEventReportReq
+                   | sig_ConfigEventReportRsp(ConfigEventReportResponse);
+                   
+% Generic message type, to allow sending Data and Signals along the same channel
+sort Message = struct signal(Signal) | data(Data);
+
+% Embed the signals as described in the standard/the paper into the message
+% data type.
+map AssocReq: SessionId -> Message;
+    AssocRelReq,
+    AssocAbort,
+    AssocRelRsp: Message;
+    AssocRsp: SessionId # AssociationResponse -> Message;
+    ConfigEventReportReq: Message;
+    ConfigEventReportRsp: ConfigEventReportResponse -> Message;
+var t: SessionId;
+    ar: AssociationResponse;
+    cr: ConfigEventReportResponse;
+    c: Configuration;
+eqn AssocReq(t) = signal(sig_AssocReq(t));
+    AssocRelReq = signal(sig_AssocRelReq);
+    AssocAbort = signal(sig_AssocAbort);
+    AssocRelRsp = signal(sig_AssocRelRsp);
+    AssocRsp(t, ar) = signal(sig_AssocRsp(t, ar));
+    ConfigEventReportReq = signal(sig_ConfigEventReportReq);
+    ConfigEventReportRsp(cr) = signal(sig_ConfigEventReportRsp(cr));
+
+% Actions for communicating along the above mentioned channels
+act send, receive, communicate: ChannelId # Message;
+
+% Actions local for the Agent/Manager
+act assocReq;
+    assocAbortReq;
+    assocRelReq;
+    sendConfigReportReq;
+    LookupConfig;
+    agentSuppliedUnsupportedConfigReq;
+    agentSuppliedSupportedConfigReq;
+
+% Actions for synchronous connect and disconnect of transport
+act transport_connect_agent;
+    transport_connect_manager;
+    transport_connect_notify;
+    transport_connect;
+    clear;
+    reset_buffers;
+    Reset_Buffers;
+    transport_disconnect_agent;
+    transport_disconnect_manager;
+    transport_disconnect_notify;
+    transport_disconnect;
+
+act operating:Configuration; % Report the configuration in the operating state
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AGENT process
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Or states of the state chart
+sort Agent_states =
+      struct Agent_Disconnected
+           | Agent_Connected
+           | Agent_nop;
+
+sort Agent_Connected_states = 
+      struct Agent_Connected_Disassociating
+           | Agent_Connected_Unassociated
+           | Agent_Connected_Associating
+           | Agent_Connected_Associated
+           | Agent_Connected_nop;
+
+sort Agent_Connected_Associated_states = 
+      struct Agent_Connected_Associated_Operating(Configuration)
+           | Agent_Connected_Associated_Configuring
+           | Agent_Connected_Associated_nop;
+
+sort Agent_Connected_Associated_Configuring_states = 
+      struct Agent_Connected_Associated_Configuring_WaitingApproval
+           | Agent_Connected_Associated_Configuring_SendingConfig
+           | Agent_Connected_Associated_Configuring_nop;
+           
+% Agent process
+proc Agent(id: Id, t: SessionId,
+           Agent_state: Agent_states,
+           Agent_Connected_state: Agent_Connected_states,
+           Agent_Connected_Associated_state: Agent_Connected_Associated_states,
+           Agent_Connected_Associated_Configuring_state:
+               Agent_Connected_Associated_Configuring_states) =
+               
+    %%%% Disconnected
+    (Agent_state == Agent_Disconnected) ->
+      (
+        % 1.1, 2.2, 3.3, 4.2, 5.2, 8.2, 9.2
+        transport_connect_agent
+      . Agent(Agent_state = Agent_Connected,
+              Agent_Connected_state = Agent_Connected_Unassociated) 
+      )
+      
+    %%%% Connected
+  + (Agent_state == Agent_Connected) ->
+      ( 
+        % 2.2
+        transport_disconnect_agent .
+        Agent(Agent_state = Agent_Disconnected,
+              Agent_Connected_state = Agent_Connected_nop,
+              Agent_Connected_Associated_state = Agent_Connected_Associated_nop,
+              Agent_Connected_Associated_Configuring_state
+               = Agent_Connected_Associated_Configuring_nop) 
+      )
+      
+    %%%% Connected - Dissassociating
+  + (Agent_state == Agent_Connected
+     && Agent_Connected_state == Agent_Connected_Disassociating) ->
+      (
+        assocRelReq . Agent() % 9.6
+      + assocAbortReq|send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 9.7
+      + sum t': SessionId
+        . receive(agent_in(id), AssocReq(t'))
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 9.8
+      + sum r: AssociationResponse, t': SessionId
+        . receive(agent_in(id), AssocRsp(t', r))
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 9.12
+      + receive(agent_in(id), AssocRelReq)
+        . send(agent_out(id), AssocRelRsp)
+        . Agent() % 9.16;
+        % state chart says:
+        % Agent(Agent_Connected_state = Agent_Connected_Unassociated)
+      + receive(agent_in(id), AssocRelRsp)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 9.17
+      + receive(agent_in(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 9.18
+      + (enableFix2 -> sum r: ConfigEventReportResponse
+                     . receive(agent_in(id), ConfigEventReportRsp(r))
+                     . send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated))
+%Ignore 9.21
+%Ignore 9.26
+      )
+    %%%% Connected - Unassociated
+  + (Agent_state == Agent_Connected
+     && Agent_Connected_state == Agent_Connected_Unassociated) ->
+      (
+        (t == maxSessionId && clearBuffersOnWrap) -> reset_buffers
+                          . assocReq|send(agent_out(id), AssocReq(next(t)))
+                          . Agent(Agent_Connected_state = Agent_Connected_Associating,
+                                  t = next(t)) % 2.5
+                       <> assocReq|send(agent_out(id), AssocReq(next(t)))
+                        . Agent(Agent_Connected_state = Agent_Connected_Associating,
+                                t = next(t)) % 2.5
+      + assocRelReq
+        . Agent() % 2.6
+      + assocAbortReq
+        . Agent() % 2.7 Should not happen
+      + sum t': SessionId
+        . receive(agent_in(id), AssocReq(t'))
+        . send(agent_out(id), AssocRsp(t', rejected))
+        . Agent() % 2.8 Agent-agent association
+      + sum r: AssociationResponse, t': SessionId
+        . receive(agent_in(id), AssocRsp(t', r))
+        . send(agent_out(id), AssocAbort)
+        . Agent() % 2.12 Should not happen
+      + receive(agent_in(id), AssocRelReq)
+        . send(agent_out(id), AssocAbort)
+        . Agent() % 2.16 Should not happen
+      + receive(agent_in(id), AssocRelRsp)
+        . Agent() % 2.17 Should not happen. Ignore
+      + receive(agent_in(id), AssocAbort)
+        . Agent() % 2.18
+      + (enableFix2 -> sum r: ConfigEventReportResponse
+                     . receive(agent_in(id), ConfigEventReportRsp(r))
+                     . send(agent_out(id), AssocAbort)
+                     . Agent())
+%Ignore 2.19 Should not happen
+      )
+    %%%% Connected - Associating
+  + (Agent_state == Agent_Connected
+    && Agent_Connected_state == Agent_Connected_Associating) ->
+      (
+%Ignore 3.3 Timeout, retry
+%Ignore 3.4 Timeout, abort
+        assocRelReq|send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 3.6
+      + assocAbortReq|send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 3.7
+      + sum t': SessionId
+        . receive(agent_in(id), AssocReq(t'))
+        . send(agent_out(id), AssocRsp(t', rejected))
+        . Agent() % 3.8
+      + sum c: Configuration, t': SessionId
+        . receive(agent_in(id), AssocRsp(t', accepted(c)))
+        . (t == t') -> Agent(Agent_Connected_state = Agent_Connected_Associated,
+                              Agent_Connected_Associated_state
+                               = Agent_Connected_Associated_Operating(c)) % 3.13
+                    <> send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated)
+      + sum t': SessionId
+        . receive(agent_in(id), AssocRsp(t', accepted_unknown_config))
+        . (t == t') -> Agent(Agent_Connected_state = Agent_Connected_Associated,
+                              Agent_Connected_Associated_state
+                               = Agent_Connected_Associated_Configuring,
+                              Agent_Connected_Associated_Configuring_state
+                               = Agent_Connected_Associated_Configuring_SendingConfig) % 3.14
+                    <> send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated)
+      + sum t': SessionId
+        . receive(agent_in(id), AssocRsp(t', rejected))
+        . ((t == t') -> Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 3.15
+                    <> send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated))
+      + receive(agent_in(id), AssocRelReq)
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated)
+          % 3.16 Should not happen
+      + receive(agent_in(id), AssocRelRsp)
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated)
+          % 3.17 Should not happen
+      + receive(agent_in(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated) % 3.18
+      + (enableFix2 -> sum r: ConfigEventReportResponse
+                     . receive(agent_in(id), ConfigEventReportRsp(r))
+                     . send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated))
+%Ignore 3.19 Should not happen
+      )
+    %%%% Connected - Associated
+  + (Agent_state == Agent_Connected
+     && Agent_Connected_state == Agent_Connected_Associated) ->
+      (
+        assocRelReq|send(agent_out(id), AssocRelReq)
+        . Agent(Agent_Connected_state = Agent_Connected_Disassociating,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.6, 5.6, 8.6
+      + assocAbortReq|send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.7, 5.7, 8.7
+      + sum t': SessionId
+        . receive(agent_in(id), AssocReq(t'))
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.8, 5.8, 8.8
+      + sum r: AssociationResponse, t': SessionId
+        . receive(agent_in(id), AssocRsp(t', r))
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.12, 5.12, 8.12
+      + receive(agent_in(id), AssocRelReq)
+        . send(agent_out(id), AssocRelRsp)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.16, 5.16, 8.16
+      + receive(agent_in(id), AssocRelRsp)
+        . send(agent_out(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.17, 5.17, 8.17
+      + receive(agent_in(id), AssocAbort)
+        . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_nop,
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 4.18, 5.18, 8.18
+      )
+    %%%% Connected - Associated - Operating
+    % When operating, responses from the configuring phase need to be handled
+    % appropriately.
+  + sum c: Configuration
+    . (Agent_state == Agent_Connected
+       && Agent_Connected_state == Agent_Connected_Associated
+       && Agent_Connected_Associated_state
+           == Agent_Connected_Associated_Operating(c)) ->
+      (
+        operating(c)
+        . Agent()
+      + sum d: Data . send(agent_out(id), data(d))
+        . Agent()
+      + (enableFix2 -> sum r: ConfigEventReportResponse
+                     . receive(agent_in(id), ConfigEventReportRsp(r))
+                     . send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                             Agent_Connected_Associated_state
+                              = Agent_Connected_Associated_nop,
+                             Agent_Connected_Associated_Configuring_state
+                              = Agent_Connected_Associated_Configuring_nop))
+      )
+%Ignore 8.21
+%Ignore 8.26
+    %%%% Connected - Associated - Configuring
+    % NOP
+    %%%% Connected - Associated - Configuring - Waiting Approval
+  + (Agent_state == Agent_Connected
+    && Agent_Connected_state == Agent_Connected_Associated
+    && Agent_Connected_Associated_state
+        == Agent_Connected_Associated_Configuring
+    && Agent_Connected_Associated_Configuring_state
+        == Agent_Connected_Associated_Configuring_WaitingApproval) ->
+      (
+%Ignore 5.22
+%Ignore 5.23
+        receive(agent_in(id), ConfigEventReportRsp(unsupported_config))
+        . Agent(Agent_Connected_Associated_Configuring_state
+           = Agent_Connected_Associated_Configuring_SendingConfig) % 5.27
+      + sum c: Configuration
+        . receive(agent_in(id), ConfigEventReportRsp(accepted_config(c)))
+        . Agent(Agent_Connected_Associated_state
+                 = Agent_Connected_Associated_Operating(c),
+                Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_nop) % 5.29
+%Ignore 5.30
+      )
+    %%%% Connnected - Associated - Configuring - Sending Config
+  + (Agent_state == Agent_Connected
+    && Agent_Connected_state == Agent_Connected_Associated
+    && Agent_Connected_Associated_state
+        == Agent_Connected_Associated_Configuring
+    && Agent_Connected_Associated_Configuring_state
+        == Agent_Connected_Associated_Configuring_SendingConfig) ->
+      (
+%Ignore 4.22
+%Ignore 4.23
+%Ignore 4.26
+        sendConfigReportReq|send(agent_out(id), ConfigEventReportReq)
+        . Agent(Agent_Connected_Associated_Configuring_state
+                 = Agent_Connected_Associated_Configuring_WaitingApproval) % 4.32
+      + (enableFix2 -> sum r: ConfigEventReportResponse
+                     . receive(agent_in(id), ConfigEventReportRsp(r))
+                     . send(agent_out(id), AssocAbort)
+                     . Agent(Agent_Connected_state = Agent_Connected_Unassociated,
+                             Agent_Connected_Associated_state
+                              = Agent_Connected_Associated_nop,
+                             Agent_Connected_Associated_Configuring_state
+                              = Agent_Connected_Associated_Configuring_nop))
+      )
+      
+;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MANAGER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Or states
+sort Manager_states = 
+      struct Manager_Disconnected
+           | Manager_Connected
+           | Manager_nop;
+
+sort Manager_Connected_states =
+      struct Manager_Connected_Disassociating
+           | Manager_Connected_Unassociated
+           | Manager_Connected_Associating
+           | Manager_Connected_Associated
+           | Manager_Connected_nop;
+
+sort Manager_Connected_Associated_states =
+      struct Manager_Connected_Associated_Operating(Configuration)
+           | Manager_Connected_Associated_Configuring
+           | Manager_Connected_Associated_nop;
+
+sort Manager_Connected_Associated_Configuring_states =
+      struct Manager_Connected_Associated_Configuring_CheckingConfig
+           | Manager_Connected_Associated_Configuring_WaitingForConfig
+           | Manager_Connected_Associated_Configuring_nop;
+
+
+% Manager process
+proc Manager(id: Id, t: SessionId,
+           Manager_state: Manager_states,
+           Manager_Connected_state: Manager_Connected_states,
+           Manager_Connected_Associated_state: Manager_Connected_Associated_states,
+           Manager_Connected_Associated_Configuring_state:
+               Manager_Connected_Associated_Configuring_states) =
+
+    %%%% Disconnected
+    (Manager_state == Manager_Disconnected) ->
+      (
+        transport_connect_manager
+        . Manager(Manager_state = Manager_Connected,
+                  Manager_Connected_state = Manager_Connected_Unassociated) % 1.1
+      )
+    %%%% Connected
+  + (Manager_state == Manager_Connected) ->
+      (
+        transport_disconnect_manager
+        . Manager(Manager_state = Manager_Disconnected,
+                  Manager_Connected_state = Manager_Connected_nop,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 1.2, 2.2, 6.2, 7.2, 8.2, 9.2
+      )
+    %%%% Connected - Disassociating
+  + (Manager_state == Manager_Connected
+     && Manager_Connected_state == Manager_Connected_Disassociating) ->
+      (
+%Ignore 9.4 timeout
+        assocRelReq
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.6
+      + assocAbortReq|send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.7
+      + sum t': SessionId
+        . receive(manager_in(id), AssocReq(t'))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.8
+      + sum r: AssociationResponse, t': SessionId
+        . receive(manager_in(id), AssocRsp(t', r))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.12
+      + receive(manager_in(id), AssocRelReq)
+        . send(manager_out(id), AssocRelRsp)
+        . Manager() % 9.16
+      + receive(manager_in(id), AssocRelRsp)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.17
+      + receive(manager_in(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated) % 9.18
+      + (enableFix1 -> receive(manager_in(id), ConfigEventReportReq)
+                     . send(manager_out(id), AssocAbort)
+                     . Manager(Manager_Connected_state = Manager_Connected_Unassociated))
+      + sum d: Data
+      . receive(manager_in(id), data(d))
+      . send(manager_out(id), AssocAbort)
+      . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+%Ignore 9.21
+%Ignore 9.26
+      )
+      
+    %%%% Connected - Unassociated
+  + (Manager_state == Manager_Connected
+     && Manager_Connected_state == Manager_Connected_Unassociated) ->
+      (
+        assocRelReq
+        . Manager() % 2.6 Should not happen. Ignore.
+      + assocAbortReq|send(manager_out(id), AssocAbort)
+        . Manager() % 2.7 Should not happen. Ignore. (revised send AssocAbort)
+      + sum t': SessionId
+        . receive(manager_in(id), AssocReq(t'))
+        . Manager(Manager_Connected_state = Manager_Connected_Associating,
+                  t = t')
+        % 2.8 (revised)
+      + sum r: AssociationResponse, t': SessionId
+        . receive(manager_in(id), AssocRsp(t', r))
+        . send(manager_out(id), AssocAbort)
+        . Manager() % 2.12 Should not happen
+      + receive(manager_in(id), AssocRelReq)
+        . send(manager_out(id), AssocAbort)
+        . Manager() % 2.16 Should not happen
+      + receive(manager_in(id), AssocRelRsp)
+        . Manager() % 2.17 Should not happen. Ignore
+      + receive(manager_in(id), AssocAbort)
+        . Manager() % 2.18 Should not happen. Ignore
+      + (enableFix1 -> receive(manager_in(id), ConfigEventReportReq)
+                     . send(manager_out(id), AssocAbort)
+                     . Manager())
+      + sum d: Data
+      . receive(manager_in(id), data(d))
+      . send(manager_out(id), AssocAbort)
+      . Manager()
+%Ignore 2.19
+      )
+    %%%% Connected - Associating
+  + (Manager_state == Manager_Connected
+     && Manager_Connected_state == Manager_Connected_Associating) ->
+      (
+        assocRelReq|send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.6 (revised)
+      + assocAbortReq|send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.7 (revised)
+      + sum t': SessionId
+        . receive(manager_in(id), AssocReq(t'))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.8 (revised) Should not happen
+      + sum r: AssociationResponse, t': SessionId
+        . receive(manager_in(id), AssocRsp(t', r))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.12 (revised) Should not happen
+      + receive(manager_in(id), AssocRelReq)
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.16 (revised)
+      + receive(manager_in(id), AssocRelRsp)
+        . send(manager_out(id), AssocAbort)
+        . Manager() % 3.17 (revised)
+      + receive(manager_in(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.18 (revised)
+      + LookupConfig|send(manager_out(id), AssocRsp(t, rejected))
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated)
+        % 3.11 (revised)
+      + sum c: Configuration
+        . LookupConfig|send(manager_out(id), AssocRsp(t, accepted(c)))
+        . Manager(Manager_Connected_state = Manager_Connected_Associated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_Operating(c)) % 3.10 (revised)
+      + LookupConfig|send(manager_out(id), AssocRsp(t, accepted_unknown_config))
+        . Manager(Manager_Connected_state = Manager_Connected_Associated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_Configuring,
+                  Manager_Connected_Associated_Configuring_state
+                  = Manager_Connected_Associated_Configuring_WaitingForConfig)
+                  % 3.9 (revised)
+      + (enableFix1 -> receive(manager_in(id), ConfigEventReportReq)
+                     . send(manager_out(id), AssocAbort)
+                     . Manager(Manager_Connected_state = Manager_Connected_Unassociated))
+      + sum d: Data
+      . receive(manager_in(id), data(d))
+      . send(manager_out(id), AssocAbort)
+      . Manager(Manager_Connected_state = Manager_Connected_Unassociated)    
+      )
+    %%%% Connected - Associated
+  + (Manager_state == Manager_Connected
+     && Manager_Connected_state == Manager_Connected_Associated) ->
+      (
+%Ignore 6.4, 7.4, 8.4 timeout, abort
+        assocRelReq|send(manager_out(id), AssocRelReq)
+        . Manager(Manager_Connected_state = Manager_Connected_Disassociating,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop) % 6.6, 7.6, 8.6
+      + assocAbortReq|send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop) % 6.7, 7.7, 8.7
+      + sum t': SessionId
+        . receive(manager_in(id), AssocReq(t'))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 6.8, 7.8, 8.8 Should not happen.
+      + sum r: AssociationResponse, t': SessionId
+        . receive(manager_in(id), AssocRsp(t', r))
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 6.12, 7.12, 8.12 Should not happen
+      + receive(manager_in(id), AssocRelReq)
+        . send(manager_out(id), AssocRelRsp)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 6.16, 7.16, 8.16
+      + receive(manager_in(id), AssocRelRsp)
+        . send(manager_out(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 6.17, 7.17, 8.17 Should not happen
+      + receive(manager_in(id), AssocAbort)
+        . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)
+                  % 6.18, 7.18, 8.18
+      )
+    %%%% Connected - Associated - Operating
+    % When operating, responses from the configuring phase need to be handled
+    % appropriately.
+  + sum c: Configuration
+    . (Manager_state == Manager_Connected
+       && Manager_Connected_state == Manager_Connected_Associated
+       && Manager_Connected_Associated_state
+           == Manager_Connected_Associated_Operating(c)) ->
+      (
+        operating(c)
+        . Manager()
+      + sum d: Data . receive(manager_in(id), data(d)) 
+        . Manager()
+      + (enableFix1 -> receive(manager_in(id), ConfigEventReportReq)
+                     . send(manager_out(id), AssocAbort)
+                     . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                               Manager_Connected_Associated_state
+                                = Manager_Connected_Associated_nop,
+                               Manager_Connected_Associated_Configuring_state
+                                = Manager_Connected_Associated_Configuring_nop))
+      )
+%Ignore 8.21
+%Ignore 8.26
+    %%%% Connected - Associated - Configuring
+    % No common operations
+    %%%% Connected - Associated - Configuring - Checking Config
+    + (Manager_state == Manager_Connected
+       && Manager_Connected_state == Manager_Connected_Associated
+       && Manager_Connected_Associated_state
+           == Manager_Connected_Associated_Configuring
+       && Manager_Connected_Associated_Configuring_state
+           == Manager_Connected_Associated_Configuring_CheckingConfig) ->
+      (
+%Ignore 7.24
+%Ignore 7.25
+%Ignore 7.26
+%Ignore 7.31
+%Ignore 7.32
+        agentSuppliedUnsupportedConfigReq|
+        send(manager_out(id), ConfigEventReportRsp(unsupported_config))
+        . Manager(Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_WaitingForConfig) % 7.31
+      + sum c: Configuration
+        . agentSuppliedSupportedConfigReq|
+          send(manager_out(id), ConfigEventReportRsp(accepted_config(c)))
+        . Manager(Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_Operating(c),
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop) % 7.32
+      + (enableFix1 -> receive(manager_in(id), ConfigEventReportReq)
+                     . send(manager_out(id), AssocAbort)
+                     . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                               Manager_Connected_Associated_state
+                                = Manager_Connected_Associated_nop,
+                               Manager_Connected_Associated_Configuring_state
+                                = Manager_Connected_Associated_Configuring_nop))
+      + sum d: Data
+      . receive(manager_in(id), ConfigEventReportReq)
+      . send(manager_out(id), AssocAbort)
+      . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                Manager_Connected_Associated_state
+                 = Manager_Connected_Associated_nop,
+                Manager_Connected_Associated_Configuring_state
+                 = Manager_Connected_Associated_Configuring_nop)
+      )
+    %%%% Connected - Associated - Configuring - Waiting for Config
+  + (Manager_state == Manager_Connected
+     && Manager_Connected_state == Manager_Connected_Associated
+     && Manager_Connected_Associated_state
+         == Manager_Connected_Associated_Configuring
+     && Manager_Connected_Associated_Configuring_state
+         == Manager_Connected_Associated_Configuring_WaitingForConfig) ->
+      (
+        receive(manager_in(id), ConfigEventReportReq)
+        . Manager(Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_CheckingConfig) % 6.24
+      + sum d: Data
+      . receive(manager_in(id), data(d))
+      . send(manager_out(id), AssocAbort)
+      . Manager(Manager_Connected_state = Manager_Connected_Unassociated,
+                  Manager_Connected_Associated_state
+                   = Manager_Connected_Associated_nop,
+                  Manager_Connected_Associated_Configuring_state
+                   = Manager_Connected_Associated_Configuring_nop)                                        
+%Ignore 6.25
+%Ignore 6.26
+      )
+;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Buffers for asynchronous communication
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Buffer connects to two communication channels
+%%                 ----------
+% --channel_in--> | Buffer | --channel_out-->
+%                 ----------
+% Internally, the buffer contents is stored as a list.
+proc Buffer(channel_in, channel_out: ChannelId, buf: List(Message)) =
+     sum m: Message
+     . (#buf < M)
+       -> receive(channel_in, m)
+          . Buffer(channel_in, channel_out, buf <| m)
+   + (buf != [])
+     -> send(channel_out, head(buf))
+        . Buffer(channel_in, channel_out, tail(buf))
+   + clear
+     . Buffer(channel_in, channel_out, [])
+   + reset_buffers
+     . Buffer(channel_in, channel_out, []);  
+
+proc A2M(aid, mid: Id, buf: List(Message)) = Buffer(agent_out(aid), manager_in(mid), buf);
+proc M2A(mid, aid: Id, buf: List(Message)) = Buffer(manager_out(mid), agent_in(aid), buf);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% System
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+init 
+hide(
+  {
+   assocReq,
+   assocAbortReq,
+   assocRelReq,
+   sendConfigReportReq,
+   LookupConfig,
+   agentSuppliedUnsupportedConfigReq,
+   agentSuppliedSupportedConfigReq
+  },
+  allow(
+    {
+     communicate,
+     transport_connect,
+     transport_disconnect,
+     operating,
+     operating|operating,
+     Reset_Buffers,
+     communicate|assocReq,
+     communicate|assocAbortReq,
+     communicate|assocRelReq,
+     communicate|sendConfigReportReq,
+     communicate|LookupConfig,
+     communicate|agentSuppliedUnsupportedConfigReq,
+     communicate|agentSuppliedSupportedConfigReq
+    },
+    comm(
+      {
+        send|receive -> communicate,
+        transport_connect_agent|transport_connect_manager->transport_connect,
+        transport_disconnect_agent|transport_disconnect_manager|
+        clear|clear->transport_disconnect,
+        reset_buffers|reset_buffers|reset_buffers -> Reset_Buffers
+      },
+      Agent(0, session0,
+            Agent_Disconnected,
+            Agent_Connected_nop,
+            Agent_Connected_Associated_nop,
+            Agent_Connected_Associated_Configuring_nop)
+      || A2M(0, 1, [])
+      || M2A(1, 0, [])
+      || Manager(1, session0,
+                 Manager_Disconnected,
+                 Manager_Connected_nop,
+                 Manager_Connected_Associated_nop,
+                 Manager_Connected_Associated_Configuring_nop)
+    )
+  )
+)
+;

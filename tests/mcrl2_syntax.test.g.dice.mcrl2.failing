@@ -1,0 +1,30 @@
+% This specification models how one can mimick the six throws of a dice using a coin.
+% Throwing a coin gives an answer true or false with 50% probability.
+% The main idea is that one can throw the coin once to determine whether the outcome is
+% 1,2,3 (if true is thrown) or 4,5,6 (if false is thrown). Then two successive coin flips determine either what the outcome
+% should be. In case the outcome was already determined to become 1,2,3, throwing false, true yields 2, throwing false, false
+% yields 3 and throwing true, false yields one. In case true, true is thrown, the outcome is undetermined and two more throws of
+% the coin are necessary. The case where 4,5,6 has been by the first throw goes in a similar way. 
+%
+% This example is taken from the Prism website (http://www.prismmodelchecker.org/).
+%
+% December 2016, Olav Bunte
+
+act
+	flip: Bool;
+	dice: Nat;
+	
+proc
+	COIN(s: Nat, d: Nat) =
+		dist b1:Bool[1/2].(
+			(s == 0) -> (b1 -> flip(b1).COIN(1,0) <> flip(b1).COIN(2,0))
+			<> (s == 1) -> (b1 -> flip(b1).COIN(3,0) <> flip(b1).COIN(4,0))
+			<> (s == 2) -> (b1 -> flip(b1).COIN(5,0) <> flip(b1).COIN(6,0))
+			<> (s == 3) -> (b1 -> flip(b1).COIN(1,0) <> flip(b1).COIN(7,1))
+			<> (s == 4) -> (b1 -> flip(b1).COIN(7,2) <> flip(b1).COIN(7,3))
+			<> (s == 5) -> (b1 -> flip(b1).COIN(7,4) <> flip(b1).COIN(7,5))
+			<> (s == 6) -> (b1 -> flip(b1).COIN(7,6) <> flip(b1).COIN(2,0))
+		)
+		+ (s == 7) -> dice(d).COIN(s,d);
+			
+init COIN(0, 0);

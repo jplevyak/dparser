@@ -1,0 +1,88 @@
+% This model describes an exercise for the course Automatic Reasoning,
+% formulated by Hans Zantema.
+
+% Three non-self-supporting villages A, B and C in the middle of nowhere
+% consume one food package each per time unit. The required food packages
+% are delivered by a truck, having a capacity of 300 or 320 food packages. The loca-
+% tions of the villages are given in the following picture, in which the numbers
+% indicate the distance, more precisely, the number of time units the truck
+% needs to travel from one village to another, including loading or delivering.
+% The truck has to pick up its food packages at location S containing an un-
+% bounded supply. The villages only have a limited capacity to store food
+% packages: for A and B this capacity is 120, for C it is 200. Initially, the
+% truck is in S and is fully loaded, and in A, B and C there are 50, 40 and 150
+% food packages, respectively.
+%
+%                   B
+%                 / | \
+%               21  |  37
+%              /    |    \
+%             S     17    C
+%              \    |    /
+%               29  |  32
+%                 \ | /
+%                   A
+%
+%
+% (a) Show that it is impossible to deliver food packages in such a way
+%     that forever each of the villages may consume one food package each per
+%     time unit.
+% (b) Show that this is possible if the capacity of the truck is increased
+%     to 320 food packages. (Note that a finite graph contains an infinite path
+%     starting in a node v if and only if there is a path from v to a node w for
+%     which there is a non-empty path from w to itself.)
+
+
+sort Place = struct S | A | B | C;
+
+map TRUCK_CAPACITY:Pos;
+eqn TRUCK_CAPACITY=200; % If 300 starvation must take place. If 320 sustained delivery without starvation is possible.
+
+map natminus:Nat#Nat->Nat;
+var n,m:Nat;
+eqn natminus(n,m)=max(0,n-m);
+
+act starve;
+    moveS, moveA, moveB, moveC;
+
+proc P(villageA,villageB,villageC,truck:Nat,where_is_truck:Place)=
+        (where_is_truck == S) -> 
+             ((villageA<29 || villageB<21 || villageC<58) 
+              -> starve.delta 
+              <> (sum unload:Nat.(42<=unload && unload<=120-villageB+21 && unload<=141) -> 
+                            moveB.P(natminus(villageA,21),natminus(villageB+unload,21),natminus(villageC,21),natminus(TRUCK_CAPACITY,unload),B)+
+                  sum unload:Nat.(58<=unload && unload<=120-villageA+29 && unload<=149) -> 
+                            moveA.P(natminus(villageA+unload,29),natminus(villageB,29),natminus(villageC,29),natminus(TRUCK_CAPACITY,unload),A)))+
+
+        (where_is_truck == B) -> 
+             ((villageA<17 || villageC<37) 
+              -> starve.delta
+              <> (moveS.P(natminus(villageA,21),natminus(villageB,21),natminus(villageC,21),0,S)+
+                  sum unload:Nat.(58<=unload && unload<=120-villageA+17 && unload<=truck && unload<=137) -> 
+                            moveA.P(natminus(villageA+unload,17),natminus(villageB,17),natminus(villageC,17),natminus(truck,unload),A)+
+                  sum unload:Nat.(116<=unload && unload<=200-villageC+37 && unload<=truck && unload<=237) -> 
+                            moveC.P(natminus(villageA,37),natminus(villageB,37),natminus(villageC+unload,37),natminus(truck,unload),C)))+
+
+         (where_is_truck == A) -> 
+             ((villageB<17 || villageC<32) 
+              -> starve.delta
+              <> (moveS.P(natminus(villageA,29),natminus(villageB,29),natminus(villageC,29),0,S)+
+                  sum unload:Nat.(42<=unload && unload<=120-villageB+17 && unload<=truck && unload<=137) -> 
+                            moveB.P(natminus(villageA,17),natminus(villageB+unload,17),natminus(villageC,17),natminus(truck,unload),B)+
+                  sum unload:Nat.(118<=unload && unload<=200-villageC+32 && unload<=truck && unload<=232) -> 
+                            moveC.P(natminus(villageA,32),natminus(villageB,32),natminus(villageC+unload,32),natminus(truck,unload),C)))+
+
+         (where_is_truck == C) -> 
+             ((villageA<32 || villageB<37) 
+              -> starve.delta
+              <> (sum unload:Nat.(42<=unload && unload<=120-villageB+37 && unload<=truck && unload<=157) -> 
+                            moveB.P(natminus(villageA,37),natminus(villageB+unload,37),natminus(villageC,37),natminus(truck,unload),B)+
+                  sum unload:Nat.(58<=unload && unload<=120-villageA+32 && unload<=truck && unload<=152) -> 
+                            moveA.P(natminus(villageA+unload,32),natminus(villageB,32),natminus(villageC,32),natminus(truck,unload),A)));
+
+init P(50,40,150,0,S);
+
+% A formula modelling sustained delivery is
+%
+% nu X.<moveS||moveA||moveB||moveC>X && [starve]false
+

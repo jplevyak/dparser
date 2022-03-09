@@ -1,0 +1,15 @@
+This software includes files from other projects:
+
+======
+mcrl2* tests files
+https://github.com/mCRL2org/mCRL2/blob/master/COPYING
+
+mCRL2 toolset
+Copyright (C) 2005-2019 Eindhoven University of Technology.
+
+All files except for those found under the 3rd-party directory are distributed
+under the Boost Software License, Version 1.0 (see accompanying file
+LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+
+The software packages in the 3rd-party directory have their own licenses, 
+which can be found in their respective copyright files.

@@ -1,0 +1,39 @@
+% This file shows the game tic-tac-toe modelled using 
+% functions. 
+%
+% This example is used to generate the state space of this game
+% to which a reference is made in the Coursera specialisation on System
+% validation made in 2015.
+%
+% Jan Friso Groote, March 2015.
+
+sort Piece = struct empty | naught | cross;
+     Board = Pos -> Pos -> Piece;
+
+map  empty_board:Board;
+     did_win:Piece#Board->Bool;
+     other:Piece->Piece;
+
+var  b:Board;
+     p:Piece;
+     i,j:Pos;
+eqn  empty_board(i)(j)=empty;
+     other(naught)=cross;
+     other(cross)=naught;
+     did_win(p,b)=(exists i:Pos.(i<=3 && b(i)(1)==p && b(i)(2)==p && b(i)(3)==p)) ||
+                  (exists j:Pos.(j<=3 && b(1)(j)==p && b(2)(j)==p && b(3)(j)==p)) ||
+                  (b(1)(1)==p && b(2)(2)==p && b(3)(3)==p) ||
+                  (b(1)(3)==p && b(2)(2)==p && b(3)(1)==p);
+                  
+
+act  win:Piece;
+     put:Piece#Pos#Pos;
+proc TicTacToe(board:Board, player:Piece)=
+       did_win(other(player),board)
+          -> win(other(player)).delta
+          <> ( sum i,j:Pos.(i<=3 && j<=3 && board(i)(j)==empty)->
+                put(player,i,j).
+                TicTacToe(board[i->board(i)[j->player]],
+                          other(player)));
+                       
+init TicTacToe(empty_board,cross);

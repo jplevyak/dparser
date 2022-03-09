@@ -1,0 +1,164 @@
+% This model describes the small 2x2 rubik's cube. It provides a way
+% to solve the cube by searching throught the explicit state space of the cube.
+% The total number of possible combinations is 88179840.
+%
+% Solving a cube can be done by entering the colors in "scrambled_cube" below.
+% Then search for the action "solved" to occur. The trace to such an action typically 
+% looks like (where cl means clockwise, and ccl means counter clockwise):
+%
+% rotate_left_ccl
+% rotate_down_ccl
+% rotate_left_cl
+% rotate_back_ccl
+% rotate_left_cl
+% rotate_down_ccl
+% rotate_back_cl
+% rotate_down_ccl
+% rotate_down_ccl
+% solved
+% 
+% The representation of a cube is a list of four lists of sizes 4, 8, 8, 4.
+% Entering the colors of a cube goes from the left front tile, counter clockwise seen from above, 
+% from top to bottom. At the top and bottom there are four tiles, and the two middle layers 
+% have 8 tiles.
+% 
+% Accessing an element of a list can be done using the dot operator that selects an element.
+% For a list of list of collours c, representing a cube, c.0.0 means the first element of the first
+% list, corresponding to the top left front tile. c.2.7 denotes the tile at the lower left front 
+% position, and c.3.3 is the tile at the bottom left back. 
+%
+% This model can also be used to calculate all 88179840 positions that are reachable, together
+% with all conceivable rotations. By manipulation of this transition system, it should be possible
+% to infer a cookbook using which this cube can be solved in the minimal number of steps. I leave
+% such an endeavour to others. 
+%
+% Jan Friso Groote. 25/26 December, 2020
+
+sort Color = struct green | yellow | red | black | orange | blue;
+     Cube = List(List(Color));
+
+map  initial_cube, scrambled_cube: Cube;
+     solved:Cube->Bool;
+
+var  c:Cube;
+eqn  solved(c)= c.0.0 == c.0.1 && c.0.0 == c.0.2 && c.0.0 == c.0.3 &&     % Top has the same color.
+                c.1.0 == c.1.1 && c.1.0 == c.2.0 && c.1.0 == c.2.1 &&     % Front has the same color.
+                c.1.2 == c.1.3 && c.1.2 == c.2.2 && c.1.2 == c.2.3 &&     % Right side has the same color.
+                c.1.4 == c.1.5 && c.1.4 == c.2.4 && c.1.4 == c.2.5 &&     % Back side has the same color.
+                c.1.6 == c.1.7 && c.1.6 == c.2.6 && c.1.6 == c.2.7 &&     % Left side has the same color.
+                c.3.0 == c.3.1 && c.3.0 == c.3.2 && c.3.0 == c.3.3;       % Bottom has the same color.
+
+     initial_cube = 
+          [[ green, green, green, green ],
+           [ orange, orange, yellow, yellow, red, red, black, black ],
+           [ orange, orange, yellow, yellow, red, red, black, black ],
+           [ blue, blue, blue, blue ]];
+     scrambled_cube =
+          [[ yellow, black, red, orange ],
+           [ blue, orange, green, yellow, blue, yellow, green, orange ],
+           [ green, orange, blue, green, red, red, black, red ], 
+           [ black, black, yellow, blue ]];
+
+map  perform_rotate_right_top_backwards, perform_rotate_right_top_forwards, 
+     perform_rotate_left_top_backwards, perform_rotate_left_top_forwards, 
+     perform_rotate_up_clockwise, perform_rotate_up_counter_clockwise,
+     perform_rotate_down_clockwise, perform_rotate_down_counter_clockwise,
+     perform_rotate_front_clockwise, perform_rotate_front_counter_clockwise,
+     perform_rotate_back_clockwise, perform_rotate_back_counter_clockwise,
+     perform_rotate_down: Cube -> Cube;
+
+var  c:Cube;
+eqn  perform_rotate_right_top_backwards(c)=
+           [[ c.0.0, c.2.1, c.1.1, c.0.3 ],
+            [ c.1.0, c.3.1, c.2.2, c.1.2, c.0.1, c.1.5, c.1.6, c.1.7],
+            [ c.2.0, c.3.2, c.2.3, c.1.3, c.0.2, c.2.5, c.2.6, c.2.7],
+            [ c.3.0, c.2.4, c.1.4, c.3.3]];
+     perform_rotate_right_top_forwards(c)=perform_rotate_right_top_backwards(
+                                          perform_rotate_right_top_backwards(
+                                           perform_rotate_right_top_backwards(c)));
+
+     perform_rotate_left_top_backwards(c)=
+           [[ c.2.0, c.0.1, c.0.2, c.1.0 ],
+            [ c.3.0, c.1.1, c.1.2, c.1.3, c.1.4, c.0.0, c.1.7, c.2.7],
+            [ c.3.3, c.2.1, c.2.2, c.2.3, c.2.4, c.0.3, c.1.6, c.2.6],
+            [ c.2.5, c.3.1, c.3.2, c.1.5]];
+     perform_rotate_left_top_forwards(c)=perform_rotate_left_top_backwards(
+                                         perform_rotate_left_top_backwards(
+                                          perform_rotate_left_top_backwards(c)));
+           
+     perform_rotate_up_counter_clockwise(c)=
+           [[ c.0.3, c.0.0, c.0.1, c.0.2 ],
+            [ c.1.6, c.1.7, c.1.0, c.1.1, c.1.2, c.1.3, c.1.4, c.1.5],
+            [ c.2.0, c.2.1, c.2.2, c.2.3, c.2.4, c.2.5, c.2.6, c.2.7],
+            [ c.3.0, c.3.1, c.3.2, c.3.3]];
+     perform_rotate_up_clockwise(c)=perform_rotate_up_counter_clockwise(
+                                     perform_rotate_up_counter_clockwise(
+                                      perform_rotate_up_counter_clockwise(c)));
+
+     perform_rotate_down_clockwise(c)=
+           [[ c.0.0, c.0.1, c.0.2, c.0.3 ],
+            [ c.1.0, c.1.1, c.1.2, c.1.3, c.1.4, c.1.5, c.1.6, c.1.7],
+            [ c.2.6, c.2.7, c.2.0, c.2.1, c.2.2, c.2.3, c.2.4, c.2.5],
+            [ c.3.3, c.3.0, c.3.1, c.3.2]];
+     perform_rotate_down_counter_clockwise(c)=perform_rotate_down_clockwise(
+                                               perform_rotate_down_clockwise(
+                                                perform_rotate_down_clockwise(c)));
+
+     perform_rotate_front_clockwise(c)=
+           [[ c.2.7, c.1.7, c.0.2, c.0.3 ],
+            [ c.2.0, c.1.0, c.0.0, c.1.3, c.1.4, c.1.5, c.1.6, c.3.0],
+            [ c.2.1, c.1.1, c.0.1, c.2.3, c.2.4, c.2.5, c.2.6, c.3.1],
+            [ c.2.2, c.1.2, c.3.2, c.3.3]];
+     perform_rotate_front_counter_clockwise(c)=perform_rotate_front_clockwise(
+                                                perform_rotate_front_clockwise(
+                                                 perform_rotate_front_clockwise(c)));
+     
+     perform_rotate_back_clockwise(c)=
+           [[ c.0.0, c.0.1, c.2.3, c.1.3 ],
+            [ c.1.0, c.1.1, c.1.2, c.3.2, c.2.4, c.1.4, c.0.2, c.1.7],
+            [ c.2.0, c.2.1, c.2.2, c.3.3, c.2.5, c.1.5, c.0.3, c.2.7],
+            [ c.3.0, c.3.1, c.2.6, c.1.6]];
+     perform_rotate_back_counter_clockwise(c)=perform_rotate_back_clockwise(
+                                               perform_rotate_back_clockwise(
+                                                perform_rotate_back_clockwise(c)));
+     
+map selftest: Cube -> Bool;
+    count_: Cube#Color -> Nat;
+    count_: List(Color)#Color -> Nat;
+
+var c:Cube; col,col1:Color;
+    l:List(Color);
+eqn selftest(c)=count_(c,green)==4 && count_(c,yellow)==4 && count_(c,red)==4 && count_(c,black)==4 && count_(c,blue)==4;
+    count_(c,col)=count_(c.0,col)+count_(c.1,col)+count_(c.2,col)+count_(c.3,col);
+    l==[] -> count_(l,col)=0;
+    count_(col|>l,col1)=if(col1==col,succ(count_(l,col1)),count_(l,col1));
+
+sort Color = struct green | yellow | red | black | orange | blue;
+
+% The rotations are clockwise (cl) or counterclockwise (ccl) as seen towards the
+% rotated plane. 
+act rotate_right_cl, rotate_right_ccl, rotate_left_cl, rotate_left_ccl,
+    rotate_up_cl, rotate_up_ccl, rotate_down_cl, rotate_down_ccl, 
+    rotate_front_cl, rotate_front_ccl,
+    rotate_back_cl, rotate_back_ccl,
+    error,solved;
+
+proc P(c:Cube)=
+       rotate_right_cl.P(perform_rotate_right_top_backwards(c))+
+       rotate_right_ccl.P(perform_rotate_right_top_forwards(c))+
+       rotate_left_cl.P(perform_rotate_left_top_forwards(c))+
+       rotate_left_ccl.P(perform_rotate_left_top_backwards(c))+
+       rotate_up_cl.P(perform_rotate_up_clockwise(c))+
+       rotate_up_ccl.P( perform_rotate_up_counter_clockwise(c))+
+       rotate_down_cl.P(perform_rotate_down_clockwise(c))+    
+       rotate_down_ccl.P(perform_rotate_down_counter_clockwise(c))+   
+       rotate_front_cl.P(perform_rotate_front_clockwise(c))+
+       rotate_front_ccl.P(perform_rotate_front_counter_clockwise(c))+
+       rotate_back_cl.P(perform_rotate_back_clockwise(c))+  
+       rotate_back_ccl.P(perform_rotate_back_counter_clockwise(c))+  
+       solved(c)->solved.P(c) +
+%       !selftest(c)->error.P(c) +
+       delta;
+
+init P(scrambled_cube);
+

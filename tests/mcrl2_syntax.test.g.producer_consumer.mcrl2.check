@@ -1,0 +1,2 @@
+208 states 119 scans 119 shifts 115 reductions 0 compares 0 ambiguities
+((( act (( P_in_start (( ,  P_out_started )( ,  Q_out_started )( ,  Q_in_start ))) ; ))( act (( c1 ( ,  c2 )) ; ))( proc (( P  = ((( P_in_start ) . ( P_out_started )) . ( P )) ; )( Q  = ((( Q_in_start ) . ( Q_out_started )) . ( Q )) ; ))))( init ( allow  ( ( { (( c1 )( , ( c2 ))) } ) , ( comm  ( ( { (( P_in_start  | ( Q_out_started ) ->  c1 )( , ( P_out_started  | ( Q_in_start ) ->  c2 ))) } ) , (( P ) || ( Q )) ) ) ) ) ; ))

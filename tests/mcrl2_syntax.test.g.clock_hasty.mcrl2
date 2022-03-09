@@ -1,0 +1,7 @@
+% This example specifies a clock which ticks at an arbitrary time
+% with a limit of 1 unit after the last tick.
+act tick;
+
+proc Clock(t:Real) = sum y:Real. (t < y && y < t+1) -> tick@y . Clock(y);
+
+init Clock(0);

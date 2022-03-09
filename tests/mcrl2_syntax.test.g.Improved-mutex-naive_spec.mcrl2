@@ -1,0 +1,32 @@
+% Very naive mutual exclusion algorithm, as described, for instance,
+% in Dijkstra, E.W.: Over de sequentialiteit van procesbeschrijvingen.
+% Tech. Rep. EWD-35 (Undated, 1962 or 1963)
+% See Fig. 2 in that paper.
+
+act enter, leave: Nat;
+    get_flag_r, get_flag_s, get_flag,
+      set_flag_r, set_flag_s, set_flag: Nat # Bool;
+
+ % Shared variables flag (array).
+ proc
+  Flag(i: Nat, b: Bool)=
+    sum b': Bool. set_flag_r(i, b').Flag(i, b')
+	+ get_flag_s(i, b).Flag(i, b);
+
+  % Main process for Dekker's algorithm.
+proc
+  Mutex(i: Nat) = 
+    set_flag_s(i, true) .
+    get_flag_r(Int2Nat(1-i), false) .
+    enter(i) .
+    leave(i) .
+    set_flag_s(i, false) .
+    Mutex();
+
+init
+    allow({ enter, leave,
+            get_flag, set_flag},
+      comm({ get_flag_r | get_flag_s -> get_flag,
+             set_flag_r | set_flag_s -> set_flag },
+      Mutex(0) || Mutex(1) ||
+      Flag(0,false) || Flag(1,false)));

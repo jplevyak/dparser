@@ -1,0 +1,51 @@
+% This file describes  Peterson's mutual exclusion protocol. There are two
+% access mechanisms. Each process has a globally readable variable turn,
+% which indicates that a process wants to access the exclusive region.
+% Furthermore, there is a variable turn, that is used to allow the other
+% process access.
+%   The description on wikipedia contains an error, in the sense that
+% flag 1 must initially not be set to true, but to false [http://en.wikipedia.org/wiki/Peterson's_algorithm,
+% May 17 2015]. The effect of this error is that process 0 cannot access the critical section
+% twice in a row, but process 1 must access the critical region in the meantime.
+%
+% May 17, 2015
+% Jan Friso Groote
+%
+
+act wish, enter, leave: Nat;
+    get_flag_r, get_flag_s, get_flag,
+      set_flag_r, set_flag_s, set_flag: Nat # Bool;
+    get_turn_r, get_turn_s, get_turn,
+      set_turn_r,set_turn_s,set_turn: Nat;
+
+map other: Nat -> Nat;
+eqn other(0) = 1;
+    other(1) = 0;
+
+proc
+  Flag(i: Nat, b: Bool)=
+    sum b: Bool. set_flag_r(i, b).Flag(i, b) +
+    get_flag_s(i, b).Flag(i, b);
+
+  Turn(n:Nat)=
+    sum n': Nat. set_turn_r(n').Turn(n') 
+  + get_turn_s(n).Turn(n);
+
+  Process(i: Nat) =
+    wish(i)|set_flag_s(i, true) .
+    set_turn_s(other(i)) . 
+    (get_flag_r(other(i), false) + get_turn_r(i)) .
+    enter(i) .
+    leave(i) . 
+    set_flag_s(i, false) .
+    Process(i);
+
+init
+    allow({ wish|set_flag, enter, leave,
+            get_flag, set_flag, get_turn, set_turn},
+      comm({ get_flag_r | get_flag_s -> get_flag,
+             set_flag_r | set_flag_s -> set_flag,
+             get_turn_r | get_turn_s -> get_turn,
+             set_turn_r | set_turn_s -> set_turn },
+      Process(0) || Process(1) ||
+      Flag(0,false) || Flag(1,false) || Turn(0)));
