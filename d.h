@@ -33,7 +33,9 @@
 #include <time.h>
 #include <ctype.h>
 #include <string.h>
+#if !defined(__MINGW32__) && !defined(WIN32)
 #include <strings.h>
+#endif
 
 #ifdef LEAK_DETECT
 #define GC_DEBUG
