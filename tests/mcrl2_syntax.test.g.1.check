@@ -1,2 +1,2 @@
-61 states 39 scans 39 shifts 34 reductions 0 compares 0 ambiguities
-(( proc ( P  = ( true  -> ( tau  . ( true  -> ( ( ( tau  . ( P )) ) ) <> ( P )))) ; ))( init ( P ) ; ))
+72 states 45 scans 45 shifts 45 reductions 1 compares 0 ambiguities
+(( proc ( P  = (( true  -> )( tau  . ((( true  -> )( ( ( tau  . ( P )) ) ) <> )( P )))) ; ))( init ( P ) ; ))

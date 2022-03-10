@@ -1,2 +1,2 @@
-258 states 164 scans 164 shifts 160 reductions 0 compares 0 ambiguities
-((( act (( left ( ,  right )) ; ))( map ((( N ) :  Pos ) ; ))( eqn ( N  =  512  ; ))( proc ( X ( ( ((( n ) :  Pos )) ) ) = (( ( ( n  <=  N ) ) ) -> ( ( ((( left ) . ( X ( ( (( 2  *  n )) ) ))) + (( right ) . ( X ( ( ((( 2  *  n ) +  1 )) ) )))) ) ) <>  delta ) ; )))( init ( X ( ( ( 1 ) ) )) ; ))
+269 states 163 scans 163 shifts 150 reductions 0 compares 0 ambiguities
+((( act (( left ( ,  right )) ; ))( map ((( N ) :  Pos ) ; ))( eqn ( N  =  512  ; ))( proc ( X ( ( ((( n ) :  Pos )) ) ) = (((( ( ( n  <=  N ) ) ) -> )( ( ((( left ) . ( X ( ( (( 2  *  n )) ) ))) + (( right ) . ( X ( ( ((( 2  *  n ) +  1 )) ) )))) ) ) <> ) delta ) ; )))( init ( X ( ( ( 1 ) ) )) ; ))
