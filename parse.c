@@ -755,7 +755,11 @@ static void get_unshared_priorities(Parser *p, StackPNode *psx, StackPNode *psy,
       (void)stack_pop(psy);
       continue;
     }
-    if (stack_head(psx)->height < stack_head(psy)->height)
+    if (stack_head(psx)->parse_node.start_loc.s > stack_head(psy)->parse_node.start_loc.s)
+      psr = psy;
+    else if (stack_head(psx)->parse_node.start_loc.s < stack_head(psy)->parse_node.start_loc.s)
+      psr = psx;
+    else if (stack_head(psx)->height < stack_head(psy)->height)
       psr = psx;
     else if (stack_head(psx)->height > stack_head(psy)->height)
       psr = psy;
