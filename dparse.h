@@ -47,6 +47,7 @@ typedef struct D_Parser {
   int dont_merge_epsilon_trees;
   int dont_use_height_for_disambiguation;
   int dont_use_greediness_for_disambiguation;
+  int dont_use_deep_priorities_for_disambiguation;
   int commit_actions_interval; /* 0 is immediate */
   int error_recovery;
   int partial_parses;

@@ -750,21 +750,20 @@ static void get_unshared_priorities(Parser *p, StackPNode *psx, StackPNode *psy,
       psr = psx;
       break;
     }
-    if (stack_head(psx)->height > stack_head(psy)->height)
-      psr = psx;
-    else if (stack_head(psx)->height < stack_head(psy)->height)
-      psr = psy;
-    else if (stack_head(psx)->parse_node.start_loc.s > stack_head(psy)->parse_node.start_loc.s)
-      psr = psx;
-    else if (stack_head(psx)->parse_node.start_loc.s < stack_head(psy)->parse_node.start_loc.s)
-      psr = psy;
-    else if (stack_head(psx)->priority > stack_head(psy)->priority)
-      psr = psx;
-    else if (stack_head(psx)->priority < stack_head(psy)->priority)
-      psr = psy;
-    else {
+    if (stack_head(psx) == stack_head(psy)) {
       (void)stack_pop(psx);
       (void)stack_pop(psy);
+      continue;
+    }
+    if (stack_head(psx)->height < stack_head(psy)->height)
+      psr = psx;
+    else if (stack_head(psx)->height > stack_head(psy)->height)
+      psr = psy;
+    else {
+      t = stack_pop(psx);
+      get_exp_one_down(p, t, psx, isx);
+      t = stack_pop(psy);
+      get_exp_one_down(p, t, psy, isy);
       continue;
     }
     t = stack_pop(psr);
@@ -917,7 +916,7 @@ int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v) {
 /* return -1 for x, 1 for y and 0 if they are ambiguous */
 static int cmp_pnodes(Parser *p, PNode *x, PNode *y) {
   uint r = 0;
-  if (x->assoc && y->assoc) {
+  if (!p->user.dont_use_deep_priorities_for_disambiguation && x->assoc && y->assoc) {
     if ((r = cmp_priorities(p, x, y))) return r;
   }
   if (!p->user.dont_use_greediness_for_disambiguation)

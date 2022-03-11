@@ -17,6 +17,7 @@ int commit_actions_interval = 100;
 int start_state = 0;
 int dont_use_greediness_for_disambiguation = 0;
 int dont_use_height_for_disambiguation = 0;
+int dont_use_deep_priorities_for_disambiguation = 0;
 
 static void help(ArgumentState *arg_state, char *arg_unused);
 
@@ -31,6 +32,7 @@ ArgumentDescription arg_desc[] = {
     {"nogreedy", 'G', "No Greediness for Disambiguation", "T", &dont_use_greediness_for_disambiguation,
      "D_PARSE_GREEDY", NULL},
     {"noheight", 'H', "No Height for Disambiguation", "T", &dont_use_height_for_disambiguation, "D_PARSE_HEIGHT", NULL},
+    {"no_deep_priorities", 'P', "No Deep Priorites for Disambiguation", "T", &dont_use_deep_priorities_for_disambiguation, "D_PARSE_PRIORITIES", NULL},
     {"verbose", 'v', "Verbose", "+", &d_verbose_level, "D_PARSE_VERBOSE", NULL},
     {"test", 't', "Test", "+", &test_level, "D_PARSE_TEST", NULL},
     {"debug", 'd', "Debug", "+", &d_debug_level, "D_PARSE_DEBUG", NULL},
@@ -81,6 +83,7 @@ int main(int argc, char *argv[]) {
   p->start_state = start_state;
   p->dont_use_greediness_for_disambiguation = dont_use_greediness_for_disambiguation;
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
+  p->dont_use_deep_priorities_for_disambiguation = dont_use_deep_priorities_for_disambiguation;
   for (i = 0; i < arg_state.nfile_arguments; i++) {
     p->loc.pathname = arg_state.file_argument[i];
     p->loc.line = 1;
