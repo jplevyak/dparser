@@ -811,32 +811,79 @@ static int cmp_priorities(Parser *p, PNode *x, PNode *y) {
   return r;
 }
 
-static void get_all(Parser *p, PNode *x, VecPNode *vx) {
+void heapify(VecPNode *a, uint i) {
+  if (a->n <= 1) {
+    uint largest = i;
+    uint l = 2 * i + 1;
+    uint r = 2 * i + 2;
+    if (l < a->n && a->v[l]->height > a->v[largest]->height)
+      largest = l;
+    if (r < a->n && a->v[r]->height > a->v[largest]->height)
+      largest = r;
+    if (largest != i) {
+      PNode *temp = a->v[largest];
+      a->v[largest] = a->v[i];
+      a->v[i] = temp;
+      heapify(a, largest);
+    }
+  }
+}
+
+void heap_insert(VecPNode *a, PNode *pn) {
+  vec_add(a, pn);
+  for (int i = a->n / 2 - 1; i >= 0; i--) {
+    heapify(a, (uint)i);
+  }
+}
+
+PNode *heap_pop(VecPNode *a) {
+  if (a->n == 0) return NULL;
+  PNode *pn = a->v[0];
+  a->v[0] = a->v[a->n -1];
+  a->n--;
+  for (int i = a->n / 2 - 1; i >= 0; i--)
+    heapify(a, i);
+  return pn;
+}
+
+static void get_children(Parser *p, PNode *pn, VecPNode *ps, VecPNode *ps2, VecPNode *ph) {
   uint i;
-  if (set_add(vx, x)) {
-    for (i = 0; i < x->children.n; i++) {
-      PNode *pn = x->children.v[i];
-      LATEST(p, pn);
-      get_all(p, pn, vx);
+  if (set_add(ps, pn) && !set_find(ps2, pn)) {
+    for (i = 0; i < pn->children.n; i++) {
+      PNode *c = pn->children.v[i];
+      LATEST(p, c);
+      heap_insert(ph, c);
     }
   }
 }
 
 static void get_unshared_pnodes(Parser *p, PNode *x, PNode *y, VecPNode *pvx, VecPNode *pvy) {
   uint i;
-  VecPNode vx, vy;
-  vec_clear(&vx);
-  vec_clear(&vy);
+  VecPNode hx, hy, sx, sy;
+  vec_clear(&hx);
+  vec_clear(&hy);
+  vec_clear(&sx);
+  vec_clear(&sy);
   LATEST(p, x);
   LATEST(p, y);
-  get_all(p, x, &vx);
-  get_all(p, y, &vy);
-  for (i = 0; i < vx.n; i++)
-    if (vx.v[i] && !set_find(&vy, vx.v[i])) vec_add(pvx, vx.v[i]);
-  for (i = 0; i < vy.n; i++)
-    if (vy.v[i] && !set_find(&vx, vy.v[i])) vec_add(pvy, vy.v[i]);
-  vec_free(&vx);
-  vec_free(&vy);
+  while (1) {
+    if (!x && !y) break;
+    if (!y || (x && x->height > y->height)) {
+      get_children(p, x, &sx, &sy, &hx);
+      x = heap_pop(&hx);
+    } else {
+      get_children(p, y, &sy, &sx, &hy);
+      y = heap_pop(&hy);
+    }
+  }
+  for (i = 0; i < sx.n; i++)
+    if (sx.v[i] && !set_find(&sy, sx.v[i])) vec_add(pvx, sx.v[i]);
+  for (i = 0; i < sy.n; i++)
+    if (sy.v[i] && !set_find(&sx, sy.v[i])) vec_add(pvy, sy.v[i]);
+  vec_free(&hx);
+  vec_free(&hy);
+  vec_free(&sx);
+  vec_free(&sy);
 }
 
 static int greedycmp(const void *ax, const void *ay) {
@@ -868,7 +915,6 @@ static int cmp_greediness(Parser *p, PNode *x, PNode *y) {
   vec_clear(&pvx);
   vec_clear(&pvy);
   get_unshared_pnodes(p, x, y, &pvx, &pvy);
-  /* set_to_vec(&pvx); set_to_vec(&pvy); */
   if (pvx.v != NULL) qsort(pvx.v, pvx.n, sizeof(PNode *), greedycmp);
   if (pvy.v != NULL) qsort(pvy.v, pvy.n, sizeof(PNode *), greedycmp);
   while (1) {
