@@ -664,155 +664,18 @@ static int check_path_priorities_internal(VecZNode *path) {
 #define check_path_priorities(_p) \
   ((_p)->n > 1 && ((_p)->v[0]->pn->op_assoc || (_p)->v[1]->pn->op_assoc) && check_path_priorities_internal(_p))
 
-static int compare_priorities(int xpri[], int xn, int ypri[], int yn) {
+static int compare_priorities(VecPNode *pvx, VecPNode *pvy) {
   int i = 0;
-
-  while (i < xn && i < yn) {
-    if (xpri[i] > ypri[i]) return -1;
-    if (xpri[i] < ypri[i]) return 1;
+  while (i < pvx->n && i < pvy->n) {
+    if (pvx->v[i]->priority > pvy->v[i]->priority) return -1;
+    if (pvx->v[i]->priority < pvy->v[i]->priority) return 1;
     i++;
   }
   return 0;
 }
 
-static void intreverse(int *xp, int n) {
-  int *a = xp, *b = xp + n - 1;
-  while (a < b) {
-    int t = *a;
-    *a = *b;
-    *b = t;
-    a++;
-    b--;
-  }
-}
-
-/* sort by deepest, then by location */
-static void priority_insert(StackPNode *psx, PNode *x) {
-  PNode *t, **start, **cur;
-
-  stack_push(psx, x);
-  start = psx->start;
-  cur = psx->cur;
-  for (; cur > start + 1; cur--) {
-    if (cur[-1]->height > cur[-2]->height) continue;
-    if (cur[-1]->height == cur[-2]->height && cur[-1]->parse_node.start_loc.s > cur[-2]->parse_node.start_loc.s)
-      continue;
-    t = cur[-1];
-    cur[-1] = cur[-2];
-    cur[-2] = t;
-  }
-}
-
-static void get_exp_all(Parser *p, PNode *x, StackInt *psx) {
-  uint i;
-
-  if (x->assoc) stack_push(psx, x->priority);
-  for (i = 0; i < x->children.n; i++) {
-    PNode *pn = x->children.v[i];
-    LATEST(p, pn);
-    get_exp_all(p, pn, psx);
-  }
-}
-
-static void get_exp_one(Parser *p, PNode *x, StackPNode *psx, StackInt *isx) {
-  uint i;
-
-  LATEST(p, x);
-  if (!IS_NARY_ASSOC(x->assoc))
-    priority_insert(psx, x);
-  else {
-    stack_push(isx, x->priority);
-    for (i = 0; i < x->children.n; i++)
-      if (x->children.v[i]->assoc) get_exp_one(p, x->children.v[i], psx, isx);
-  }
-}
-
-static void get_exp_one_down(Parser *p, PNode *x, StackPNode *psx, StackInt *isx) {
-  uint i;
-
-  LATEST(p, x);
-  stack_push(isx, x->priority);
-  for (i = 0; i < x->children.n; i++)
-    if (x->children.v[i]->assoc) get_exp_one(p, x->children.v[i], psx, isx);
-}
-
-/* get the set of priorities for unshared nodes,
-   eliminating shared subtrees via priority queues */
-static void get_unshared_priorities(Parser *p, StackPNode *psx, StackPNode *psy, StackInt *isx, StackInt *isy) {
-  StackPNode *psr;
-  PNode *t;
-
-  while (1) {
-    if (is_stack_empty(psx)) {
-      psr = psy;
-      break;
-    } else if (is_stack_empty(psy)) {
-      psr = psx;
-      break;
-    }
-    if (stack_head(psx) == stack_head(psy)) {
-      (void)stack_pop(psx);
-      (void)stack_pop(psy);
-      continue;
-    }
-    if (stack_head(psx)->parse_node.start_loc.s > stack_head(psy)->parse_node.start_loc.s)
-      psr = psy;
-    else if (stack_head(psx)->parse_node.start_loc.s < stack_head(psy)->parse_node.start_loc.s)
-      psr = psx;
-    else if (stack_head(psx)->height < stack_head(psy)->height)
-      psr = psx;
-    else if (stack_head(psx)->height > stack_head(psy)->height)
-      psr = psy;
-    else {
-      t = stack_pop(psx);
-      get_exp_one_down(p, t, psx, isx);
-      t = stack_pop(psy);
-      get_exp_one_down(p, t, psy, isy);
-      continue;
-    }
-    t = stack_pop(psr);
-    if (psr == psx)
-      get_exp_one_down(p, t, psx, isx);
-    else
-      get_exp_one_down(p, t, psy, isy);
-  }
-  while (!is_stack_empty(psr)) {
-    t = stack_pop(psr);
-    if (psr == psx)
-      get_exp_all(p, t, isx);
-    else
-      get_exp_all(p, t, isy);
-  }
-  return;
-}
-
-/* compare the priorities of operators in two trees
-   while eliminating common subtrees for efficiency.
-*/
-static int cmp_priorities(Parser *p, PNode *x, PNode *y) {
-  StackPNode psx, psy;
-  StackInt isx, isy;
-  int r;
-
-  stack_clear(&psx);
-  stack_clear(&psy);
-  stack_clear(&isx);
-  stack_clear(&isy);
-  get_exp_one(p, x, &psx, &isx);
-  get_exp_one(p, y, &psy, &isy);
-  get_unshared_priorities(p, &psx, &psy, &isx, &isy);
-  intreverse(isx.start, stack_depth(&isx));
-  intreverse(isy.start, stack_depth(&isy));
-  r = compare_priorities(isx.start, stack_depth(&isx), isy.start, stack_depth(&isy));
-  stack_free(&psx);
-  stack_free(&psy);
-  stack_free(&isx);
-  stack_free(&isy);
-  return r;
-}
-
 void heapify(VecPNode *a, uint i) {
-  if (a->n <= 1) {
+  if (a->n >= 1) {
     uint largest = i;
     uint l = 2 * i + 1;
     uint r = 2 * i + 2;
@@ -848,11 +711,14 @@ PNode *heap_pop(VecPNode *a) {
 
 static void get_children(Parser *p, PNode *pn, VecPNode *ps, VecPNode *ps2, VecPNode *ph) {
   uint i;
-  if (set_add(ps, pn) && !set_find(ps2, pn)) {
+  if (!set_find(ps2, pn)) {
     for (i = 0; i < pn->children.n; i++) {
       PNode *c = pn->children.v[i];
       LATEST(p, c);
-      heap_insert(ph, c);
+      if (set_add(ps, c)) {
+        if (!set_find(ps2, c))
+          heap_insert(ph, c);
+      }
     }
   }
 }
@@ -866,6 +732,8 @@ static void get_unshared_pnodes(Parser *p, PNode *x, PNode *y, VecPNode *pvx, Ve
   vec_clear(&sy);
   LATEST(p, x);
   LATEST(p, y);
+  set_add(&sx, x);
+  set_add(&sy, y);
   while (1) {
     if (!x && !y) break;
     if (!y || (x && x->height > y->height)) {
@@ -949,6 +817,37 @@ Lreturn:
   vec_free(&pvx);
   vec_free(&pvy);
   return ret;
+}
+
+static int prioritycmp(const void *ax, const void *ay) {
+  PNode *x = *(PNode **)ax;
+  PNode *y = *(PNode **)ay;
+  /* sort those with no priority to the bottom */
+  if (!!x->assoc > !!y->assoc) return -1;
+  if (!!x->assoc < !!y->assoc) return 1;
+  /* by smallest height */
+  if (x->height < y->height) return -1;
+  if (x->height > y->height) return 1;
+  /* by earliest start */
+  if (x->parse_node.start_loc.s < y->parse_node.start_loc.s) return -1;
+  if (x->parse_node.start_loc.s > y->parse_node.start_loc.s) return 1;
+  return 0;
+}
+
+/* compare the priorities of operators in two trees
+   while eliminating common subtrees for efficiency.
+*/
+static int cmp_priorities(Parser *p, PNode *x, PNode *y) {
+  VecPNode vx, vy;
+  vec_clear(&vx);
+  vec_clear(&vy);
+  get_unshared_pnodes(p, x, y, &vx, &vy);
+  if (vx.v != NULL) qsort(vx.v, vx.n, sizeof(PNode *), prioritycmp);
+  if (vy.v != NULL) qsort(vy.v, vy.n, sizeof(PNode *), prioritycmp);
+  int r = compare_priorities(&vx, &vy);
+  vec_free(&vx);
+  vec_free(&vy);
+  return r;
 }
 
 int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v) {

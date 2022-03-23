@@ -1,3 +1,5 @@
+1.33    Switched to a priority heap to detect shared subtrees.
+
 1.32    Fixed bugs with priorities.
 
 1.29    Fixed bug with handling of priorities and associativity (thanx Sjoerd Cranen)
