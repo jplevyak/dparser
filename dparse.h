@@ -24,6 +24,9 @@ typedef void *d_voidp;
 #ifndef D_ParseNode_Globals
 #define D_ParseNode_Globals void
 #endif
+#ifndef D_Parser_User
+#define D_Parser_User d_voidp
+#endif
 
 typedef void (*D_SyntaxErrorFn)(struct D_Parser *);
 typedef struct D_ParseNode *(*D_AmbiguityFn)(struct D_Parser *, int n, struct D_ParseNode **v);
@@ -53,6 +56,7 @@ typedef struct D_Parser {
   int partial_parses;
   /* parse results */
   int syntax_errors; /* do not move or change without fixing copy_user_configurables() */
+  D_Parser_User user_data;
 } D_Parser;
 
 typedef struct D_ParseNode {
