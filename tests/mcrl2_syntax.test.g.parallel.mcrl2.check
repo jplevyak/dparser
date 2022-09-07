@@ -1,2 +1,2 @@
-205 states 122 scans 122 shifts 331 reductions 0 compares 0 ambiguities
-((( act (( a (( ,  b )( ,  c )( ,  d )( ,  e )( ,  f )( ,  g )( ,  h )( ,  i )( ,  j ))) ; ))( proc ( X  = ((((((((((( a ) . ( b )) . ( c )) . ( d )) . ( e )) . ( f )) . ( g )) . ( h )) . ( i )) . ( j )) . ( X )) ; )))( init (( X ) || (( X ) || ( X ))) ; ))
+217 states 122 scans 122 shifts 177 reductions 0 compares 0 ambiguities
+((( act (( a (( ,  b )( ,  c )( ,  d )( ,  e )( ,  f )( ,  g )( ,  h )( ,  i )( ,  j ))) ; ))( proc ( X  = (( a ) . (( b ) . (( c ) . (( d ) . (( e ) . (( f ) . (( g ) . (( h ) . (( i ) . (( j ) . ( X ))))))))))) ; )))( init (( X ) || (( X ) || ( X ))) ; ))

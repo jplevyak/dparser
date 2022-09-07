@@ -19,6 +19,11 @@ for g in $grammars ; do
   else
     flags=
   fi
+  if [ -f "$g.parse_flags" ] ; then
+    parse_flags=$(cat $g.parse_flags)
+  else
+    parse_flags=
+  fi
   $VALGRIND ./make_dparser $flags $g
   make -s sample_parser SAMPLE_GRAMMAR=$(basename $g)
   files="$g."*[0-9]
@@ -28,7 +33,7 @@ for g in $grammars ; do
     else
       flags=
     fi
-    $VALGRIND ./sample_parser $flags -v $t &> $t.out
+    $VALGRIND ./sample_parser $flags $parse_flags -v $t &> $t.out
     diff $t.out $t.check
     result=$?
     if [ $result -ne 0 ]; then

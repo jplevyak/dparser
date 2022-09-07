@@ -1,2 +1,2 @@
-154 states 92 scans 92 shifts 85 reductions 0 compares 0 ambiguities
-((( sort ( Doors  = ( struct (( d1 )(( | ( d2 ))( | ( d3 ))))) ; ))( act (( player_collects_prize )( :  Bool ) ; )))( init ( dist ((( door_with_prize ) :  Doors )) [ ( 1  /  3 ) ]  . ( dist ((( initially_selected_door_by_player ) :  Doors )) [ ( 1  /  3 ) ]  . (( player_collects_prize ( ( (( initially_selected_door_by_player  !=  door_with_prize )) ) )) .  delta ))) ; ))
+160 states 92 scans 92 shifts 89 reductions 0 compares 0 ambiguities
+((( sort ( Doors  = ( struct (( d1 )(( | ( d2 ))( | ( d3 ))))) ; ))( act (( player_collects_prize )( :  Bool ) ; )))( init (( dist ((( door_with_prize ) :  Doors )) [ ( 1  /  3 ) ]  . )(( dist ((( initially_selected_door_by_player ) :  Doors )) [ ( 1  /  3 ) ]  . )(( player_collects_prize ( ( (( initially_selected_door_by_player  !=  door_with_prize )) ) )) .  delta ))) ; ))

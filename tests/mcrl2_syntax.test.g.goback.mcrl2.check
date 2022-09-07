@@ -1,2 +1,2 @@
-195 states 120 scans 120 shifts 123 reductions 0 compares 0 ambiguities
-((( act (( a ) ; ))( map ((( N ) :  Pos ) ; ))( eqn ( N  =  1000  ; ))( proc ( X ( ( ((( i ) :  Pos )) ) ) = ( sum ((( j ) :  Pos )) . (( ( (( j  <= ( i  +  1 )) && ( j  <=  N )) ) ) -> (( a ) . ( X ( ( ( j ) ) ))) <>  delta )) ; )))( init ( X ( ( ( 1 ) ) )) ; ))
+204 states 121 scans 121 shifts 116 reductions 0 compares 0 ambiguities
+((( act (( a ) ; ))( map ((( N ) :  Pos ) ; ))( eqn ( N  =  1000  ; ))( proc ( X ( ( ((( i ) :  Pos )) ) ) = (( sum ((( j ) :  Pos )) . )(((( ( (( j  <= ( i  +  1 )) && ( j  <=  N )) ) ) -> )(( a ) . ( X ( ( ( j ) ) ))) <> ) delta )) ; )))( init ( X ( ( ( 1 ) ) )) ; ))

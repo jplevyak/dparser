@@ -18,8 +18,6 @@ fix issue with equiv_D_Scope.
 
 fix failing tests:
 
-mcrl2_syntax.test.g.dice.mcrl2 syntax error
-mcrl2_syntax.test.g.startup.mcrl2 syntax error
 mcrl2_syntax.test.g.garage-r2.mcrl2 non-deterministic
 mcrl2_syntax.test.g.WMS.mcrl2 non-deterministic
 mcrl2_syntax.test.g.SMS.mcrl2 non-deterministic
