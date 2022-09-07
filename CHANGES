@@ -1,3 +1,5 @@
+1.33    Add user data field to D_Parser struct.
+
 1.32    Fixed bugs with priorities.
 
 1.29    Fixed bug with handling of priorities and associativity (thanx Sjoerd Cranen)

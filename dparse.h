@@ -16,6 +16,7 @@ struct D_Parser;
 struct D_ParserTables;
 struct D_Scope;
 struct D_ParseNode;
+struct D_Parser_User;  // Optional user data.
 
 typedef void *d_voidp;
 #ifndef D_ParseNode_User
@@ -30,6 +31,7 @@ typedef struct D_ParseNode *(*D_AmbiguityFn)(struct D_Parser *, int n, struct D_
 typedef void (*D_FreeNodeFn)(struct D_ParseNode *d);
 
 typedef struct D_Parser {
+  struct D_ParserUser *user;
   D_ParseNode_Globals *initial_globals; /* global values */
   D_WhiteSpaceFn initial_white_space_fn;
   struct D_Scope *initial_scope;
