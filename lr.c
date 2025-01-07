@@ -24,7 +24,7 @@ static int itemcmp(const void *ai, const void *aj) {
   return (i > j) ? 1 : ((i < j) ? -1 : 0);
 }
 
-static State *new_state() {
+static State *new_state(void) {
   State *s = MALLOC(sizeof(State));
   memset(s, 0, sizeof(State));
   return s;

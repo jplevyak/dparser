@@ -78,7 +78,7 @@ static void symhash_add(D_SymHash *sh, D_Sym *s) {
   }
 }
 
-static D_SymHash *new_D_SymHash() {
+static D_SymHash *new_D_SymHash(void) {
   D_SymHash *sh = MALLOC(sizeof(D_SymHash));
   memset(sh, 0, sizeof(D_SymHash));
   sh->grow = INITIAL_SYMHASH_SIZE * 2 + 1;

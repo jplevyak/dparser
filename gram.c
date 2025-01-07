@@ -25,7 +25,7 @@ Production *new_production(Grammar *g, char *name) {
   return p;
 }
 
-static Elem *new_elem() {
+static Elem *new_elem(void) {
   Elem *e = MALLOC(sizeof(Elem));
   memset(e, 0, sizeof(Elem));
   return e;
@@ -42,7 +42,7 @@ Rule *new_rule(Grammar *g, Production *p) {
   return r;
 }
 
-static Term *new_term() {
+static Term *new_term(void) {
   Term *term = MALLOC(sizeof(Term));
   memset(term, 0, sizeof(Term));
   return term;

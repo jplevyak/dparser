@@ -206,6 +206,6 @@ clean:
 	(cd python;make clean)
 
 depend:
-	mkdep $(CFLAGS) $(ALL_SRCS)
+	./mkdep $(CFLAGS) $(ALL_SRCS)
 
 -include .depend
