@@ -27,13 +27,13 @@ global_code
     }
   | '${declare' declarationtype identifier* '}' {
       if (!d_get_number_of_children(&$n2))
-     	add_declaration($g, $n2.start_loc.s, $n2.end,  $1.kind, $n2.start_loc.line);
+        add_declaration($g, $n2.start_loc.s, $n2.end,  $1.kind, $n2.start_loc.line);
       else {
-	int i, n = d_get_number_of_children(&$n2);
-	for (i = 0; i < n; i++) {
-	  D_ParseNode *pn = d_get_child(&$n2, i);
-	  add_declaration($g, pn->start_loc.s, pn->end,  $1.kind, pn->start_loc.line);
-	}
+        int i, n = d_get_number_of_children(&$n2);
+        for (i = 0; i < n; i++) {
+          D_ParseNode *pn = d_get_child(&$n2, i);
+          add_declaration($g, pn->start_loc.s, pn->end,  $1.kind, pn->start_loc.line);
+        }
       }
     }
   | '${token' token_identifier+ '}'
@@ -137,12 +137,12 @@ element_modifier
     }
   | '$name' (string|regex) {
       if ($g->e->kind != ELEM_TERM)
-	d_fail("terminal name on non-terminal");
+        d_fail("terminal name on non-terminal");
       $g->e->e.term->term_name = dup_str($n1.start_loc.s+1, $n1.end-1);
     }
   | '/i' {
       if ($g->e->kind != ELEM_TERM)
-	d_fail("ignore-case (/i) on non-terminal");
+        d_fail("ignore-case (/i) on non-terminal");
       $g->e->e.term->ignore_case = 1;
     }
   | '?' { conditional_EBNF($g); }
