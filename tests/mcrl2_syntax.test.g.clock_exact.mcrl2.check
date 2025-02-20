@@ -1,2 +1,2 @@
-118 states 68 scans 68 shifts 63 reductions 0 compares 0 ambiguities
+115 states 68 scans 68 shifts 60 reductions 0 compares 0 ambiguities
 ((( act (( tick ) ; ))( proc ( Clock ( ( ((( t ) :  Real )) ) ) = ((( tick ) @  t ) . ( Clock ( ( (( t  +  1 )) ) ))) ; )))( init ( Clock ( ( ( 0 ) ) )) ; ))

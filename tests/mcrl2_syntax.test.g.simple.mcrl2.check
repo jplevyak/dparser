@@ -1,2 +1,2 @@
-287 states 175 scans 175 shifts 170 reductions 0 compares 0 ambiguities
-((( act (( step (( ,  urgent )( ,  reset ))) ; ))( proc ( P ( ( ((( x ) :  Real )) ) ) = (((( sum ((( y ) :  Real )) . )((( ( ( x  <  y ) ) ) -> )(( step ) . ( P ( ( ( y ) ) ))))) + (( sum ((( y ) :  Real )) . )((( ( (( x  <  y ) && ( x  <  2 )) ) ) -> )(( urgent ) . ( P ( ( ( y ) ) )))))) + (( reset ) . ( P ( ( ( 0 ) ) )))) ; )))( init ( P ( ( ( 0 ) ) )) ; ))
+275 states 176 scans 176 shifts 288 reductions 0 compares 0 ambiguities
+((( act (( step (( ,  urgent )( ,  reset ))) ; ))( proc ( P ( ( ((( x ) :  Real )) ) ) = ((( sum ((( y ) :  Real )) . (( ( ( x  <  y ) ) ) -> (( step ) . ( P ( ( ( y ) ) ))))) + ( sum ((( y ) :  Real )) . (( ( (( x  <  y ) && ( x  <  2 )) ) ) -> (( urgent ) . ( P ( ( ( y ) ) )))))) + (( reset ) . ( P ( ( ( 0 ) ) )))) ; )))( init ( P ( ( ( 0 ) ) )) ; ))

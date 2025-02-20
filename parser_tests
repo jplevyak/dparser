@@ -5,13 +5,23 @@ shopt -s extglob
 # setenv VALGRIND 'valgrind -q '
 VALGRIND=
 
+keep=false
+for arg in "$@"; do
+  case "$arg" in
+    -k|--keep)
+      keep=true
+      ;;
+  esac
+done
+
+
 cp Makefile *.c *.h grammar.g tests
 cd tests
 make -s make_dparser
 make gram
 make -s make_dparser
 failed=0
-grammars=*.test.g
+grammars=${1:-"*.test.g"}
 for g in $grammars ; do
   rm -f sample_parser
   if [ -f "$g.flags" ] ; then
@@ -50,5 +60,7 @@ if [ $failed -eq 0 ] ; then
 else
   echo "********" $failed "test(s) FAILED *********"
 fi
-rm -f sample_parser D_BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
+if [ $keep = false ] ; then
+  rm -f sample_parser D_BUILD_VERSION Makefile *.c *.h *.o make_dparser libdparse.a grammar.g
+fi
 cd ..

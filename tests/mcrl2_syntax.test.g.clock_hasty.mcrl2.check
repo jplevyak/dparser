@@ -1,2 +1,2 @@
-174 states 105 scans 105 shifts 102 reductions 0 compares 0 ambiguities
-((( act (( tick ) ; ))( proc ( Clock ( ( ((( t ) :  Real )) ) ) = (( sum ((( y ) :  Real )) . )((( ( (( t  <  y ) && ( y  < ( t  +  1 ))) ) ) -> )((( tick ) @  y ) . ( Clock ( ( ( y ) ) ))))) ; )))( init ( Clock ( ( ( 0 ) ) )) ; ))
+162 states 101 scans 101 shifts 109 reductions 0 compares 0 ambiguities
+((( act (( tick ) ; ))( proc ( Clock ( ( ((( t ) :  Real )) ) ) = ( sum ((( y ) :  Real )) . (( ( (( t  <  y ) && ( y  < ( t  +  1 ))) ) ) -> ((( tick ) @  y ) . ( Clock ( ( ( y ) ) ))))) ; )))( init ( Clock ( ( ( 0 ) ) )) ; ))
