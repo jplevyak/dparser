@@ -186,9 +186,9 @@ ProcExpr
   | DataExprUnit '->'ProcExpr '<>' ProcExpr             $right 6  // If-then-else operator
   | ProcExpr '<<' ProcExpr                        $binary_left 8  // Until operator
   | ProcExpr '.' ProcExpr                         $binary_left 9  // Sequential composition operator
-  | ProcExpr '@' DataExprUnit                    $binary_left 10  // At operator
+  | ProcExpr '@' DataExprUnit                           $left 10  // At operator
   | ProcExpr '|' ProcExpr                        $binary_left 11  // Communication merge
-  | ('dist' VarsDeclList '[' DataExpr ']') '.' ProcExpr $right 2  // Distribution operator
+  | 'dist' VarsDeclList '[' DataExpr ']' '.' ProcExpr   $right 2  // Distribution operator
   ;
 
 //--- Actions
@@ -259,7 +259,7 @@ PbesExpr
   | '(' PbesExpr ')'                                             // Brackets
   | 'true'                                                       // True
   | 'false'                                                      // False
-  | Id ( '(' DataExprList ')' )?                        $left 30 // Instantiated PBES variable or data application
+  | Id ( '(' DataExprList ')' )?                                 // Instantiated PBES variable or data application
   | 'forall' VarsDeclList '.' PbesExpr                $right 21  // Universal quantifier
   | 'exists' VarsDeclList '.' PbesExpr                $right 21  // Existential quantifier
   | PbesExpr '=>'  PbesExpr                    $binary_right 22  // Implication
