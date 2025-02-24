@@ -156,7 +156,7 @@ the code is in `scan.c`.
 
 ### Terminal Modifiers
 
-Terminals can contain embbed escape codes.  Including the standard C escape
+Terminals can contain embedded escape codes.  Including the standard C escape
 codes, the codes `\x` and `\d` permit inserting hex and decimal ASCII
 characters directly.
 
