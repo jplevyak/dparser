@@ -828,6 +828,9 @@ static int prioritycmp(const void *ax, const void *ay) {
   /* by smallest height */
   if (x->height < y->height) return -1;
   if (x->height > y->height) return 1;
+  /* by highest priority */
+  if (x->priority > y->priority) return -1;
+  if (x->priority < y->priority) return 1;
   /* by earliest start */
   if (x->parse_node.start_loc.s < y->parse_node.start_loc.s) return -1;
   if (x->parse_node.start_loc.s > y->parse_node.start_loc.s) return 1;
