@@ -149,8 +149,8 @@ Regular expressions are surrounded with double quotes.  For example:
 hexint: "(0x|0X)[0-9a-fA-F]+[uUlL]?";
 ```
 
-**NOTE**: Only the simple regular expression operators are currently supported
-(v1.3).  These include parens `()`, square parens `[]`, ranges, and `*`, `+`,
+**NOTE**: Only the simple regular expression operators are currently supported.
+These include parens `()`, square parens `[]`, ranges, and `*`, `+`,
 `?`.  If you need something more, request a feature or implement it yourself;
 the code is in `scan.c`.
 
