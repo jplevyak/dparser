@@ -165,6 +165,7 @@ rule_assoc
   | '$binary_left' { $g->r->rule_assoc = ASSOC_BINARY_LEFT; }
   | '$right' { $g->r->rule_assoc = ASSOC_NARY_RIGHT; }
   | '$left' { $g->r->rule_assoc = ASSOC_NARY_LEFT; }
+  | '$priority' { $g->r->rule_assoc = ASSOC_NONE; }
   ;
 
 rule_priority : integer {
