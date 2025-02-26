@@ -575,24 +575,12 @@ static int child_table[4][3][6] = {{
 
 /* returns 1 if legal for child reduction and illegal for child shift */
 static int check_child(int ppri, AssocKind passoc, int cpri, AssocKind cassoc, int left, int right) {
-  uint p1 = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : (passoc == ASSOC_UNARY_LEFT ? 2 : 3);
-  uint c1 = IS_BINARY_ASSOC(cassoc) ? 0 : (cassoc == ASSOC_UNARY_LEFT ? 1 : 2);
+  if (IS_NARY_ASSOC(cassoc) || IS_NARY_ASSOC(passoc)) return 1;
   uint p = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : (IS_LEFT_ASSOC(passoc) ? 2 : 3);
   uint c = IS_BINARY_NARY_ASSOC(cassoc) ? 0 : (IS_LEFT_ASSOC(cassoc) ? 1 : 2);
   uint r =
       cpri > ppri ? 0 : (cpri < ppri ? 1 : (2 + ((IS_RIGHT_ASSOC(cassoc) ? 2 : 0) + (IS_RIGHT_ASSOC(passoc) ? 1 : 0))));
   (void)left;
-  if (IS_NARY_ASSOC(cassoc) && !left && right && IS_RIGHT_ASSOC(cassoc)) {
-    if (child_table[p][c][r] && child_table[p1][c1][r]) return 1;
-    //printf("check_child2: %d %x %d %x %d %d %d %d %d %d %d %d\n", ppri, passoc, cpri, cassoc, left, right, p1, c1, p, c,
-    //    child_table[p][c][r], child_table[p1][c1][r]);
-    return 1;
-  }
-  if (!!child_table[p][c][r] != !!child_table[p1][c1][r]) {
-    //printf("check_child: %d %x %d %x %d %d %d %d %d %d %d %d\n", ppri, passoc, cpri, cassoc, left, right, p1, c1, p, c,
-    //    child_table[p][c][r], child_table[p1][c1][r]);
-    // return child_table[p1][c1][r];
-  }
   return child_table[p][c][r];
 }
 

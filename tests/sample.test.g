@@ -50,13 +50,13 @@ expression
   | '{' expression '}'
   | '(' expression ')'
   | '[' expression ']'
-  | expression '?' expression ':' expression $right 8600
-  | 'if' '(' expression ')' expression $right 6000
-  | 'if' '(' expression ')' expression 'else' expression $right 6100
-  | 'while' '(' expression ')' expression $right 6200
-  | 'do' expression 'while' expression $right 6300
+  | expression '?' expression ':' expression $binary_right 8600
+  | 'if' '(' expression ')' expression $unary_right 6000
+  | 'if' '(' expression ')' expression 'else' expression $unary_right 6100
+  | 'while' '(' expression ')' expression $unary_right 6200
+  | 'do' expression 'while' expression $unary_right 6300
   | 'for' '(' expression (';' expression (';' expression)?)? ')'
-     expression $right 6400
+     expression $unary_right 6400
   ;
 
 constant : integer | float | character | strings;

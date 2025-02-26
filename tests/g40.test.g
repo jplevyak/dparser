@@ -19,8 +19,8 @@ statement: expression ';' ;
 
 expression
  : identifier
- | def_identifier expression $right 5100 /* define variable */
- | def_function expression $right 5100 /* define function */
+ | def_identifier expression $unary_right 5100 /* define variable */
+ | def_function expression $unary_right 5100 /* define function */
    [ ${scope} = enter_D_Scope(${scope}, $0.saved_scope); ]
  | pre_operator expression 
  | expression binary_operator expression 

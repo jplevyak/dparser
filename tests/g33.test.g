@@ -43,12 +43,12 @@ statement
   ;
 
 expression 
-  : identifier '=' expression $right 1
+  : identifier '=' expression $unary_right 1
   sym: { printf("sym expression: =\n"); }
   | integer 
   gen: { printf("gen expression: integer\n"); }
   sym: { printf("sym expression: integer\n"); }
-  | expression '+' expression $right 2
+  | expression '+' expression $binary_right 2
   sym: { printf("sym +\n"); }
   ;
 

@@ -17,13 +17,13 @@ statement
   ;
 
 expression 
-  : identifier '=' expression $right 1
+  : identifier '=' expression $unary_right 1
   sym: { printf("sym =\n"); }
   gen: { printf("gen =\n"); }
   | integer 
   gen: { printf("gen integer\n"); }
   sym: { printf("sym integer\n"); }
-  | expression '+' expression $right 2
+  | expression '+' expression $binary_right 2
   sym: { printf("sym +\n"); }
   ;
 
