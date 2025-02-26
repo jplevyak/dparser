@@ -1005,6 +1005,42 @@ static void convert_regex_productions(Grammar *g) {
   }
 }
 
+static void convert_nary_priorities(Grammar *g) {
+  uint i, j;
+  Production *p;
+  Rule *r;
+
+  for (i = 0; i < g->productions.n; i++) {
+    p = g->productions.v[i];
+    for (j = 0; j < p->rules.n; j++) {
+      r = p->rules.v[j];
+      if (IS_NARY_ASSOC(r->rule_assoc)) {
+        if (r->elems.n > 1) {
+          int left = (r->elems.v[0]->kind == ELEM_NTERM && r->elems.v[0]->e.nterm == p);
+          int right = (r->elems.v[r->elems.n - 1]->kind == ELEM_NTERM && r->elems.v[r->elems.n - 1]->e.nterm == p);
+          if (left && right) {
+            if (r->rule_assoc == ASSOC_NARY_LEFT) {
+              r->rule_assoc = ASSOC_BINARY_LEFT;
+            } else if (r->rule_assoc == ASSOC_NARY_RIGHT) {
+              r->rule_assoc = ASSOC_BINARY_RIGHT;
+            }
+          } else if (left) {
+            if (r->rule_assoc == ASSOC_NARY_RIGHT) {
+              d_fail("nary rule with right associativity cannot have left recursive nterm");
+            }
+            r->rule_assoc = ASSOC_UNARY_LEFT;
+          } else if (right) {
+            if (r->rule_assoc == ASSOC_NARY_LEFT) {
+              d_fail("nary rule with left associativity cannot have right recursive nterm");
+            }
+            r->rule_assoc = ASSOC_UNARY_RIGHT;
+          }
+        }
+      }
+    }
+  }
+}
+
 static void check_default_actions(Grammar *g) {
   Production *pdefault;
 
@@ -1400,6 +1436,7 @@ static void map_declarations_to_states(Grammar *g) {
 int build_grammar(Grammar *g) {
   resolve_grammar(g);
   convert_regex_productions(g);
+  convert_nary_priorities(g);
   propogate_declarations(g);
   merge_identical_terminals(g);
   make_elems_for_productions(g);

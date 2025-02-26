@@ -90,14 +90,14 @@ DataExpr
   | '{' VarDecl '|' DataExpr '}'                                 // Set/bag comprehension
   | '{' DataExprList '}'                                         // Set enumeration
   | '(' DataExpr ')'                                             // Brackets
-  | DataExpr '[' DataExpr '->' DataExpr ']'    $unary_left         13  // Function update
-  | DataExpr '(' DataExprList ')'              $unary_left         13  // Function application
+  | DataExpr '[' DataExpr '->' DataExpr ']'    $left         13  // Function update
+  | DataExpr '(' DataExprList ')'              $left         13  // Function application
   | '!' DataExpr                               $unary_right  12  // Negation, set complement
   | '-' DataExpr                               $unary_right  12  // Unary minus
   | '#' DataExpr                               $unary_right  12  // Size of a list
-  | 'forall' VarsDeclList '.' DataExpr         $unary_right         1  // Universal quantifier
-  | 'exists' VarsDeclList '.' DataExpr         $unary_right         1  // Existential quantifier
-  | 'lambda' VarsDeclList '.' DataExpr         $unary_right         1  // Lambda abstraction
+  | 'forall' VarsDeclList '.' DataExpr         $right         1  // Universal quantifier
+  | 'exists' VarsDeclList '.' DataExpr         $right         1  // Existential quantifier
+  | 'lambda' VarsDeclList '.' DataExpr         $right         1  // Lambda abstraction
   | DataExpr '=>'  DataExpr                    $binary_right  2  // Implication
   | DataExpr '||'  DataExpr                    $binary_right  3  // Disjunction
   | DataExpr '&&'  DataExpr                    $binary_right  4  // Conjunction
@@ -118,7 +118,7 @@ DataExpr
   | DataExpr 'mod' DataExpr                    $binary_left  11  // Integer mod
   | DataExpr '*' DataExpr                      $binary_left  12  // Multiplication, set/bag intersection
   | DataExpr '.' DataExpr                      $binary_left  12  // List element at position
-  | DataExpr 'whr' AssignmentList 'end'        $unary_left          0  // Where clause
+  | DataExpr 'whr' AssignmentList 'end'        $left          0  // Where clause
 ;
 
 DataExprUnit
@@ -127,7 +127,7 @@ DataExprUnit
   | 'true'                                                       // True
   | 'false'                                                      // False
   | '(' DataExpr ')'                                             // Bracket
-  | DataExprUnit '(' DataExprList ')'        $unary_left  14           // Function application
+  | DataExprUnit '(' DataExprList ')'        $left  14           // Function application
   | '!' DataExprUnit                         $unary_right 13     // Negation, set complement
   | '-' DataExprUnit                         $unary_right 13     // Unary minus
   | '#' DataExprUnit                         $unary_right 13     // Size of a list
@@ -179,16 +179,16 @@ ProcExpr
   | 'comm' '(' CommExprSet ',' ProcExpr ')'                       // Communication operator
   | '(' ProcExpr ')'                                              // Brackets
   | ProcExpr '+' ProcExpr                         $binary_left 1  // Choice operator
-  | 'sum' VarsDeclList '.' ProcExpr               $unary_right 2  // Sum operator
+  | 'sum' VarsDeclList '.' ProcExpr                     $right 2  // Sum operator
   | ProcExpr '||'  ProcExpr                      $binary_right 3  // Parallel operator
   | ProcExpr '||_' ProcExpr                      $binary_right 4  // Leftmerge operator
-  | DataExprUnit '->' ProcExpr                          $unary_right 5  // If-then operator
-  | DataExprUnit '->'ProcExpr '<>' ProcExpr             $unary_right 6  // If-then-else operator
+  | DataExprUnit '->' ProcExpr                          $right 5  // If-then operator
+  | DataExprUnit '->'ProcExpr '<>' ProcExpr             $right 6  // If-then-else operator
   | ProcExpr '<<' ProcExpr                        $binary_left 8  // Until operator
   | ProcExpr '.' ProcExpr                         $binary_left 9  // Sequential composition operator
-  | ProcExpr '@' DataExprUnit                     $unary_left 10  // At operator
+  | ProcExpr '@' DataExprUnit                           $left 10  // At operator
   | ProcExpr '|' ProcExpr                        $binary_left 11  // Communication merge
-  | 'dist' VarsDeclList '[' DataExpr ']' '.' ProcExpr   $unary_right 2  // Distribution operator
+  | 'dist' VarsDeclList '[' DataExpr ']' '.' ProcExpr   $right 2  // Distribution operator
   ;
 
 //--- Actions
@@ -251,7 +251,7 @@ PropVarInst: Id ( '(' DataExprList ')' )? ;                      // Instantiated
 
 PbesInit: 'init' PropVarInst ';' ;                               // Initial PBES variable
 
-DataValExpr: 'val' '(' DataExpr ')';                             // Marked data expression
+DataValExpr: 'val' '(' DataExpr ')' $left 20 ;                   // Marked data expression
 
 PbesExpr
   :
@@ -260,8 +260,8 @@ PbesExpr
   | 'true'                                                       // True
   | 'false'                                                      // False
   | Id ( '(' DataExprList ')' )?                                 // Instantiated PBES variable or data application
-  | 'forall' VarsDeclList '.' PbesExpr                $unary_right 21  // Universal quantifier
-  | 'exists' VarsDeclList '.' PbesExpr                $unary_right 21  // Existential quantifier
+  | 'forall' VarsDeclList '.' PbesExpr                $right 21  // Universal quantifier
+  | 'exists' VarsDeclList '.' PbesExpr                $right 21  // Existential quantifier
   | PbesExpr '=>'  PbesExpr                    $binary_right 22  // Implication
   | PbesExpr '||'  PbesExpr                    $binary_right 23  // Disjunction
   | PbesExpr '&&'  PbesExpr                    $binary_right 24  // Conjunction
@@ -284,15 +284,15 @@ PresExpr
   | 'true'                                                       // True, representing infinity
   | 'false'                                                      // False, representing minus infinity
   | Id ( '(' DataExprList ')' )?                                 // Instantiated PRES variable or data application
-  | 'inf' VarsDeclList '.' PresExpr                   $unary_right 21  // Infimum operator
-  | 'sup' VarsDeclList '.' PresExpr                   $unary_right 21  // Supremum operator
-  | 'sum' VarsDeclList '.' PresExpr                   $unary_right 21  // Sum operator
+  | 'inf' VarsDeclList '.' PresExpr                   $right 21  // Infimum operator
+  | 'sup' VarsDeclList '.' PresExpr                   $right 21  // Supremum operator
+  | 'sum' VarsDeclList '.' PresExpr                   $right 21  // Sum operator
   | PresExpr '+' PresExpr                      $binary_right 22  // Addition
   | PresExpr '=>' PresExpr                     $binary_right 23  // Implication
   | PresExpr '||' PresExpr                     $binary_right 24  // Disjunction
   | PresExpr '&&' PresExpr                     $binary_right 25  // Conjunction
-  | DataValExpr '*' PresExpr                          $unary_right 26  // Left multiplication with a positive constant
-  | PresExpr '*' DataValExpr                           $unary_left 26  // Right multiplication with a positive constant
+  | DataValExpr '*' PresExpr                          $right 26  // Left multiplication with a positive constant
+  | PresExpr '*' DataValExpr                           $left 26  // Right multiplication with a positive constant
   | 'eqinf' '(' PresExpr ')'                                     // Equal infinity
   | 'eqninf' '(' PresExpr ')'                                    // Equal to infinity
   | 'condsm' '(' PresExpr ',' PresExpr ',' PresExpr ')'          // Conditional smaller than 0 with or. 
@@ -309,8 +309,8 @@ ActFrm
   | '(' ActFrm ')'                                         // Brackets
   | 'true'                                                 // True
   | 'false'                                                // False
-  | 'forall' VarsDeclList '.' ActFrm            $unary_right 21  // Universal quantifier
-  | 'exists' VarsDeclList '.' ActFrm            $unary_right 21  // Existential quantifier
+  | 'forall' VarsDeclList '.' ActFrm            $right 21  // Universal quantifier
+  | 'exists' VarsDeclList '.' ActFrm            $right 21  // Existential quantifier
   | ActFrm '=>' ActFrm                   $binary_right 22  // Implication
   | ActFrm '||' ActFrm                   $binary_right 23  // Union of actions
   | ActFrm '&&' ActFrm                   $binary_right 24  // Intersection of actions
@@ -355,15 +355,15 @@ StateFrm
   | Id ( '(' DataExprList ')' )?                           // Instantiated PBES variable
   | 'delay' ( '@' DataExpr )?                              // Delay
   | 'yaled' ( '@' DataExpr )?                              // Yaled
-  | 'mu' StateVarDecl '.' StateFrm             $unary_right 41   // Minimal fixed point
-  | 'nu' StateVarDecl '.' StateFrm             $unary_right 41   // Maximal fixed point
-  | 'forall' VarsDeclList '.' StateFrm         $unary_right 42   // Universal quantification
-  | 'exists' VarsDeclList '.' StateFrm         $unary_right 42   // Existential quantification
+  | 'mu' StateVarDecl '.' StateFrm             $right 41   // Minimal fixed point
+  | 'nu' StateVarDecl '.' StateFrm             $right 41   // Maximal fixed point
+  | 'forall' VarsDeclList '.' StateFrm         $right 42   // Universal quantification
+  | 'exists' VarsDeclList '.' StateFrm         $right 42   // Existential quantification
   | StateFrm '=>' StateFrm              $binary_right 43   // Implication
   | StateFrm '||' StateFrm              $binary_right 44   // Disjunction
   | StateFrm '&&' StateFrm              $binary_right 45   // Conjunction
-  | '[' RegFrm ']' StateFrm                    $unary_right 46   // Box modality
-  | '<' RegFrm '>' StateFrm                    $unary_right 46   // Diamond modality
+  | '[' RegFrm ']' StateFrm                    $right 46   // Box modality
+  | '<' RegFrm '>' StateFrm                    $right 46   // Diamond modality
   | '!' StateFrm                         $unary_right 47   // Negation
   ;
 
