@@ -168,8 +168,13 @@ rule_assoc
   ;
 
 rule_priority : integer {
-  if ($g->r->op_assoc) $g->r->op_priority = strtol($n0.start_loc.s, NULL, 0);
-  else $g->r->rule_priority = strtol($n0.start_loc.s, NULL, 0);
+  if ($g->r->op_assoc)
+    $g->r->op_priority = strtol($n0.start_loc.s, NULL, 0);
+  else {
+    $g->r->rule_priority = strtol($n0.start_loc.s, NULL, 0);
+    if ($g->r->rule_assoc == ASSOC_NONE)
+      $g->r->rule_assoc = ASSOC_NO;
+  }
 };
 
 external_action
