@@ -1014,7 +1014,7 @@ static void convert_nary_priorities(Grammar *g) {
     p = g->productions.v[i];
     for (j = 0; j < p->rules.n; j++) {
       r = p->rules.v[j];
-      if (IS_NARY_ASSOC(r->rule_assoc)) {
+      if (IS_NARY_ASSOC(r->rule_assoc) && (IS_RIGHT_ASSOC(r->rule_assoc) || IS_LEFT_ASSOC(r->rule_assoc))) {
         if (r->elems.n > 1) {
           int left = (r->elems.v[0]->kind == ELEM_NTERM && r->elems.v[0]->e.nterm == p);
           int right = (r->elems.v[r->elems.n - 1]->kind == ELEM_NTERM && r->elems.v[r->elems.n - 1]->e.nterm == p);

@@ -152,7 +152,7 @@ element_modifier
   | '@' integer ':' integer { rep_EBNF($g, strtol($n1.start_loc.s, NULL, 0), strtol($n3.start_loc.s, NULL, 0)); }
   ;
 
-rule_modifier : rule_assoc rule_priority | external_action;
+rule_modifier : rule_assoc? rule_priority | external_action;
 
 rule_assoc
   : '$unary_op_right' { $g->r->op_assoc = ASSOC_UNARY_RIGHT; }
@@ -165,7 +165,6 @@ rule_assoc
   | '$binary_left' { $g->r->rule_assoc = ASSOC_BINARY_LEFT; }
   | '$right' { $g->r->rule_assoc = ASSOC_NARY_RIGHT; }
   | '$left' { $g->r->rule_assoc = ASSOC_NARY_LEFT; }
-  | '$priority' { $g->r->rule_assoc = ASSOC_NONE; }
   ;
 
 rule_priority : integer {
