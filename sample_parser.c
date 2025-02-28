@@ -15,6 +15,7 @@ int fixup_ebnf = 0;
 int compare_stacks = 1;
 int commit_actions_interval = 100;
 int start_state = 0;
+char start_state_name[256];
 int dont_use_greediness_for_disambiguation = 0;
 int dont_use_height_for_disambiguation = 0;
 int dont_use_deep_priorities_for_disambiguation = 0;
@@ -23,6 +24,7 @@ static void help(ArgumentState *arg_state, char *arg_unused);
 
 ArgumentDescription arg_desc[] = {
     {"start_state", 'S', "Start State", "I", &start_state, "D_PARSE_START_STATE", NULL},
+    {"start_state_name", 'N', "Start State Name", "S256", &start_state_name, "D_PARSE_START_STATE_NAME", NULL},
     {"save_parse_tree", 's', "Save Parse Tree", "T", &save_parse_tree, "D_PARSE_SAVE_PARSE_TREE", NULL},
     {"partial_parses", 'p', "Partial Parses", "T", &partial_parses, "D_PARSE_PARTIAL_PARSES", NULL},
     {"compare_stacks", 'c', "Compare Stacks", "T", &compare_stacks, "D_PARSE_COMPARE_STACKS", NULL},
@@ -47,6 +49,14 @@ static void help(ArgumentState *arg_state, char *arg_unused) {
   fprintf(stderr, "Sample DParser Version %s ", ver);
   fprintf(stderr, "Copyright (c) 2002-2013 John Plevyak\n");
   usage(arg_state, arg_unused);
+}
+
+int d_get_start_state(D_ParserTables* parser_tables_gram, char *name) {
+  int i;
+  for (i = 0; i < parser_tables_gram->nsymbols; i++)
+    if (parser_tables_gram->symbols[i].kind == D_SYMBOL_NTERM && !strcmp(parser_tables_gram->symbols[i].name, name))
+      return parser_tables_gram->symbols[i].start_symbol;
+  return -1;
 }
 
 char *ops = "+";
@@ -81,6 +91,10 @@ int main(int argc, char *argv[]) {
   p->dont_compare_stacks = !compare_stacks;
   p->commit_actions_interval = commit_actions_interval;
   p->start_state = start_state;
+  if (start_state_name[0])
+    p->start_state = d_get_start_state(&parser_tables_gram, start_state_name);
+  if (p->start_state < 0)
+    d_fail("unknown start state '%s'", start_state_name);
   p->dont_use_greediness_for_disambiguation = dont_use_greediness_for_disambiguation;
   p->dont_use_height_for_disambiguation = dont_use_height_for_disambiguation;
   p->dont_use_deep_priorities_for_disambiguation = dont_use_deep_priorities_for_disambiguation;

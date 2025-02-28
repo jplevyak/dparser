@@ -325,8 +325,8 @@ RegFrm
   | '(' RegFrm ')'                                               // Brackets
   | RegFrm '+'  RegFrm                          $binary_left 31  // Alternative composition
   | RegFrm '.'  RegFrm                         $binary_right 32  // Sequential composition
-  | RegFrm '*'                                  $unary_right 33  // Iteration
-  | RegFrm '+'                                  $unary_right 33  // Nonempty iteration
+  | RegFrm '*'                                  $unary_left 33  // Iteration
+  | RegFrm '+'                                  $unary_left 33  // Nonempty iteration
   ;
 
 //--- State formula specification

@@ -5,8 +5,6 @@
 #include "d.h"
 #include "mkdparse.h"
 
-extern D_ParserTables parser_tables_dparser_gram;
-
 #define SIZEOF_MY_PARSE_NODE 100 /* permit test cases up to this size */
 
 static int save_parse_tree = 1;
@@ -18,6 +16,7 @@ static int no_height_disamb = 0;
 static int no_greedy_disamb = 0;
 static int commit_actions_interval = 100;
 static int start_state = 0;
+static char start_state_name[256];
 
 static int set_op_priority_from_rule = 0;
 static int right_recursive_BNF = 0;
@@ -43,6 +42,7 @@ ArgumentDescription arg_desc[] = {
      "D_MAKE_PARSER_RIGHT_RECURSIVE_BNF", NULL},
 
     {"start_state", 'S', "Start State", "I", &start_state, "D_PARSE_START_STATE", NULL},
+    {"start_state_name", 'N', "Start State Name", "S256", &start_state_name, "D_PARSE_START_STATE_NAME", NULL},
     {"save_parse_tree", 's', "Save Parse Tree", "T", &save_parse_tree, "D_PARSE_SAVE_PARSE_TREE", NULL},
     {"partial_parses", 'p', "Partial Parses", "T", &partial_parses, "D_PARSE_PARTIAL_PARSES", NULL},
     {"compare_stacks", 'c', "Compare Stacks", "T", &compare_stacks, "D_PARSE_COMPARE_STACKS", NULL},
@@ -101,6 +101,14 @@ int final_code(void *new_ps, void **children, int n_children, int pn_offset, str
   return 0;
 }
 
+int d_get_start_state(D_ParserTables* parser_tables_gram, char *name) {
+  int i;
+  for (i = 0; i < parser_tables_gram->nsymbols; i++)
+    if (parser_tables_gram->symbols[i].kind == D_SYMBOL_NTERM && !strcmp(parser_tables_gram->symbols[i].name, name))
+      return parser_tables_gram->symbols[i].start_symbol;
+  return -1;
+}
+
 int main(int argc, char *argv[]) {
   int i, len = 0;
   char *buf = NULL, *fn, *grammar_pathname;
@@ -150,6 +158,10 @@ int main(int argc, char *argv[]) {
   p->dont_use_greediness_for_disambiguation = no_greedy_disamb;
   p->commit_actions_interval = commit_actions_interval;
   p->start_state = start_state;
+  if (start_state_name[0])
+    p->start_state = d_get_start_state(binary_tables->parser_tables_gram, start_state_name);
+  if (p->start_state < 0)
+    d_fail("unknown start state '%s'", start_state_name);
   for (i = 1; i < arg_state.nfile_arguments; i++) {
     p->loc.pathname = arg_state.file_argument[i];
     p->loc.line = 1;

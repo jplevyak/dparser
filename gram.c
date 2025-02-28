@@ -1005,7 +1005,7 @@ static void convert_regex_productions(Grammar *g) {
   }
 }
 
-static void convert_nary_priorities(Grammar *g) {
+static void convert_priorities(Grammar *g) {
   uint i, j;
   Production *p;
   Rule *r;
@@ -1014,10 +1014,10 @@ static void convert_nary_priorities(Grammar *g) {
     p = g->productions.v[i];
     for (j = 0; j < p->rules.n; j++) {
       r = p->rules.v[j];
-      if (IS_NARY_ASSOC(r->rule_assoc) && (IS_RIGHT_ASSOC(r->rule_assoc) || IS_LEFT_ASSOC(r->rule_assoc))) {
-        if (r->elems.n > 1) {
-          int left = (r->elems.v[0]->kind == ELEM_NTERM && r->elems.v[0]->e.nterm == p);
-          int right = (r->elems.v[r->elems.n - 1]->kind == ELEM_NTERM && r->elems.v[r->elems.n - 1]->e.nterm == p);
+      if (r->elems.n > 1) {
+        int left = (r->elems.v[0]->kind == ELEM_NTERM && r->elems.v[0]->e.nterm == p);
+        int right = (r->elems.v[r->elems.n - 1]->kind == ELEM_NTERM && r->elems.v[r->elems.n - 1]->e.nterm == p);
+        if (IS_NARY_ASSOC(r->rule_assoc) && (IS_RIGHT_ASSOC(r->rule_assoc) || IS_LEFT_ASSOC(r->rule_assoc))) {
           if (left && right) {
             if (r->rule_assoc == ASSOC_NARY_LEFT) {
               r->rule_assoc = ASSOC_BINARY_LEFT;
@@ -1035,6 +1035,14 @@ static void convert_nary_priorities(Grammar *g) {
             }
             r->rule_assoc = ASSOC_UNARY_RIGHT;
           }
+        } else if (IS_BINARY_ASSOC(r->rule_assoc) && IS_RIGHT_ASSOC(r->rule_assoc) && !right) {
+          d_fail("right binary rule must have right recursive nterm");
+        } else if (IS_BINARY_ASSOC(r->rule_assoc) && IS_LEFT_ASSOC(r->rule_assoc) && !left) {
+          d_fail("left binary rule must have left recursive nterm");
+        } else if (IS_UNARY_ASSOC(r->rule_assoc) && IS_RIGHT_ASSOC(r->rule_assoc) && !right) {
+          d_fail("right unary rule must have right recursive nterm");
+        } else if (IS_UNARY_ASSOC(r->rule_assoc) && IS_LEFT_ASSOC(r->rule_assoc) && !left) {
+          d_fail("left unary rule must have left recursive nterm");
         }
       }
     }
@@ -1436,7 +1444,7 @@ static void map_declarations_to_states(Grammar *g) {
 int build_grammar(Grammar *g) {
   resolve_grammar(g);
   convert_regex_productions(g);
-  convert_nary_priorities(g);
+  convert_priorities(g);
   propogate_declarations(g);
   merge_identical_terminals(g);
   make_elems_for_productions(g);
