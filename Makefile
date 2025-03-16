@@ -1,9 +1,9 @@
 # Makefile for D_Parser
 
-#D_DEBUG=1
-D_OPTIMIZE=1
+D_DEBUG=1
+#D_OPTIMIZE=1
 #D_PROFILE=1
-#D_USE_GC=1
+D_USE_GC=1
 #D_LEAK_DETECT=1
 D_USE_FREELISTS=1
 
@@ -41,11 +41,6 @@ ifeq ($(ARCH),x86_64)
   CFLAGS += -fPIC
 endif
 
-ifeq ($(OS_TYPE),CYGWIN)
-GC_CFLAGS += -L/usr/local/lib
-else
-GC_CFLAGS += -I/usr/local/include -L/usr/local/lib
-endif
 
 ifdef D_USE_GC
 CFLAGS += -DUSE_GC ${GC_CFLAGS}

@@ -34,6 +34,7 @@ typedef struct Buf {
 typedef struct File {
   int binary;
   FILE *fp;
+  FILE *actions_fp;
   uint8 *cur_str;
   uint8 **str;
   uint *str_len;
@@ -122,10 +123,11 @@ static void init_buf(Buf *buf, int initial_size) {
   buf->cur = buf->start;
 }
 
-static void file_init(File *file, int binary, FILE *fp, uint8 **str, uint *str_len) {
+static void file_init(File *file, int binary, FILE *fp, FILE *actions_fp, uint8 **str, uint *str_len) {
   memset(file, 0, sizeof(File));
   file->binary = binary;
   file->fp = fp;
+  file->actions_fp = actions_fp;
   file->str = str;
   file->str_len = str_len;
   if (binary) {
@@ -1036,12 +1038,17 @@ static int find_symbol(Grammar *g, char *s, char *e, int kind) {
   return -1;
 }
 
-static void write_code(FILE *fp, Grammar *g, Rule *r, char *code, char *fname, int line, char *pathname) {
+static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code, char *fname, int line, char *pathname) {
   char *c;
   int in_string = 0;
+  FILE *fp = file->fp;
 
   if (!fp) {
     d_warn("trying to write code to binary file");
+    return;
+  }
+  if (file->actions_fp) {
+    fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, strlen(code) + 1 /* NL */, code);
     return;
   }
   if (g->write_line_directives) {
@@ -1270,23 +1277,6 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
     for (j = 0; j < (int)p->rules.n; j++) {
       r = p->rules.v[j];
       if (r->same_reduction) continue;
-      if (r->speculative_code.code) {
-        char fname[256];
-        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
-        write_code(fp, g, r, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
-      }
-      if (r->final_code.code) {
-        char fname[256];
-        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
-        write_code(fp, g, r, r->final_code.code, fname, r->final_code.line, g->pathname);
-      }
-      for (k = 0; k < (int)r->pass_code.n; k++) {
-        if (r->pass_code.v[k]) {
-          char fname[256];
-          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
-          write_code(fp, g, r, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
-        }
-      }
       if (r->speculative_code.code)
         snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", r->prod->index, r->index, tag);
       else if (rdefault && rdefault->speculative_code.code)
@@ -1299,6 +1289,24 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
         snprintf(final_code, 255, "d_final_reduction_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
       else
         strcpy(final_code, "NULL");
+      if (r->speculative_code.code) {
+        char fname[256];
+        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        write_code(file, g, r, speculative_code, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
+      }
+      if (r->final_code.code) {
+        char fname[256];
+        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        write_code(file, g, r, final_code, r->final_code.code, fname, r->final_code.line, g->pathname);
+      }
+      for (k = 0; k < (int)r->pass_code.n; k++) {
+        if (r->pass_code.v[k]) {
+          char fname[256], code[256];
+          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
+          snprintf(code, 255, "int d_pass_code_%d_%d_%d_%s", k, r->prod->index, r->index, tag);
+          write_code(file, g, r, code, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
+        }
+      }
       pmax = r->pass_code.n;
       if (r->pass_code.n || (rdefault && rdefault->pass_code.n)) {
         if (rdefault && (int)rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
@@ -1708,11 +1716,16 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
 void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, int binary, FILE *fp, uint8 **str,
                                   uint *str_len) {
   File file;
+  FILE *actions_fp = NULL;
   if (!binary) {
     fp = fopen(g->write_pathname, "w");
     if (!fp) d_fail("unable to open `%s` for write\n", g->write_pathname);
   }
-  file_init(&file, binary, fp, str, str_len);
+  if (g->actions_write_pathname[0]) {
+    actions_fp = fopen(g->actions_write_pathname, "w");
+    if (!actions_fp) d_fail("unable to open `%s` for write\n", g->actions_write_pathname);
+  }
+  file_init(&file, binary, fp, actions_fp, str, str_len);
   if (!binary) {
     char ver[128];
     int header = write_header(g, base_pathname, tag);
@@ -1721,6 +1734,7 @@ void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, in
     fprintf(fp, "  Available at https://github.com/jplevyak/dparser\n*/\n\n");
     g->write_line = 7;
     write_global_code(fp, g, tag);
+    fprintf(fp, "#include \"stdlib.h\"\n");
     fprintf(fp, "#include \"dparse.h\"\n");
     g->write_line++;
 

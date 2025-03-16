@@ -236,6 +236,7 @@ typedef struct Grammar {
   int rule_index;
   int write_line;
   char *write_pathname;
+  char *actions_write_pathname;
 } Grammar;
 
 /* automatically add %op_XXX to rightmost token of %XXX rule, default off */

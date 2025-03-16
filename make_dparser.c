@@ -22,6 +22,7 @@ static int write_header = -1;
 static int token_type = 0;
 static char write_extension[256] = "c";
 static char output_file[1024] = "";
+static char actions_output_file[1024] = "";
 
 static ArgumentDescription arg_desc[] = {
     {"output", 'o', "Output file name", "S1024", &output_file[0], "D_MAKE_PARSER_OUTPUT", NULL},
@@ -42,6 +43,7 @@ static ArgumentDescription arg_desc[] = {
      "D_MAKE_PARSER_RIGHT_RECURSIVE_BNF", NULL},
     {"write_lines", 'L', "Write #line(s)", "T", &write_line_directives, "D_MAKE_PARSER_WRITE_LINE_DIRECTIVES", NULL},
     {"ext", 'X', "Code file extension (e.g. cpp)", "S256", &write_extension[0], "D_MAKE_PARSER_WRITE_EXT", NULL},
+    {"actions_output", 'a', "Actions output file name", "S1024", &actions_output_file[0], "D_MAKE_PARSER_ACTIONS_OUTPUT", NULL},
     {"verbose", 'v', "Verbose", "+", &d_verbose_level, "D_MAKE_PARSER_VERBOSE", NULL},
     {"debug", 'd', "Debug", "+", &d_debug_level, "D_MAKE_PARSER_DEBUG", NULL},
     {"rdebug_grammar", 'R', "Replace actions with ones printing productions", "+", &d_rdebug_grammar_level,
@@ -100,6 +102,7 @@ int main(int argc, char *argv[]) {
     strncat(output_file, g->write_extension, sizeof(output_file) - strlen(output_file) - 1);
   }
   g->write_pathname = output_file;
+  g->actions_write_pathname = actions_output_file;
 
   /* don't print anything to stdout, when the grammar is printed there */
   if (d_rdebug_grammar_level > 0) d_verbose_level = 0;

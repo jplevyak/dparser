@@ -471,15 +471,6 @@ grammar for a similar declaration for symbols). Global state can be accessed in
 any action with `$g`.  Because `DParser` handles ambiguous parsing, global
 state can be accessed on different speculative parses.  In the future,
 automatic splitting of global state may be implemented (if there is demand).
-Currently, the global state can be copied and assigned to `$g` to ensure that
-the changes made only affect subsequent speculative parses derived from the
-particular parse.  For example:
-```Yacc
-[
-  $g = copy_globals($g);
-  $g->my_variable = 1;
-]
-```
 
 The symbol table can be used to manage state information safely for different
 speculative parses.
