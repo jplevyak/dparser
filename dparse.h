@@ -62,7 +62,6 @@ typedef struct D_ParseNode {
   char *end_skip;
   struct D_Scope *scope;
   D_WhiteSpaceFn white_space;
-  D_ParseNode_Globals *globals;
   D_ParseNode_User user;
 } D_ParseNode;
 

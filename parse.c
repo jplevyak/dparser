@@ -139,21 +139,21 @@ char *d_ws_after(D_Parser *ap, D_ParseNode *apn) {
   return pn->ws_after;
 }
 
-#define SNODE_HASH(_s, _sc, _g) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))) + ((uintptr_t)(_g)))
+#define SNODE_HASH(_s, _sc) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))))
 
-SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *g) {
+SNode *find_SNode(Parser *p, uint state, D_Scope *sc) {
   SNodeHash *ph = &p->snode_hash;
   SNode *sn;
-  uint h = SNODE_HASH(state, sc, g);
+  uint h = SNODE_HASH(state, sc);
   if (ph->v)
     for (sn = ph->v[h % ph->m]; sn; sn = sn->bucket_next)
-      if (sn->state - p->t->state == state && sn->initial_scope == sc && sn->initial_globals == g) return sn;
+      if (sn->state - p->t->state == state && sn->initial_scope == sc) return sn;
   return NULL;
 }
 
 void insert_SNode_internal(Parser *p, SNode *sn) {
   SNodeHash *ph = &p->snode_hash;
-  uint h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_globals), i;
+  uint h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope), i;
   SNode *t;
 
   if (ph->n + 1 > ph->m) {
@@ -183,7 +183,7 @@ static void insert_SNode(Parser *p, SNode *sn) {
   p->snode_hash.all = sn;
 }
 
-static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, void *g) {
+static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc) {
   SNode *sn = p->free_snodes;
   if (!sn)
     sn = MALLOC(sizeof *sn);
@@ -199,7 +199,6 @@ static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, vo
   p->states++;
   sn->state = state;
   sn->initial_scope = sc;
-  sn->initial_globals = g;
   sn->last_pn = NULL;
   sn->loc = *loc;
   insert_SNode(p, sn);
@@ -288,18 +287,18 @@ static void free_SNode(Parser *p, struct SNode *s) {
 #define free_ZNode(_p, _z, _s)
 #endif
 
-#define PNODE_HASH(_si, _ei, _s, _sc, _g) \
-  ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)) + (((uintptr_t)_g)))
+#define PNODE_HASH(_si, _ei, _s, _sc) \
+  ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)))
 
-PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, void *g, uint *hash) {
+PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, uint *hash) {
   PNodeHash *ph = &p->pnode_hash;
   PNode *pn;
-  uint h = PNODE_HASH(start, end_skip, symbol, sc, g);
+  uint h = PNODE_HASH(start, end_skip, symbol, sc);
   *hash = h;
   if (ph->v)
     for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
       if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
-          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc && pn->initial_globals == g) {
+          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
         LATEST(p, pn);
         return pn;
       }
@@ -308,9 +307,7 @@ PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *s
 
 void insert_PNode_internal(Parser *p, PNode *pn) {
   PNodeHash *ph = &p->pnode_hash;
-  uint h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope,
-                      pn->initial_globals),
-       i;
+  uint h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope), i;
   PNode *t;
 
   if (ph->n + 1 > ph->m) {
@@ -344,7 +341,7 @@ static void free_old_nodes(Parser *p) {
   PNode *pn = p->pnode_hash.all, *tpn, **lpn;
   SNode *sn = p->snode_hash.all, *tsn, **lsn;
   while (sn) {
-    h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_globals);
+    h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope);
     lsn = &p->snode_hash.v[h % p->snode_hash.m];
     tsn = sn;
     sn = sn->all_next;
@@ -369,8 +366,7 @@ static void free_old_nodes(Parser *p) {
         pn->children.v[i] = tpn;
       }
     }
-    h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope,
-                   pn->initial_globals);
+    h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope);
     lpn = &p->pnode_hash.v[h % p->pnode_hash.m];
     tpn = pn;
     pn = pn->all_next;
@@ -506,11 +502,11 @@ static void add_Shift(Parser *p, SNode *snode) {
   *l = s;
 }
 
-static SNode *add_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, void *g) {
+static SNode *add_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc) {
   uint i;
-  SNode *sn = find_SNode(p, state - p->t->state, sc, g);
+  SNode *sn = find_SNode(p, state - p->t->state, sc);
   if (sn) return sn;
-  sn = new_SNode(p, state, loc, sc, g);
+  sn = new_SNode(p, state, loc, sc);
   if (sn->state->shifts) add_Shift(p, sn);
   for (i = 0; i < sn->state->reductions.n; i++)
     if (!sn->state->reductions.v[i]->nelements) add_Reduction(p, 0, sn, sn->state->reductions.v[i]);
@@ -911,8 +907,6 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
   new_pn->reduction = r;
   new_pn->parse_node.scope = pn->parse_node.scope;
   new_pn->initial_scope = scope;
-  new_pn->parse_node.globals = pn->parse_node.globals;
-  new_pn->initial_globals = new_pn->parse_node.globals;
   new_pn->parse_node.white_space = pn->parse_node.white_space;
   new_pn->latest = new_pn;
   new_pn->ws_after = e;
@@ -981,7 +975,7 @@ static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNod
                         D_Shift *sh) {
   D_Scope *scope = equiv_D_Scope(pn->parse_node.scope);
   uint hash;
-  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, pn->parse_node.globals, &hash), *new_pn;
+  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, &hash), *new_pn;
   if (old_pn) {
     PNode *amb = 0;
     if (PNode_equal(p, old_pn, r, path, sh)) return old_pn;
@@ -1107,7 +1101,7 @@ static SNode *goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
   if (!IS_BIT_SET(ps->state->goto_valid, pn->parse_node.symbol)) return NULL;
   state_index = GOTO_STATE(p, pn, ps);
   state = &p->t->state[state_index];
-  new_ps = add_SNode(p, state, loc, pn->parse_node.scope, pn->parse_node.globals);
+  new_ps = add_SNode(p, state, loc, pn->parse_node.scope);
   if (new_ps->last_pn) unref_pn(p, new_ps->last_pn);
   ref_pn(pn);
   new_ps->last_pn = pn;
@@ -1124,7 +1118,7 @@ static SNode *goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
     if (!pn->shift)
       for (j = 0; j < new_ps->state->right_epsilon_hints.n; j++) {
         D_RightEpsilonHint *h = &new_ps->state->right_epsilon_hints.v[j];
-        pre_ps = find_SNode(p, h->preceeding_state, new_ps->initial_scope, new_ps->initial_globals);
+        pre_ps = find_SNode(p, h->preceeding_state, new_ps->initial_scope);
         if (!pre_ps) continue;
         for (k = 0; k < pre_ps->zns.n; k++)
           if (pre_ps->zns.v[k]) {
@@ -1246,7 +1240,7 @@ static void shift_all(Parser *p, char *pos) {
       if (!skip_loc.s || skip_loc.s != r->loc.s || skip_fn != new_pn->parse_node.white_space) {
         skip_loc = r->loc;
         skip_fn = new_pn->parse_node.white_space;
-        new_pn->parse_node.white_space((D_Parser *)p, &skip_loc, (void **)&new_pn->parse_node.globals);
+        new_pn->parse_node.white_space((D_Parser *)p, &skip_loc, &p->user.initial_globals);
         skip_loc.ws = r->loc.s;
         new_pn->ws_before = loc.ws;
         new_pn->ws_after = skip_loc.s;
@@ -1723,9 +1717,9 @@ static int error_recovery(Parser *p) {
       ZNode *zn = best_sn->zns.v[i];
       if (zn && (!best_pn || best_pn->parse_node.start_loc.s < zn->pn->parse_node.start_loc.s)) best_pn = zn->pn;
     }
-    best_pn->parse_node.white_space((D_Parser *)p, &best_loc, (void **)&best_pn->parse_node.globals);
+    best_pn->parse_node.white_space((D_Parser *)p, &best_loc, &p->user.initial_globals);
     new_pn = add_PNode(p, 0, &p->user.loc, best_loc.s, best_pn, 0, 0, 0);
-    new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope, new_pn->initial_globals);
+    new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope);
     ref_pn(new_pn);
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
@@ -1805,10 +1799,9 @@ static int exhaustive_parse(Parser *p, int state) {
   loc = p->user.loc;
   p->user.initial_white_space_fn((D_Parser *)p, &loc, &p->user.initial_globals);
   /* initial state */
-  sn = add_SNode(p, &p->t->state[state], &loc, p->top_scope, p->user.initial_globals);
+  sn = add_SNode(p, &p->t->state[state], &loc, p->top_scope);
   memset(&tpn, 0, sizeof(tpn));
   tpn.parse_node.white_space = p->user.initial_white_space_fn;
-  tpn.parse_node.globals = p->user.initial_globals;
   tpn.initial_scope = tpn.parse_node.scope = p->top_scope;
   tpn.parse_node.end = loc.s;
   if (sn->last_pn) unref_pn(p, sn->last_pn);

@@ -1099,7 +1099,7 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
         } else
           fprintf(fp, "(_n_children)");
       } else if (*c == 'g') {
-        fprintf(fp, "(D_PN(_ps, _offset)->globals)");
+        fprintf(fp, "(_parser->initial_globals)");
         c++;
       } else if (*c == 'n') {
         ++c;

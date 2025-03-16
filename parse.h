@@ -112,7 +112,6 @@ typedef struct PNode {
   char *ws_before;
   char *ws_after;
   D_Scope *initial_scope;
-  void *initial_globals;
 #ifdef TRACK_PNODES
   struct PNode *xnext;
   struct PNode *xprev;
@@ -132,7 +131,6 @@ typedef struct SNode {
   uint32 in_error_recovery_queue : 1;
   D_State *state;
   D_Scope *initial_scope;
-  void *initial_globals;
   PNode *last_pn;
   VecZNode zns;
   struct SNode *bucket_next;
