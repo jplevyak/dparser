@@ -15,13 +15,13 @@ class user_pyobjectsPtr:
 
     def __setattr__(self, name, value):
         if name == "t":
-            self.this.__setattr__(name, value)
+            self.this.t = value
             return
         self.__dict__[name] = value
 
     def __getattr__(self, name):
         if name == "t":
-            return self.this.__getattr__(name)
+            return self.this.t
         raise AttributeError(name)
 
     def __repr__(self):
@@ -45,7 +45,7 @@ class d_loc_tPtr:
         if name == "s":
             return dparser_swigc.my_d_loc_t_s_get(self.this, self.d_parser)
         elif name in ["pathname", "previous_col", "col", "line", "ws"]:
-            return self.this.__getattr__(name)
+            return self.this.__getattribute__(name)
         raise AttributeError(name)
 
     def __repr__(self):
@@ -69,7 +69,7 @@ class D_ParseNodePtr:
         elif name == "end":
             dparser_swigc.my_D_ParseNode_end_set(self.this, self.d_parser,
                                                  value)
-        elif name in ["start_loc", "globals", "user"]:
+        elif name in ["start_loc", "user"]:
             self.this.__setattr__(name, value)
         else:
             self.__dict__[name] = value
@@ -84,12 +84,10 @@ class D_ParseNodePtr:
         elif name == "end_skip":
             return dparser_swigc.my_D_ParseNode_end_skip_get(
                     self.this, self.d_parser)
-        elif name == "globals":
-            return self.this.__getattr__(name)
         elif name == "number_of_children":
             return dparser_swigc.d_get_number_of_children(self.this)
         elif name == "user":
-            return user_pyobjectsPtr(self.this.__getattr__(name))
+            return user_pyobjectsPtr(self.this.user)
         elif name == "start_loc":
             val = self.__dict__.get(name)
             if not val:

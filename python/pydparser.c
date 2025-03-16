@@ -1,4 +1,5 @@
 /* Copyright (c) 2003, 2004 Brian Sabbey */
+#define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include "pydparser.h"
 #include "swigpyrun.h"
@@ -39,16 +40,6 @@ static void
 free_node_fn(D_ParseNode *d) {
   Py_XDECREF((PyObject*)d->user.t);
   Py_XDECREF((PyObject*)d->user.s);
-
-  if (d->user.inced_global_state) {
-    if (!d->globals) {
-      fprintf(stderr, "bug in pydparser.c deallocating d parser global state\n");
-    } else {
-      Py_DECREF(d->globals);
-      d->globals = NULL;
-      d->user.inced_global_state = 0;
-    }
-  }
 }
 
 /* swig can't handle these I don't think.*/
@@ -459,23 +450,6 @@ make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string) {
 }
 
 static void
-inc_global_state(D_Parser *dp, D_ParseNode *dpn) {
-  /* this global state stuff is ugly.  Does anyone actually use it? */
-  int n_children = d_get_number_of_children(dpn);
-  int i;
-  for (i=0; i<n_children; i++) {
-    D_ParseNode *child = d_get_child(dpn, i);
-    if (has_deeper_nodes(dp, child)) {
-      inc_global_state(dp, child);
-    } else if (child->globals != NULL && !child->user.inced_global_state) {
-      /* global state gets copied by dparser without increfing, fix */
-      Py_INCREF(child->globals);
-      child->user.inced_global_state = 1;
-    }
-  }
-}
-
-static void
 print_debug_info(D_ParseNode *dd, PyObject *tuple, int speculative, int pdi) {
   char buf[256];
   char *start = dd->start_loc.s;
@@ -520,8 +494,8 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
 	dd->user.inced_global_state = 1;
       }
       globals_holder = PyList_New(1);
-      Py_INCREF(dd->globals);
-      PyList_SetItem(globals_holder, 0, dd->globals);
+      Py_INCREF(parser->initial_globals);
+      PyList_SetItem(globals_holder, 0, parser->initial_globals);
       PyTuple_SetItem(arglist, i, globals_holder);
     }
     else if (type == 3) {
@@ -550,9 +524,9 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
   }
   result = PyEval_CallObject(action, arglist);
   if (globals_holder) {
-    Py_DECREF(dd->globals);
-    dd->globals = PyList_GetItem(globals_holder, 0);
-    Py_INCREF(dd->globals);
+    Py_DECREF(parser->initial_globals);
+    parser->initial_globals = PyList_GetItem(globals_holder, 0);
+    Py_INCREF(parser->initial_globals);
   }
   Py_DECREF(arglist);
   return result;
@@ -582,10 +556,6 @@ my_action(void *new_ps, void **children, int n_children, int pn_offset,
     PyArg_ParseTuple(tuple, "OOi", &action, &arg_types, &takes_speculative);
   }
   
-  if (ppi->takes_globals) {
-    inc_global_state(parser, dd);
-  }
-
   if (ppi->print_debug_info && tuple) {
     print_debug_info(dd, tuple, speculative, ppi->print_debug_info);
   }

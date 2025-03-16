@@ -14,7 +14,6 @@ typedef struct d_loc_t {
 typedef struct D_ParseNode {
   int			symbol;
   d_loc_t		start_loc;
-  D_ParseNode_Globals	*globals;
   user_pyobjects	user;
 } D_ParseNode;
 

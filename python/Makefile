@@ -2,6 +2,8 @@ ifndef PYTHON
 	PYTHON=$(shell which python3)
 endif
 
+CFLAGS += -fPIC
+
 all:
 	swig  -python -external-runtime
 	swig  -python dparser.i
