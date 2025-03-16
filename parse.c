@@ -907,7 +907,6 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
   new_pn->reduction = r;
   new_pn->parse_node.scope = pn->parse_node.scope;
   new_pn->initial_scope = scope;
-  new_pn->parse_node.white_space = pn->parse_node.white_space;
   new_pn->latest = new_pn;
   new_pn->ws_after = e;
   if (sh) {
@@ -1159,7 +1158,6 @@ static void shift_all(Parser *p, char *pos) {
   uint i, j, nshifts = 0;
   int ncode = 0;
   d_loc_t loc, skip_loc;
-  D_WhiteSpaceFn skip_fn = NULL;
   PNode *new_pn;
   D_State *state;
   ShiftResult *r;
@@ -1237,10 +1235,9 @@ static void shift_all(Parser *p, char *pos) {
                p->t->symbols[r->shift->symbol].name));
     new_pn = add_PNode(p, r->shift->symbol, &r->snode->loc, r->loc.s, r->snode->last_pn, NULL, NULL, r->shift);
     if (new_pn) {
-      if (!skip_loc.s || skip_loc.s != r->loc.s || skip_fn != new_pn->parse_node.white_space) {
+      if (!skip_loc.s || skip_loc.s != r->loc.s) {
         skip_loc = r->loc;
-        skip_fn = new_pn->parse_node.white_space;
-        new_pn->parse_node.white_space((D_Parser *)p, &skip_loc, &p->user.initial_globals);
+        p->user.initial_white_space_fn((D_Parser *)p, &skip_loc, &p->user.initial_globals);
         skip_loc.ws = r->loc.s;
         new_pn->ws_before = loc.ws;
         new_pn->ws_after = skip_loc.s;
@@ -1717,7 +1714,7 @@ static int error_recovery(Parser *p) {
       ZNode *zn = best_sn->zns.v[i];
       if (zn && (!best_pn || best_pn->parse_node.start_loc.s < zn->pn->parse_node.start_loc.s)) best_pn = zn->pn;
     }
-    best_pn->parse_node.white_space((D_Parser *)p, &best_loc, &p->user.initial_globals);
+    p->user.initial_white_space_fn((D_Parser *)p, &best_loc, &p->user.initial_globals);
     new_pn = add_PNode(p, 0, &p->user.loc, best_loc.s, best_pn, 0, 0, 0);
     new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope);
     ref_pn(new_pn);
@@ -1801,7 +1798,6 @@ static int exhaustive_parse(Parser *p, int state) {
   /* initial state */
   sn = add_SNode(p, &p->t->state[state], &loc, p->top_scope);
   memset(&tpn, 0, sizeof(tpn));
-  tpn.parse_node.white_space = p->user.initial_white_space_fn;
   tpn.initial_scope = tpn.parse_node.scope = p->top_scope;
   tpn.parse_node.end = loc.s;
   if (sn->last_pn) unref_pn(p, sn->last_pn);
