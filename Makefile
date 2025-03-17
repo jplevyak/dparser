@@ -1,11 +1,11 @@
 # Makefile for D_Parser
 
-#D_DEBUG=1
-D_OPTIMIZE=1
-#D_PROFILE=1
-#D_USE_GC=1
-#D_LEAK_DETECT=1
-D_USE_FREELISTS=1
+D_DEBUG ?= 0
+D_OPTIMIZE ?= 1
+D_PROFILE ?= 0
+D_USE_GC ?= 0
+D_LEAK_DETECT ?= 0
+D_USE_FREELISTS ?= 1
 
 MAJOR=1
 MINOR=35
@@ -35,21 +35,18 @@ ifeq ($(ARCH),i686)
   ARCH = x86
 endif
 
-CFLAGS += -std=c11
-
 ifeq ($(ARCH),x86_64)
   CFLAGS += -fPIC
 endif
 
-
-ifdef D_USE_GC
+ifeq ($(D_USE_GC),1)
 CFLAGS += -DUSE_GC ${GC_CFLAGS}
 LIBS += -lgc
 ifeq ($(OS_TYPE),Linux)
   LIBS += -ldl
 endif
 endif
-ifdef D_LEAK_DETECT
+ifeq ($(D_LEAK_DETECT),1)
 CFLAGS += -DLEAK_DETECT ${GC_CFLAGS}
 LIBS += -lleak
 endif
@@ -59,24 +56,24 @@ CFLAGS += -DUSE_FREELISTS
 endif
 
 CFLAGS += -Wall
-# debug flags
-ifdef D_DEBUG
+
+ifeq ($(D_DEBUG),1)
 CFLAGS += -g -DD_DEBUG=1
 endif
-# optimized flags
-ifdef D_OPTIMIZE
+
+ifeq ($(D_OPTIMIZE),1)
 CFLAGS += -O3 -Wno-strict-aliasing
 ifeq ($(ARCH),x86)
-ifndef D_PROFILE
+ifneq ($(D_PROFILE),1)
 CFLAGS += -fomit-frame-pointer
 endif
 endif
 endif
-ifdef D_PROFILE
+ifeq ($(D_PROFILE),1)
 CFLAGS += -pg
 endif
 
-CFLAGS += -std=c11 -pedantic
+CFLAGS += -std=c23 -pedantic
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/make_dparser.1 dparser/make_dparser.cat
