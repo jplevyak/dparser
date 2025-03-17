@@ -16,6 +16,9 @@ struct Args {
     target: String,
 }
 
+const PARAMETERS: &str =
+    "(_ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser *_parser) -> i32";
+
 fn parse_file<P: AsRef<Path>>(input_path: P, output_path: P) -> std::io::Result<()> {
     let file = File::open(input_path)?;
     let mut reader = BufReader::new(file);
@@ -73,8 +76,8 @@ fn parse_file<P: AsRef<Path>>(input_path: P, output_path: P) -> std::io::Result<
 
                 // Create the Rust function
                 let rust_function = format!(
-                    "fn {}() {{\n  // line!({}, \"{}\")\n{}}}\n\n",
-                    function_name, line_number, file_name, body
+                    "#[no_mangle]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{}}}\n\n",
+                    function_name, PARAMETERS, line_number, file_name, body
                 );
 
                 output.push_str(&rust_function);
