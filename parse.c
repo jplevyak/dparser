@@ -1544,11 +1544,13 @@ static PNode *commit_tree(Parser *p, PNode *pn) {
   if (pn->evaluated) return pn;
   if (!is_unreduced_epsilon_PNode(pn)) pn->evaluated = 1;
   if (pn->ambiguities) pn = resolve_ambiguities(p, pn);
+  if (!pn) return NULL;
   fixup_ebnf = p->user.fixup_EBNF_productions;
   internal = is_symbol_internal_or_EBNF(p, pn);
   fixup = !p->user.dont_fixup_internal_productions && internal;
   for (i = 0; i < pn->children.n; i++) {
     PNode *tpn = commit_tree(p, pn->children.v[i]);
+    if (!tpn) return NULL;
     if (tpn != pn->children.v[i]) {
       ref_pn(tpn);
       unref_pn(p, pn->children.v[i]);
@@ -1584,6 +1586,7 @@ static int commit_stack(Parser *p, SNode *sn) {
   if (sn->zns.v[0]->sns.n)
     if ((res = commit_stack(p, sn->zns.v[0]->sns.v[0])) < 0) return res;
   tpn = commit_tree(p, sn->zns.v[0]->pn);
+  if (!tpn) return -4;
   if (tpn != sn->zns.v[0]->pn) {
     ref_pn(tpn);
     unref_pn(p, sn->zns.v[0]->pn);
@@ -1838,12 +1841,14 @@ static int exhaustive_parse(Parser *p, int state) {
     progress++;
     ready = progress > p->user.commit_actions_interval;
     if (ready && !p->shifts_todo->next && !p->reductions_todo) {
-      commit_stack(p, p->shifts_todo->snode);
+      if (commit_stack(p, p->shifts_todo->snode) == -4)
+        return -1;
       ready = progress = 0;
     }
     shift_all(p, pos);
     if (ready && p->reductions_todo && !p->reductions_todo->next) {
-      commit_stack(p, p->reductions_todo->snode);
+      if (commit_stack(p, p->reductions_todo->snode) == -4)
+        return -1;
       progress = 0;
     }
   }
@@ -2068,6 +2073,11 @@ D_ParseNode *dparse(D_Parser *ap, char *buf, int buf_len) {
     else
       pn = sn->zns.v[0]->pn;
     pn = commit_tree(p, pn);
+    if (!pn) {
+      free_parser_working_data(p);
+      free_whitespace_parser(p);
+      return NULL;
+    }
     if (d_verbose_level) {
       printf(
           "%d states %d scans %d shifts %d reductions "
