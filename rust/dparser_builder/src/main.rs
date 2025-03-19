@@ -25,7 +25,7 @@ struct Args {
 }
 
 const PARAMETERS: &str =
-    "(_ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser *_parser) -> i32";
+"(_ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser *_parser) -> i32";
 
 fn parse_file<P: AsRef<Path>>(
     input_path: P,
@@ -47,6 +47,7 @@ fn parse_file<P: AsRef<Path>>(
     );
 
     // Define regex patterns
+    let global_code_regex = Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
     let header_regex = Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
     let dollar_var_regex = Regex::new(r"\$(\d+)").unwrap();
     let dollar_g_regex = Regex::new(r"\$g").unwrap();
@@ -59,33 +60,40 @@ fn parse_file<P: AsRef<Path>>(
     while i < lines.len() {
         let line = lines[i];
 
+        if i == 0 {
+            // Handle global code
+            if let Some(captures) = global_code_regex.captures(line) {
+                let line_number = &captures[1].parse::<usize>().unwrap_or(0);
+                let file_name = &captures[2];
+                let line_count = &captures[3].parse::<usize>().unwrap_or(0);
+                output.push_str(&format!("// line!({}, \"{}\")\n", line_number, file_name));
+                while i < *line_count + 1 && i < lines.len() {
+                    i += 1;
+                    output.push_str(lines[i]);
+                    output.push('\n');
+                }
+            }
+            continue;
+        }
+
         // Try to match the header line
         if let Some(captures) = header_regex.captures(line) {
             let function_name = &captures[1];
             let line_number = &captures[2].parse::<usize>().unwrap_or(0);
             let file_name = &captures[3];
-            let char_count = &captures[4].parse::<usize>().unwrap_or(0);
+            let line_count = &captures[4].parse::<usize>().unwrap_or(0);
 
             i += 1; // Move to the next line (body starts here)
 
             if i < lines.len() {
                 // Read the body, which might span multiple lines
                 let mut body = String::new();
-                let mut chars_read = 0;
+                let start_line = i;
 
-                while i < lines.len() && chars_read < *char_count {
-                    let current_line = lines[i];
-                    body.push_str(current_line);
+                while i < lines.len() && i - start_line < *line_count {
+                    body.push_str(lines[i]);
                     body.push('\n');
-                    chars_read += current_line.len() + 1; // +1 for the newline
                     i += 1;
-
-                    // If we've read enough characters, or hit another header, break
-                    if chars_read >= *char_count
-                        || (i < lines.len() && header_regex.is_match(lines[i]))
-                    {
-                        break;
-                    }
                 }
                 // Transform the body
                 let body = dollar_var_regex
