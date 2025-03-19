@@ -2,5 +2,14 @@
 name = "dparser_lib"
 version = "0.1.0"
 edition = "2024"
+authors = ["John Plevyak <jplevyak@gmail.com>"]
+description = "The scannerless GLR dparser library"
+license = "BSD-3-Clause"
+repository = "https://github.com/jplevyak/dparser"
+keywords = ["parser", "scannerless", "GLR"]
+build = "build.rs"
 
 [dependencies]
+
+[build-dependencies]
+cc = "1.0"

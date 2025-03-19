@@ -91,7 +91,7 @@ LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 MK_LIB_SRCS = mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c
 MK_LIB_OBJS = $(MK_LIB_SRCS:%.c=%.o)
 
-ifdef D_USE_GC
+ifeq ($(D_USE_GC), 1)
 LIBMKDPARSE = libmkdparse_gc.a
 LIBDPARSE = libdparse_gc.a
 else
