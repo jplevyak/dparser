@@ -1736,7 +1736,7 @@ void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, in
     fp = fopen(g->write_pathname, "w");
     if (!fp) d_fail("unable to open `%s` for write\n", g->write_pathname);
   }
-  if (g->actions_write_pathname[0]) {
+  if (g->actions_write_pathname && g->actions_write_pathname[0]) {
     actions_fp = fopen(g->actions_write_pathname, "w");
     if (!actions_fp) d_fail("unable to open `%s` for write\n", g->actions_write_pathname);
   }
