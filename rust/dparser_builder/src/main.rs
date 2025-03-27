@@ -105,7 +105,7 @@ fn parse_file<P: AsRef<Path>>(
                 let body = dollar_n_regex
                     .replace_all(&body, "d_pn(d_child_pn(_children, $1, _offset), _offset)")
                     .to_string();
-                let body = dollar_dollar_regex.replace_all(&body, "d_pn(_ps)");
+                let body = dollar_dollar_regex.replace_all(&body, "d_pn(_ps, _offset)");
 
                 // Create the Rust function
                 let rust_function = format!(

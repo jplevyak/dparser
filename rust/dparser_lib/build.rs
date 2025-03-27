@@ -4,6 +4,26 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let dparser_c_include_path = manifest_dir.join("..");
+
+    if !dparser_c_include_path.is_dir() {
+        panic!(
+            "dparser C include directory not found at: {}",
+            dparser_c_include_path.display()
+        );
+    }
+    let include_path_str = dparser_c_include_path.to_str().unwrap();
+
+    // Make this include path available to dependents (like the example)
+    println!(
+        "cargo:rustc-env=DPARSER_CRATE_INCLUDE_PATH={}",
+        include_path_str
+    );
+
+    // Also, ensure this build script itself tells cargo where to find includes
+    // if it wasn't already doing so for linking the runtime.
+    println!("cargo:include={}", include_path_str);
     // println!("cargo:rustc-link-search=native=../../");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

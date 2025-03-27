@@ -86,7 +86,7 @@ impl d_loc_t {
         }
     }
 
-    pub fn col(&self) -> i32 {
+    pub fn column(&self) -> i32 {
         self.col
     }
 
