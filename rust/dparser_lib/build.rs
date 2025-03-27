@@ -15,15 +15,9 @@ fn main() {
     }
     let include_path_str = dparser_c_include_path.to_str().unwrap();
 
-    // Make this include path available to dependents (like the example)
-    println!(
-        "cargo:rustc-env=DPARSER_CRATE_INCLUDE_PATH={}",
-        include_path_str
-    );
-
-    // Also, ensure this build script itself tells cargo where to find includes
-    // if it wasn't already doing so for linking the runtime.
     println!("cargo:include={}", include_path_str);
+    let path_to_make_dparser = PathBuf::from(env::var("OUT_DIR").unwrap()).join("make_dparser");
+    println!("cargo:binary_path={}", path_to_make_dparser.display());
     // println!("cargo:rustc-link-search=native=../../");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -55,9 +49,4 @@ fn main() {
     } else {
         panic!("make_dparser not found at {:?}", src_path);
     }
-
-    println!(
-        "cargo:rustc-env=DPARSE_CRATE_BINARY_PATH={}",
-        dest_path.display()
-    );
 }

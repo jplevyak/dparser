@@ -8,6 +8,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/jplevyak/dparser"
 keywords = ["parser", "scannerless", "GLR"]
 build = "build.rs"
+links = "dparse"
 
 [dependencies]
 
