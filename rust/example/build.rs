@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     dparser_lib::build_actions(
         &intermediate_output,
         &rust_output,
-        "GlobalStruct",
+        "GlobalsStruct",
         "NodeStruct",
     )?;
 

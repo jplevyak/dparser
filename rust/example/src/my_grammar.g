@@ -1,50 +1,52 @@
 {
 use dparser_lib;
 
+#[derive(Debug, Default)]
 pub struct GlobalsStruct {
   a: i32,
   b: i32,
-};
+}
 
+#[derive(Debug, Default, Clone)]
 pub struct NodeStruct {
   x: i32,
   y: i32,
-};
+}
 
-pub const index_of_A:u32 = ${nterm A};
+pub const INDEX_OF_A:u32 = ${nterm A};
 
 }
 
 start: S {
-  writeln!("start: S global a {}\n", $g.a);
+  println!("start: S global a {}\n", $g.a);
 };
 
 S: A S 'b' 
 {
-  writeln!("reduce S: A S 'b' A x {} S x {}\n", $0.x, $2.x);
-  writeln!("reduce S: A S 'b' A column {}\n", $n0.start_loc.column());
-  writeln!("reduce S: A S 'b' global a {}\n", $g.a); 
+  println!("reduce S: A S 'b' A x {} S x {} y {}\n", $0.x, $2.x, $2.y);
+  println!("reduce S: A S 'b' A column {}\n", $n0.start_loc.column());
+  println!("reduce S: A S 'b' global a {} b {}\n", $g.a, $g.b);
 }
  | X
 {
-  $$ = $0;
-  writeln!("reduce S: X x {}\n", $0.x);
-  writeln!("reduce S: X column {}\n", $n0.start_loc.column());
-  writeln!("reduce S: X global a {}\n", $g.a);
+  *$$ = $0.clone();
+  println!("reduce S: X x {}\n", $0.x);
+  println!("reduce S: X column {}\n", $n0.start_loc.column());
+  println!("reduce S: X global a {}\n", $g.a);
 };
 
 A: 'a' { 
-  writeln!("reduce A x 1 global 11\n");
+  println!("reduce A x 1 global 11\n");
   $$.x = 1;
   $g.a = 11;
-  writeln!("reduce A column {}\n", $n0.start_loc.column());
-  writeln!("reduce A global a {}\n", $g.a); 
+  println!("reduce A column {}\n", $n0.start_loc.column());
+  println!("reduce A global a {}\n", $g.a);
 };
 
 X: 'x' { 
-  writeln!("reduce X x 2 global 12\n");
+  println!("reduce X x 2 global 12\n");
   $$.x = 2;
   $g.a = 12;
-  writeln!("reduce X column {}\n", $n0.start_loc.column());
-  writeln!("reduce X global a {}\n", $g.a); 
+  println!("reduce X column {}\n", $n0.start_loc.column());
+  println!("reduce X global a {}\n", $g.a);
 };

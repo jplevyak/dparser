@@ -1,5 +1,5 @@
-mod bindings;
-use bindings::{
+pub mod bindings;
+pub use bindings::{
     d_loc_t, dparse, free_D_ParseNode, free_D_Parser, new_D_Parser, D_AmbiguityFn, D_ParseNode,
     D_Parser, D_ParserTables, D_SyntaxErrorFn,
 };
@@ -36,7 +36,22 @@ pub fn d_child_pn(
             return None;
         }
         let child: *mut c_void = *child_ptr;
-        d_pn(child, offset)
+        let parse_node_ptr_raw: *mut u8 = child
+            .cast::<u8>()
+            .wrapping_offset(offset.try_into().unwrap());
+        let parse_node_ptr: *mut D_ParseNode = parse_node_ptr_raw.cast::<D_ParseNode>();
+        Some(&mut *parse_node_ptr)
+    }
+}
+
+pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32, offset: i32) -> *mut c_void {
+    unsafe {
+        let child_ptr: *mut *mut c_void = children.offset(i.try_into().unwrap());
+        let child: *mut c_void = *child_ptr;
+        let parse_node_ptr_raw: *mut u8 = child
+            .cast::<u8>()
+            .wrapping_offset(offset.try_into().unwrap());
+        *parse_node_ptr_raw.cast::<*mut c_void>()
     }
 }
 
@@ -209,8 +224,8 @@ impl<G: 'static, N: 'static> ParserPtr for Parser<G, N> {
 }
 
 pub struct ParseNodeWrapper<'a, P: ParserPtr + 'static> {
-    node: *mut D_ParseNode,
-    parser: &'a P,
+    pub node: *mut D_ParseNode,
+    pub parser: &'a P,
 }
 
 impl<'a, P: ParserPtr + 'static> Drop for ParseNodeWrapper<'a, P> {
@@ -281,7 +296,7 @@ pub fn build_actions(
     globals_type: &str,
     node_type: &str,
 ) -> std::io::Result<()> {
-    const PARAMETERS: &str = "(_ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser *_parser) -> i32";
+    const PARAMETERS: &str = "(_ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser) -> i32";
     let file = File::open(input_path)?;
     let mut reader = BufReader::new(file);
 
@@ -289,10 +304,22 @@ pub fn build_actions(
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
 
-    let globals = format!("d_globals<{}>()", globals_type);
-    let user = format!(
-        "d_user<{}>(d_pn(d_child_pn(_children, $1, _offset), _offset))",
+    let globals = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
+    let child_user = format!(
+        "d_user::<{}>(d_pn(d_child_pn_ptr(_children, $1, _offset), _offset).unwrap()).unwrap()",
         node_type
+    );
+    let user = format!(
+        "d_user::<{}>(d_pn(_ps, _offset).unwrap()).unwrap()",
+        node_type
+    );
+
+    output.push_str(
+        r#"
+use dparser_lib::bindings::*;
+use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_user};
+use std::os::raw::c_void;
+        "#,
     );
 
     // Define regex patterns
@@ -307,26 +334,25 @@ pub fn build_actions(
     let mut i = 0;
 
     while i < lines.len() {
-        let line = lines[i];
-
         if i == 0 {
             // Handle global code
-            if let Some(captures) = global_code_regex.captures(line) {
+            if let Some(captures) = global_code_regex.captures(lines[i]) {
                 let line_number = &captures[1].parse::<usize>().unwrap_or(0);
                 let file_name = &captures[2];
                 let line_count = &captures[3].parse::<usize>().unwrap_or(0);
                 output.push_str(&format!("// line!({}, \"{}\")\n", line_number, file_name));
-                while i < *line_count + 1 && i < lines.len() {
+                while i < *line_count && i < lines.len() {
                     i += 1;
                     output.push_str(lines[i]);
                     output.push('\n');
                 }
+                i += 1;
             }
             continue;
         }
 
         // Try to match the header line
-        if let Some(captures) = header_regex.captures(line) {
+        if let Some(captures) = header_regex.captures(lines[i]) {
             let function_name = &captures[1];
             let line_number = &captures[2].parse::<usize>().unwrap_or(0);
             let file_name = &captures[3];
@@ -346,26 +372,31 @@ pub fn build_actions(
                 }
                 // Transform the body
                 let body = dollar_var_regex
-                    .replace_all(&body, user.clone())
+                    .replace_all(&body, child_user.clone())
                     .to_string();
                 let body = dollar_g_regex
                     .replace_all(&body, globals.clone())
                     .to_string();
                 let body = dollar_n_regex
-                    .replace_all(&body, "d_pn(d_child_pn(_children, $1, _offset), _offset)")
+                    .replace_all(
+                        &body,
+                        "d_pn(d_child_pn_ptr(_children, $1, _offset), _offset).unwrap()",
+                    )
                     .to_string();
-                let body = dollar_dollar_regex.replace_all(&body, "d_pn(_ps, _offset)");
+                let body = dollar_dollar_regex
+                    .replace_all(&body, user.clone())
+                    .to_string();
 
                 // Create the Rust function
                 let rust_function = format!(
-                    "#[no_mangle]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{}}}\n\n",
+                    "#[unsafe(no_mangle)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
                     function_name, PARAMETERS, line_number, file_name, body
                 );
 
                 output.push_str(&rust_function);
             }
         } else {
-            eprintln!("Error: Bad header line '{}'", line);
+            eprintln!("Error: Bad header line '{}'", lines[i]);
             std::process::exit(1);
         }
     }
