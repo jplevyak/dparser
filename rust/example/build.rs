@@ -11,25 +11,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Get necessary paths
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?);
-    let dparser_c_include_path = env::var("DEP_DPARSER_LIB_DPARSER_CRATE_INCLUDE_PATH")
-        .expect("DPARSER_CRATE_INCLUDE_PATH not set by dparser_lib build script.");
-    println!("cargo:rerun-if-env-changed=DEP_DPARSER_LIB_DPARSER_CRATE_INCLUDE_PATH");
+    let dparser_c_include_path = env::var("DEP_DPARSE_INCLUDE")
+        .expect("DEP_DPARSE_INCLUDE not set by dparser_lib build script.");
+    println!("cargo:rerun-if-env-changed=DEP_DPARSE_INCLUDE");
 
     let grammar_file = manifest_dir.join("src").join("my_grammar.g");
-
-    // Get the path to the make_dparser binary built by dparser_lib.
-    // dparser_lib's build.rs must have set this env var using:
-    // println!("cargo:rustc-env=DPARSER_CRATE_BINARY_PATH={}", path_to_make_dparser);
-    // Cargo makes this available to dependents prefixed with DEP_<dependency_name>_
-    let make_dparser_path = env::var("DEP_DPARSER_LIB_DPARSER_CRATE_BINARY_PATH")
-        .map(PathBuf::from)
-        .expect("DPARSER_CRATE_BINARY_PATH not set by dparser_lib build script. Make sure dparser_lib is a dependency.");
-
-    // Get the path to the dparser_builder binary (build dependency).
-    // Cargo sets CARGO_BIN_EXE_<name> for build dependencies with binaries.
-    let dparser_builder_path = env::var("CARGO_BIN_EXE_dparser_builder")
-         .map(PathBuf::from)
-         .expect("Could not find dparser_builder executable. Is it a build-dependency with a [[bin]] target?");
 
     // Define intermediate and final output paths within OUT_DIR
     let c_output = out_dir.join("my_grammar.g.d_parser.c");
@@ -41,8 +27,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Running make_dparser: {:?} -> {:?}",
         grammar_file, intermediate_output
     );
+
+    let make_dparser_path = env::var("DEP_DPARSE_BINARY_PATH")
+        .map(PathBuf::from)
+        .expect("DEP_DPARSE_BINARY_PATH not set by dparser_lib build script. Make sure dparser_lib is a dependency.");
+
     let make_dparser_status = Command::new(&make_dparser_path)
         .arg(grammar_file)
+        .arg("-o") // output
+        .arg(&c_output)
         .arg("-a") // source
         .arg(&intermediate_output)
         .status()?;
@@ -56,24 +49,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Running dparser_builder: {:?} -> {:?}",
         intermediate_output, rust_output
     );
-    let dparser_builder_status = Command::new(&dparser_builder_path)
-        .arg("-s") // source
-        .arg(&intermediate_output)
-        .arg("-t") // target
-        .arg(&rust_output)
-        .arg("-g") // globals
-        .arg("GlobalsStruct")
-        .arg("-n") // node
-        .arg("NodeStruct")
-        .status()?;
 
-    if !dparser_builder_status.success() {
-        return Err(format!(
-            "dparser_builder failed with status: {}",
-            dparser_builder_status
-        )
-        .into());
-    }
+    dparser_lib::build_actions(
+        &intermediate_output,
+        &rust_output,
+        "GlobalStruct",
+        "NodeStruct",
+    )?;
 
     // 4. Compile the generated C code using the cc crate
     eprintln!("Compiling generated C code: {:?}", c_output);

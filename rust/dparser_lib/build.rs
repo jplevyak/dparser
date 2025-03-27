@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let dparser_c_include_path = manifest_dir.join("..");
+    let dparser_c_include_path = manifest_dir.join("../..");
 
     if !dparser_c_include_path.is_dir() {
         panic!(

@@ -50,6 +50,8 @@ typedef struct File {
   int d_parser_tables_loc;
 } File;
 
+static char *REDUCTION_ARGS = "(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser)";
+
 OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
 OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code") - 1, -2};
 OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code") - 1, -3};
@@ -1058,6 +1060,7 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
     return;
   }
   if (file->actions_fp) {
+    fprintf(fp, "%s;\n", fname);
     fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, count_newlines(code) + 1, code);
     return;
   }
@@ -1244,8 +1247,6 @@ static void write_global_code(File *file, Grammar *g, char *tag) {
   }
 }
 
-static char *reduction_args = "(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser)";
-
 static void write_reductions(File *file, Grammar *g, char *tag) {
   int i, j, k, l, pmax;
   Production *p, *pdefault;
@@ -1257,15 +1258,15 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
   if (pdefault) {
     rdefault = pdefault->rules.v[0];
     fprintf(fp, "int d_speculative_reduction_code_%d_%d_%s%s;\n", rdefault->prod->index, rdefault->index, tag,
-            reduction_args);
+            REDUCTION_ARGS);
     g->write_line += 1;
     fprintf(fp, "int d_final_reduction_code_%d_%d_%s%s;\n", rdefault->prod->index, rdefault->index, tag,
-            reduction_args);
+            REDUCTION_ARGS);
     g->write_line += 1;
     fprintf(fp, "extern D_ReductionCode d_pass_code_%d_%d_%s[];\n", rdefault->prod->index, rdefault->index, tag);
     g->write_line += 1;
     for (i = 0; i < (int)rdefault->pass_code.n; i++) {
-      fprintf(fp, "int d_pass_code_%d_%d_%d_%s%s;\n", i, rdefault->prod->index, rdefault->index, tag, reduction_args);
+      fprintf(fp, "int d_pass_code_%d_%d_%d_%s%s;\n", i, rdefault->prod->index, rdefault->index, tag, REDUCTION_ARGS);
       g->write_line += 1;
     }
   }
@@ -1306,18 +1307,18 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
         strcpy(final_code, "NULL");
       if (r->speculative_code.code) {
         char fname[256];
-        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, REDUCTION_ARGS);
         write_code(file, g, r, speculative_code, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
       }
       if (r->final_code.code) {
         char fname[256];
-        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, reduction_args);
+        snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, REDUCTION_ARGS);
         write_code(file, g, r, final_code, r->final_code.code, fname, r->final_code.line, g->pathname);
       }
       for (k = 0; k < (int)r->pass_code.n; k++) {
         if (r->pass_code.v[k]) {
           char fname[256], code[256];
-          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, reduction_args);
+          snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, REDUCTION_ARGS);
           snprintf(code, 255, "int d_pass_code_%d_%d_%d_%s", k, r->prod->index, r->index, tag);
           write_code(file, g, r, code, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
         }
