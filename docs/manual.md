@@ -182,16 +182,21 @@ and those which are global (called for every terminal).  Here is an example of
 a scanner for a single terminal.  Notice how it can be mixed with regular
 string terminals.
 ```C
-{
-    extern char *ops;
-    extern void *ops_cache;
-    int ops_scan(char *ops, void *ops_cache, char **as,
-                 int *col, int *line,
-                 unsigned short *op_assoc, int *op_priority);
-}
+  char *my_ops = "+";
+  void *my_ops_cache = NULL;
+  int my_ops_scan(d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
+    if (loc->s[0] == *my_ops) {
+      my_ops_cache = (void*)loc->s;
+      loc->s++;
+      *op_assoc = ASSOC_BINARY_LEFT;
+      *op_priority = 9500;
+      return 1;
+    }
+    return 0;
+  }
 ```
 ```Yacc
-X: '1' (${scan ops_scan(ops, ops_cache)} '2')*;
+X: '1' (${scan ops_scan} '2')*;
 ```
 
 The user provides the `ops_scan` function.  This example is from
