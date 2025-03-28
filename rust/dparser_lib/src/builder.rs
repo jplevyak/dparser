@@ -106,6 +106,27 @@ fn process_body(
                                         child_user_replacement_fmt.replace("{}", &digits);
                                     output.push_str(&replacement);
                                 }
+                                '{' => {
+                                    chars.next(); // consume '{'
+                                    let mut keyword = String::new();
+                                    while let Some(&k) = chars.peek() {
+                                        if k.is_alphabetic() {
+                                            chars.next(); // consume char
+                                            keyword.push(k);
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    if keyword == "reject" && chars.peek() == Some(&'}') {
+                                        chars.next(); // consume '}'
+                                        output.push_str(" return -1; ");
+                                    } else {
+                                        // Not a recognized keyword, push back the consumed chars
+                                        output.push('$');
+                                        output.push('{');
+                                        output.push_str(&keyword);
+                                    }
+                                }
                                 _ => {
                                     output.push('$'); // Just a dollar sign, not a recognized variable
                                 }
