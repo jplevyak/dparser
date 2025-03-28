@@ -52,7 +52,6 @@ pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32, offset: i32) -> *mut c
             .cast::<u8>()
             .wrapping_offset(offset.try_into().unwrap());
         parse_node_ptr_raw as *mut c_void
-        //*parse_node_ptr_raw.cast::<*mut c_void>()
     }
 }
 
@@ -68,9 +67,17 @@ pub fn d_pn(pn: *mut c_void, offset: i32) -> Option<&'static mut D_ParseNode> {
     }
 }
 
-pub fn d_user<'a, T: 'static + Default>(pn: &'a mut D_ParseNode) -> Option<&'a mut T> {
+pub fn d_pn_ptr(pn: *mut c_void, offset: i32) -> *mut D_ParseNode {
+    if pn.is_null() {
+        return std::ptr::null_mut();
+    }
+    let parse_node_ptr_raw: *mut u8 = pn.cast::<u8>().wrapping_offset(offset.try_into().unwrap());
+    parse_node_ptr_raw as *mut D_ParseNode
+}
+
+pub fn d_user<'a, T: 'static + Default>(pn: *mut D_ParseNode) -> Option<&'a mut T> {
     unsafe {
-        let field_address: *mut *mut c_void = &mut pn.user;
+        let field_address: *mut *mut c_void = &mut (*pn).user;
         let ptr: *mut T = (*field_address).cast::<T>();
 
         if ptr.is_null() {
@@ -80,6 +87,20 @@ pub fn d_user<'a, T: 'static + Default>(pn: &'a mut D_ParseNode) -> Option<&'a m
             Some(&mut *ptr)
         } else {
             Some(&mut *ptr)
+        }
+    }
+}
+
+pub fn d_user_ptr<T: 'static + Default>(pn: *mut D_ParseNode) -> *mut T {
+    unsafe {
+        let field_address: *mut *mut c_void = &mut (*pn).user;
+        let ptr: *mut T = (*field_address).cast::<T>();
+        if ptr.is_null() {
+            let new_t = Box::new(T::default());
+            *field_address = Box::into_raw(new_t) as *mut c_void;
+            field_address as *mut T
+        } else {
+            ptr
         }
     }
 }
@@ -107,11 +128,11 @@ impl d_loc_t {
     }
 
     pub fn column(&self) -> i32 {
-        self.col
+        self.col as i32
     }
 
     pub fn line(&self) -> i32 {
-        self.line
+        self.line as i32
     }
 }
 
@@ -317,18 +338,15 @@ pub fn build_actions(
 
     let globals = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
     let child_user = format!(
-        "d_user::<{}>(d_pn(d_child_pn_ptr(_children, $1, _offset), _offset).unwrap()).unwrap()",
+        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, $1, _offset), _offset)).unwrap()",
         node_type
     );
-    let user = format!(
-        "d_user::<{}>(d_pn(_ps, _offset).unwrap()).unwrap()",
-        node_type
-    );
+    let user = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
 
     output.push_str(
         r#"
 use dparser_lib::bindings::*;
-use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_user};
+use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user};
 use std::os::raw::c_void;
         "#,
     );
@@ -336,9 +354,10 @@ use std::os::raw::c_void;
     // Define regex patterns
     let global_code_regex = Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
     let header_regex = Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
-    let dollar_var_regex = Regex::new(r"\$(\d+)").unwrap();
+    let dollar_child_regex = Regex::new(r"\$(\d+)").unwrap();
     let dollar_g_regex = Regex::new(r"\$g").unwrap();
-    let dollar_n_regex = Regex::new(r"\$n(\d+)").unwrap();
+    let dollar_n_child_regex = Regex::new(r"\$n(\d+)").unwrap();
+    let dollar_n_regex = Regex::new(r"\$n").unwrap();
     let dollar_dollar_regex = Regex::new(r"\$\$").unwrap();
 
     let lines: Vec<&str> = content.lines().collect();
@@ -382,17 +401,20 @@ use std::os::raw::c_void;
                     i += 1;
                 }
                 // Transform the body
-                let body = dollar_var_regex
+                let body = dollar_child_regex
                     .replace_all(&body, child_user.clone())
                     .to_string();
                 let body = dollar_g_regex
                     .replace_all(&body, globals.clone())
                     .to_string();
-                let body = dollar_n_regex
+                let body = dollar_n_child_regex
                     .replace_all(
                         &body,
                         "d_pn(d_child_pn_ptr(_children, $1, _offset), _offset).unwrap()",
                     )
+                    .to_string();
+                let body = dollar_n_regex
+                    .replace_all(&body, "d_pn(_ps, _offset).unwrap()")
                     .to_string();
                 let body = dollar_dollar_regex
                     .replace_all(&body, user.clone())

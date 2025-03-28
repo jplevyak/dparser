@@ -23,6 +23,7 @@ start: S {
 
 S: A S 'b' 
 {
+  println!("reduce S: a {} b {} x {} y {}", $g.a, $g.b, $$.x, $$.y);
   println!("reduce S: A S 'b', A x {} S x {} y {}", $0.x, $2.x, $2.y);
   *$$ = $1.clone();
   $$.x = $0.x + $1.x;
@@ -30,8 +31,9 @@ S: A S 'b'
 }
  | X
 {
+  println!("reduce S: X before column {} global a {} x {} x0 {}", $n0.start_loc.column(), $$.x, $g.a, $0.x);
   *$$ = $0.clone();
-  println!("reduce S: X column {} global a {} x {} x0 {}", $n0.start_loc.column(), $$.x, $g.a, $0.x);
+  println!("reduce S: X after column {} global a {} x {} x0 {}", $n.start_loc.column(), $$.x, $g.a, $0.x);
 };
 
 A: 'a' { 
