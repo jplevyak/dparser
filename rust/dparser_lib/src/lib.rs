@@ -51,7 +51,8 @@ pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32, offset: i32) -> *mut c
         let parse_node_ptr_raw: *mut u8 = child
             .cast::<u8>()
             .wrapping_offset(offset.try_into().unwrap());
-        *parse_node_ptr_raw.cast::<*mut c_void>()
+        parse_node_ptr_raw as *mut c_void
+        //*parse_node_ptr_raw.cast::<*mut c_void>()
     }
 }
 
@@ -141,27 +142,33 @@ impl D_ParseNode {
 
 pub struct Parser<G: 'static, N: 'static> {
     parser: *mut D_Parser,
-    initial_globals_box: Option<Box<G>>,
+    _phantom_g: std::marker::PhantomData<G>,
     _phantom_n: std::marker::PhantomData<N>,
 }
 
 impl<G: 'static, N: 'static> Parser<G, N> {
     pub fn new(tables: *mut D_ParserTables) -> Self {
         unsafe {
-            let parser = new_D_Parser(tables, std::mem::size_of::<Box<N>> as c_int);
+            let sizeof_n = std::mem::size_of::<N>() as c_int;
+            let parser = new_D_Parser(tables, sizeof_n);
             (*parser).syntax_error_fn = Some(default_syntax_error_fn);
             (*parser).ambiguity_fn = Some(default_ambiguity_fn);
             (*parser).free_node_fn = Some(default_free_node_fn::<N>);
             Parser {
                 parser,
-                initial_globals_box: None,
+                _phantom_g: std::marker::PhantomData,
                 _phantom_n: std::marker::PhantomData,
             }
         }
     }
 
-    pub fn parse(&self, input: &str) -> Option<ParseNodeWrapper<'_, Self>> {
+    pub fn parse(
+        &mut self,
+        input: &str,
+        initial_globals: &mut G,
+    ) -> Option<ParseNodeWrapper<'_, Self>> {
         unsafe {
+            (*self.parser).initial_globals = initial_globals as *mut G as *mut c_void;
             let mut input_bytes = input.as_bytes().to_vec();
             input_bytes.push(0);
             let buf = input_bytes.as_mut_ptr() as *mut c_char;
@@ -192,16 +199,6 @@ impl<G: 'static, N: 'static> Parser<G, N> {
 
     pub fn get_parser_ptr(&self) -> *mut D_Parser {
         self.parser
-    }
-
-    pub fn set_initial_globals(&mut self, globals: G) {
-        unsafe {
-            let boxed_globals: Box<dyn std::any::Any> = Box::new(globals);
-            (*self.parser).initial_globals = Box::into_raw(boxed_globals) as *mut c_void;
-            // Reconstruct the Box to store it.
-            let raw_ptr = (*self.parser).initial_globals as *mut dyn std::any::Any;
-            self.initial_globals_box = Some(Box::from_raw(raw_ptr).downcast::<G>().unwrap());
-        }
     }
 }
 

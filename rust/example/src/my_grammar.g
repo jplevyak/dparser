@@ -18,35 +18,35 @@ pub const INDEX_OF_A:u32 = ${nterm A};
 }
 
 start: S {
-  println!("start: S global a {}\n", $g.a);
+  println!("start: S global a {}", $g.a);
 };
 
 S: A S 'b' 
 {
-  println!("reduce S: A S 'b' A x {} S x {} y {}\n", $0.x, $2.x, $2.y);
-  println!("reduce S: A S 'b' A column {}\n", $n0.start_loc.column());
-  println!("reduce S: A S 'b' global a {} b {}\n", $g.a, $g.b);
+  println!("reduce S: A S 'b' A x {} S x {} y {}", $0.x, $2.x, $2.y);
+  println!("reduce S: A S 'b' A column {}", $n0.start_loc.column());
+  println!("reduce S: A S 'b' global a {} b {}", $g.a, $g.b);
 }
  | X
 {
   *$$ = $0.clone();
-  println!("reduce S: X x {}\n", $0.x);
-  println!("reduce S: X column {}\n", $n0.start_loc.column());
-  println!("reduce S: X global a {}\n", $g.a);
+  println!("reduce S: X x {}", $0.x);
+  println!("reduce S: X column {}", $n0.start_loc.column());
+  println!("reduce S: X global a {}", $g.a);
 };
 
 A: 'a' { 
-  println!("reduce A x 1 global 11\n");
+  println!("reduce A x 1 global 11");
   $$.x = 1;
   $g.a = 11;
-  println!("reduce A column {}\n", $n0.start_loc.column());
-  println!("reduce A global a {}\n", $g.a);
+  println!("reduce A column {}", $n0.start_loc.column());
+  println!("reduce A global a {}", $g.a);
 };
 
 X: 'x' { 
-  println!("reduce X x 2 global 12\n");
+  println!("reduce X x 2 global 12");
   $$.x = 2;
   $g.a = 12;
-  println!("reduce X column {}\n", $n0.start_loc.column());
-  println!("reduce X global a {}\n", $g.a);
+  println!("reduce X column {}", $n0.start_loc.column());
+  println!("reduce X global a {}", $g.a);
 };

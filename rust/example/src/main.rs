@@ -12,10 +12,12 @@ fn main() {
     println!("Parsing input: '{}'", input_string);
 
     // Instantiate the parser
-    let parser: Parser<GlobalsStruct, NodeStruct> = { Parser::new(&raw mut parser_tables_gram) };
+    let mut parser: Parser<GlobalsStruct, NodeStruct> =
+        { Parser::new(&raw mut parser_tables_gram) };
+    let mut initial_globals = GlobalsStruct { a: 0, b: 0 };
 
     let result: Option<ParseNodeWrapper<'_, Parser<GlobalsStruct, NodeStruct>>> =
-        parser.parse(input_string);
+        parser.parse(input_string, &mut initial_globals);
 
     // Process the result
     unsafe {
