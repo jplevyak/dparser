@@ -60,6 +60,10 @@ fn process_body(
                         chars.next(); // consume '$'
                         if let Some(&next_c) = chars.peek() {
                             match next_c {
+                                '#' => {
+                                    chars.next(); // consume '#'
+                                    output.push_str("(_n_children)");
+                                }
                                 '$' => {
                                     chars.next(); // consume '$'
                                     output.push_str(user_replacement);
