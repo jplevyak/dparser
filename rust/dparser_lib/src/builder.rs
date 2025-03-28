@@ -10,11 +10,16 @@ fn process_body(
     user_replacement: &str,
     child_node_replacement_fmt: &str, // format string expecting index {}
     node_replacement: &str,
-    node_type: &str,
 ) -> String {
     let mut output = String::new();
     let mut chars = body.chars().peekable();
-    enum State { Code, LineComment, BlockComment, String, Char }
+    enum State {
+        Code,
+        LineComment,
+        BlockComment,
+        String,
+        Char,
+    }
     let mut state = State::Code;
 
     while let Some(&c) = chars.peek() {
@@ -39,12 +44,14 @@ fn process_body(
                             output.push('/');
                         }
                     }
-                    '"' => { // Basic string handling
+                    '"' => {
+                        // Basic string handling
                         chars.next();
                         output.push('"');
                         state = State::String;
                     }
-                     '\'' => { // Basic char handling
+                    '\'' => {
+                        // Basic char handling
                         chars.next();
                         output.push('\'');
                         state = State::Char;
@@ -75,14 +82,15 @@ fn process_body(
                                     if digits.is_empty() {
                                         output.push_str(node_replacement);
                                     } else {
-                                        let replacement = child_node_replacement_fmt.replace("{}", &digits);
+                                        let replacement =
+                                            child_node_replacement_fmt.replace("{}", &digits);
                                         output.push_str(&replacement);
                                     }
                                 }
                                 d if d.is_ascii_digit() => {
                                     let mut digits = String::new();
                                     while let Some(&d) = chars.peek() {
-                                         if d.is_ascii_digit() {
+                                        if d.is_ascii_digit() {
                                             chars.next(); // consume digit
                                             digits.push(d);
                                         } else {
@@ -90,7 +98,8 @@ fn process_body(
                                         }
                                     }
                                     // Index placeholder replacement
-                                    let replacement = child_user_replacement_fmt.replace("{}", &digits);
+                                    let replacement =
+                                        child_user_replacement_fmt.replace("{}", &digits);
                                     output.push_str(&replacement);
                                 }
                                 _ => {
@@ -101,7 +110,8 @@ fn process_body(
                             output.push('$'); // End of input after '$'
                         }
                     }
-                    _ => { // Any other character
+                    _ => {
+                        // Any other character
                         chars.next();
                         output.push(c);
                     }
@@ -128,7 +138,8 @@ fn process_body(
             State::String => {
                 chars.next();
                 output.push(c);
-                if c == '\\' { // Handle basic escape sequence
+                if c == '\\' {
+                    // Handle basic escape sequence
                     if let Some(&next_c) = chars.peek() {
                         chars.next();
                         output.push(next_c);
@@ -138,9 +149,10 @@ fn process_body(
                 }
             }
             State::Char => {
-                 chars.next();
+                chars.next();
                 output.push(c);
-                if c == '\\' { // Handle basic escape sequence
+                if c == '\\' {
+                    // Handle basic escape sequence
                     if let Some(&next_c) = chars.peek() {
                         chars.next();
                         output.push(next_c);
@@ -174,12 +186,14 @@ pub fn build_actions(
     // Define base replacement strings and format templates
     let globals_replacement = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
     // Format string expecting index {}, with node_type already substituted
-    let child_user_replacement_fmt = format!("d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset)).unwrap()", node_type);
+    let child_user_replacement_fmt = format!(
+        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset)).unwrap()",
+        node_type
+    );
     let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
     // Format string expecting index {}
     let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset).unwrap()";
     let node_replacement = "d_pn(_ps, _offset).unwrap()";
-
 
     output.push_str(
         r#"
@@ -238,11 +252,10 @@ use std::os::raw::c_void;
                 let transformed_body = process_body(
                     &body,
                     &globals_replacement,
-                    child_user_replacement_fmt,
+                    &child_user_replacement_fmt,
                     &user_replacement,
                     child_node_replacement_fmt,
                     &node_replacement,
-                    node_type,
                 );
 
                 // Create the Rust function
