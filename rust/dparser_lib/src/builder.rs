@@ -1,7 +1,163 @@
-use regex::Regex;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
+
+// Function to process the action body, respecting comments and strings
+fn process_body(
+    body: &str,
+    globals_replacement: &str,
+    child_user_replacement_fmt: &str, // format string expecting index {} and node_type NODE_TYPE
+    user_replacement: &str,
+    child_node_replacement_fmt: &str, // format string expecting index {}
+    node_replacement: &str,
+    node_type: &str,
+) -> String {
+    let mut output = String::new();
+    let mut chars = body.chars().peekable();
+    enum State { Code, LineComment, BlockComment, String, Char }
+    let mut state = State::Code;
+
+    while let Some(&c) = chars.peek() {
+        match state {
+            State::Code => {
+                match c {
+                    '/' => {
+                        chars.next(); // consume '/'
+                        if let Some(&next_c) = chars.peek() {
+                            if next_c == '/' {
+                                chars.next(); // consume '/'
+                                output.push_str("//");
+                                state = State::LineComment;
+                            } else if next_c == '*' {
+                                chars.next(); // consume '*'
+                                output.push_str("/*");
+                                state = State::BlockComment;
+                            } else {
+                                output.push('/');
+                            }
+                        } else {
+                            output.push('/');
+                        }
+                    }
+                    '"' => { // Basic string handling
+                        chars.next();
+                        output.push('"');
+                        state = State::String;
+                    }
+                     '\'' => { // Basic char handling
+                        chars.next();
+                        output.push('\'');
+                        state = State::Char;
+                    }
+                    '$' => {
+                        chars.next(); // consume '$'
+                        if let Some(&next_c) = chars.peek() {
+                            match next_c {
+                                '$' => {
+                                    chars.next(); // consume '$'
+                                    output.push_str(user_replacement);
+                                }
+                                'g' => {
+                                    chars.next(); // consume 'g'
+                                    output.push_str(globals_replacement);
+                                }
+                                'n' => {
+                                    chars.next(); // consume 'n'
+                                    let mut digits = String::new();
+                                    while let Some(&d) = chars.peek() {
+                                        if d.is_ascii_digit() {
+                                            chars.next(); // consume digit
+                                            digits.push(d);
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    if digits.is_empty() {
+                                        output.push_str(node_replacement);
+                                    } else {
+                                        let replacement = child_node_replacement_fmt.replace("{}", &digits);
+                                        output.push_str(&replacement);
+                                    }
+                                }
+                                d if d.is_ascii_digit() => {
+                                    let mut digits = String::new();
+                                    while let Some(&d) = chars.peek() {
+                                         if d.is_ascii_digit() {
+                                            chars.next(); // consume digit
+                                            digits.push(d);
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    // Replace NODE_TYPE placeholder first, then index placeholder
+                                    let replacement = child_user_replacement_fmt
+                                        .replace("NODE_TYPE", node_type)
+                                        .replace("{}", &digits);
+                                    output.push_str(&replacement);
+                                }
+                                _ => {
+                                    output.push('$'); // Just a dollar sign, not a recognized variable
+                                }
+                            }
+                        } else {
+                            output.push('$'); // End of input after '$'
+                        }
+                    }
+                    _ => { // Any other character
+                        chars.next();
+                        output.push(c);
+                    }
+                }
+            }
+            State::LineComment => {
+                chars.next();
+                output.push(c);
+                if c == '\n' {
+                    state = State::Code;
+                }
+            }
+            State::BlockComment => {
+                chars.next();
+                output.push(c);
+                if c == '*' {
+                    if let Some('/') = chars.peek() {
+                        chars.next();
+                        output.push('/');
+                        state = State::Code;
+                    }
+                }
+            }
+            State::String => {
+                chars.next();
+                output.push(c);
+                if c == '\\' { // Handle basic escape sequence
+                    if let Some(&next_c) = chars.peek() {
+                        chars.next();
+                        output.push(next_c);
+                    }
+                } else if c == '"' {
+                    state = State::Code;
+                }
+            }
+            State::Char => {
+                 chars.next();
+                output.push(c);
+                if c == '\\' { // Handle basic escape sequence
+                    if let Some(&next_c) = chars.peek() {
+                        chars.next();
+                        output.push(next_c);
+                    }
+                } else if c == '\'' {
+                    state = State::Code;
+                }
+            }
+        }
+    }
+    // Note: This basic parser doesn't handle raw strings (r#"..."#)
+    // or byte strings (b"...") specifically, treating them like normal strings/code.
+    // It also doesn't report errors for unterminated comments/strings.
+    output
+}
 
 pub fn build_actions(
     input_path: &PathBuf,
@@ -17,12 +173,15 @@ pub fn build_actions(
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
 
-    let globals = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
-    let child_user = format!(
-        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, $1), _offset)).unwrap()",
-        node_type
-    );
-    let user = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
+    // Define base replacement strings and format templates
+    let globals_replacement = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
+    // Format string expecting index {} and node_type NODE_TYPE placeholder
+    let child_user_replacement_fmt = "d_user::<NODE_TYPE>(d_pn_ptr(d_child_pn_ptr(_children, {}), _offset)).unwrap()";
+    let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
+    // Format string expecting index {}
+    let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset).unwrap()";
+    let node_replacement = "d_pn(_ps, _offset).unwrap()";
+
 
     output.push_str(
         r#"
@@ -32,14 +191,9 @@ use std::os::raw::c_void;
         "#,
     );
 
-    // Define regex patterns
-    let global_code_regex = Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
-    let header_regex = Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
-    let dollar_child_regex = Regex::new(r"\$(\d+)").unwrap();
-    let dollar_g_regex = Regex::new(r"\$g").unwrap();
-    let dollar_n_child_regex = Regex::new(r"\$n(\d+)").unwrap();
-    let dollar_n_regex = Regex::new(r"\$n").unwrap();
-    let dollar_dollar_regex = Regex::new(r"\$\$").unwrap();
+    // Regex for parsing the input structure (not for substitutions within actions)
+    let global_code_regex = regex::Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); // Keep for parsing global code block header
+    let header_regex = regex::Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); // Keep for parsing action function header
 
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
@@ -81,30 +235,22 @@ use std::os::raw::c_void;
                     body.push('\n');
                     i += 1;
                 }
-                // Transform the body
-                let body = dollar_child_regex
-                    .replace_all(&body, child_user.clone())
-                    .to_string();
-                let body = dollar_g_regex
-                    .replace_all(&body, globals.clone())
-                    .to_string();
-                let body = dollar_n_child_regex
-                    .replace_all(
-                        &body,
-                        "d_pn(d_child_pn_ptr(_children, $1), _offset).unwrap()",
-                    )
-                    .to_string();
-                let body = dollar_n_regex
-                    .replace_all(&body, "d_pn(_ps, _offset).unwrap()")
-                    .to_string();
-                let body = dollar_dollar_regex
-                    .replace_all(&body, user.clone())
-                    .to_string();
+
+                // Transform the body using the manual processor
+                let transformed_body = process_body(
+                    &body,
+                    &globals_replacement,
+                    child_user_replacement_fmt,
+                    &user_replacement,
+                    child_node_replacement_fmt,
+                    &node_replacement,
+                    node_type,
+                );
 
                 // Create the Rust function
                 let rust_function = format!(
                     "#[unsafe(no_mangle)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
-                    function_name, PARAMETERS, line_number, file_name, body
+                    function_name, PARAMETERS, line_number, file_name, transformed_body
                 );
 
                 output.push_str(&rust_function);
