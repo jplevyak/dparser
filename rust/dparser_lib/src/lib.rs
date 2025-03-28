@@ -44,14 +44,10 @@ pub fn d_child_pn(
     }
 }
 
-pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32, offset: i32) -> *mut c_void {
+pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32) -> *mut c_void {
     unsafe {
         let child_ptr: *mut *mut c_void = children.offset(i.try_into().unwrap());
-        let child: *mut c_void = *child_ptr;
-        let parse_node_ptr_raw: *mut u8 = child
-            .cast::<u8>()
-            .wrapping_offset(offset.try_into().unwrap());
-        parse_node_ptr_raw as *mut c_void
+        *child_ptr as *mut c_void
     }
 }
 
@@ -338,7 +334,7 @@ pub fn build_actions(
 
     let globals = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
     let child_user = format!(
-        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, $1, _offset), _offset)).unwrap()",
+        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, $1), _offset)).unwrap()",
         node_type
     );
     let user = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
@@ -410,7 +406,7 @@ use std::os::raw::c_void;
                 let body = dollar_n_child_regex
                     .replace_all(
                         &body,
-                        "d_pn(d_child_pn_ptr(_children, $1, _offset), _offset).unwrap()",
+                        "d_pn(d_child_pn_ptr(_children, $1), _offset).unwrap()",
                     )
                     .to_string();
                 let body = dollar_n_regex
