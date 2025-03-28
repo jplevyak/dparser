@@ -174,8 +174,11 @@ impl<G: 'static, N: 'static> Parser<G, N> {
             let buf = input_bytes.as_mut_ptr() as *mut c_char;
             let buf_len = input_bytes.len() as c_int - 1;
             let result = dparse(self.parser, buf, buf_len);
-            if result.is_null() {
-                None
+            if result == bindings::NO_DPN {
+                Some(ParseNodeWrapper {
+                    node: std::ptr::null_mut(),
+                    parser: self,
+                })
             } else {
                 Some(ParseNodeWrapper {
                     node: result,
@@ -194,6 +197,12 @@ impl<G: 'static, N: 'static> Parser<G, N> {
     pub fn set_ambiguity_fn(&mut self, func: D_AmbiguityFn) {
         unsafe {
             (*self.parser).ambiguity_fn = func;
+        }
+    }
+
+    pub fn set_save_parse_tree(&mut self, b: bool) {
+        unsafe {
+            (*self.parser).save_parse_tree = if b { 1 } else { 0 };
         }
     }
 
@@ -228,7 +237,12 @@ pub struct ParseNodeWrapper<'a, P: ParserPtr + 'static> {
 impl<'a, P: ParserPtr + 'static> Drop for ParseNodeWrapper<'a, P> {
     fn drop(&mut self) {
         unsafe {
-            free_D_ParseNode(self.parser.get_parser_ptr(), self.node);
+            let node = if self.node.is_null() {
+                bindings::NO_DPN
+            } else {
+                self.node
+            };
+            free_D_ParseNode(self.parser.get_parser_ptr(), node);
         }
     }
 }

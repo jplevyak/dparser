@@ -25,6 +25,8 @@ typedef void *d_voidp;
 #define D_ParseNode_Globals void
 #endif
 
+#define NO_DPN ((D_ParseNode *)0x1)
+
 typedef void (*D_SyntaxErrorFn)(struct D_Parser *);
 typedef struct D_ParseNode *(*D_AmbiguityFn)(struct D_Parser *, int n, struct D_ParseNode **v);
 typedef void (*D_FreeNodeFn)(struct D_ParseNode *d);

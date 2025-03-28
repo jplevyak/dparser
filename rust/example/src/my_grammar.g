@@ -23,30 +23,29 @@ start: S {
 
 S: A S 'b' 
 {
-  println!("reduce S: A S 'b' A x {} S x {} y {}", $0.x, $2.x, $2.y);
-  println!("reduce S: A S 'b' A column {}", $n0.start_loc.column());
-  println!("reduce S: A S 'b' global a {} b {}", $g.a, $g.b);
+  println!("reduce S: A S 'b', A x {} S x {} y {}", $0.x, $2.x, $2.y);
+  *$$ = $1.clone();
+  $$.x = $0.x + $1.x;
+  $g.a += 10;
 }
  | X
 {
   *$$ = $0.clone();
-  println!("reduce S: X x {}", $0.x);
-  println!("reduce S: X column {}", $n0.start_loc.column());
-  println!("reduce S: X global a {}", $g.a);
+  println!("reduce S: X column {} global a {} x {} x0 {}", $n0.start_loc.column(), $$.x, $g.a, $0.x);
 };
 
 A: 'a' { 
-  println!("reduce A x 1 global 11");
   $$.x = 1;
+  $$.y = 2;
   $g.a = 11;
-  println!("reduce A column {}", $n0.start_loc.column());
-  println!("reduce A global a {}", $g.a);
+  $g.b = 101;
+  println!("reduce A column {} global a {} x {}", $n0.start_loc.column(), $g.a, $$.x);
 };
 
 X: 'x' { 
-  println!("reduce X x 2 global 12");
-  $$.x = 2;
-  $g.a = 12;
-  println!("reduce X column {}", $n0.start_loc.column());
-  println!("reduce X global a {}", $g.a);
+  $$.x += 1;
+  $$.y += 1;
+  $g.a += 1;
+  $g.b += 1;
+  println!("reduce X column {} global a {} x {}", $n0.start_loc.column(), $g.a, $$.x);
 };

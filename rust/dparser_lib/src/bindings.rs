@@ -958,3 +958,5 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn d_dup_pathname_str(str_: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
+
+pub const NO_DPN: *mut D_ParseNode = 1 as *mut D_ParseNode;
