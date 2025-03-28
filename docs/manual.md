@@ -364,6 +364,26 @@ are equivalent to:
 E: '-' E $unary_right 1 | E '+' E $binary_left 2;
 ```
 
+### Ambiguity Resolution
+
+Ambiguities are resolved by the following rules:
+
+1. Local priorities and associativities are used to resolve ambiguities
+for operators which are adjacent.  This suffices for most cases of simple
+mathematical expressions.
+
+2. If the above fails, all the ambiguous parse nodes are sorted by least height, then highest priority, then earliest start and then the priorites are compares pairwise in order. The first difference in priorities is used to resolve the ambiguity in favor of highest priority node's parse tree. This follows the intuition that the higher priority rules should be resolved first.  It may produce unintuitive results in cases where many different parses are possible and non-local high priority reductions result in lower priority reductions being selected later (higher) in the parse tree. Such cases may require restructuring the grammar.
+
+3. If the above fails, the longest match is used to resolve the ambiguity.
+
+4. If the above fails, smallest height is used to resolve the ambiguity.
+
+5. If the above fails, any user defined ambiguity resolution function is called.
+
+Note that these default ambiguity resolution rules can be overridden by flags and the default ambiguity resolution function will print out the ambiguous parse trees if the `verbose_level` flag is set after which it will abort.
+
+e
+
 ## Actions
 
 Actions are the bits of code which run when a reduction occurs.  For example:
