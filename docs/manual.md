@@ -294,16 +294,6 @@ declarations operate on disjoint subsets of parsing states.
 
 Priorities can vary from `MININT` to `MAXINT` and are specified as integers.
 
-Associativity can take the values:
-```Yacc
-assoc : '$unary_op_right'  | '$unary_op_left'
-      | '$binary_op_right' | '$binary_op_left'
-      | '$unary_right'     | '$unary_left'
-      | '$binary_right'    | '$binary_left'
-      | '$right'           | '$left'
-      ;
-```
-
 ### Token Prioritites
 
 Terminal priorities apply after the set of matching strings has been found and
@@ -329,8 +319,6 @@ Possible operator associativities are:
 ```Yacc
 operator_assoc : '$unary_op_right'  | '$unary_op_left'
                | '$binary_op_right' | '$binary_op_left'
-               | '$unary_right'     | '$unary_left'
-               | '$binary_right'    | '$binary_left'
                ;
 ```
 Example:
@@ -348,10 +336,33 @@ possible associativities:
 ```Yacc
 rule_assoc: '$right' | '$left';
 ```
+
+Example:
+```Yacc
+E: E '+' E $right 2 | E '*' E $right 1;
+```
+
 Rule and operator priorities can be intermixed and are interpreted at run time
 (**not** when the tables are built).  This makes it possible for user-defined
 scanners to return the associativities and priorities of tokens.
 
+Note, for historical reasons, specific unary and binary operator associativities
+can be provided, but these are not necessary as they will be inferred from the rule.
+
+deprecated_rule_assoc
+               : '$unary_right'     | '$unary_left'
+               | '$binary_right'    | '$binary_left';
+
+So for example:
+```Yacc
+E: '-' E $right 1 | E '+' E $left 2;
+```
+
+are equivalent to:
+
+```Yacc
+E: '-' E $unary_right 1 | E '+' E $binary_left 2;
+```
 
 ## Actions
 
