@@ -89,10 +89,8 @@ fn process_body(
                                             break;
                                         }
                                     }
-                                    // Replace NODE_TYPE placeholder first, then index placeholder
-                                    let replacement = child_user_replacement_fmt
-                                        .replace("NODE_TYPE", node_type)
-                                        .replace("{}", &digits);
+                                    // Index placeholder replacement
+                                    let replacement = child_user_replacement_fmt.replace("{}", &digits);
                                     output.push_str(&replacement);
                                 }
                                 _ => {
@@ -175,8 +173,8 @@ pub fn build_actions(
 
     // Define base replacement strings and format templates
     let globals_replacement = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
-    // Format string expecting index {} and node_type NODE_TYPE placeholder
-    let child_user_replacement_fmt = "d_user::<NODE_TYPE>(d_pn_ptr(d_child_pn_ptr(_children, {}), _offset)).unwrap()";
+    // Format string expecting index {}, with node_type already substituted
+    let child_user_replacement_fmt = format!("d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset)).unwrap()", node_type);
     let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
     // Format string expecting index {}
     let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset).unwrap()";
