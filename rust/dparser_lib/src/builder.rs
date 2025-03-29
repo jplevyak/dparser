@@ -74,14 +74,16 @@ fn process_body(
                                             }
                                         }
                                         // First, get the replacement for $nX
-                                        let nX_replacement =
+                                        let node_replacement =
                                             child_node_replacement_fmt.replace("{}", &digits);
                                         // Then wrap it with d_get_number_of_children
-                                        let final_replacement =
-                                            format!("d_get_number_of_children({})", nX_replacement);
+                                        let final_replacement = format!(
+                                            "d_get_number_of_children({})",
+                                            node_replacement
+                                        );
                                         output.push_str(&final_replacement);
                                     } else {
-                                        // Handle original $#
+                                        // Handle $#
                                         output.push_str("(_n_children)");
                                     }
                                 }
@@ -244,6 +246,7 @@ pub fn build_actions(
     output.push_str(
         r#"
 use dparser_lib::bindings::*;
+#[allow(unused_imports)]
 use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user, d_get_number_of_children};
 use std::os::raw::c_void;
         "#,
