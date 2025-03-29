@@ -109,9 +109,51 @@ fn process_body(
                                     if digits.is_empty() {
                                         output.push_str(node_replacement);
                                     } else {
-                                        let replacement =
-                                            child_node_replacement_fmt.replace("{}", &digits);
-                                        output.push_str(&replacement);
+                                        // Check for [Y] after $nX
+                                        if chars.peek() == Some(&'[') {
+                                            chars.next(); // consume '['
+                                            let mut index_y = String::new();
+                                            while let Some(&d) = chars.peek() {
+                                                if d.is_ascii_digit() {
+                                                    chars.next(); // consume digit
+                                                    index_y.push(d);
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+                                            if !index_y.is_empty() && chars.peek() == Some(&']') {
+                                                chars.next(); // consume ']'
+                                                let node_x_replacement =
+                                                    child_node_replacement_fmt.replace("{}", &digits);
+                                                let final_replacement = format!(
+                                                    "d_get_child({}, {})",
+                                                    node_x_replacement, index_y
+                                                );
+                                                output.push_str(&final_replacement);
+                                            } else {
+                                                // Invalid $nX[Y] format, treat as $nX followed by literal chars
+                                                let replacement =
+                                                    child_node_replacement_fmt.replace("{}", &digits);
+                                                output.push_str(&replacement);
+                                                output.push('[');
+                                                output.push_str(&index_y);
+                                                // Push the character that broke the digit loop if it wasn't ']'
+                                                if chars.peek() != Some(&']') {
+                                                    if let Some(c) = chars.next() {
+                                                        output.push(c);
+                                                    }
+                                                } else {
+                                                    // If it was ']', consume and push it
+                                                    chars.next();
+                                                    output.push(']');
+                                                }
+                                            }
+                                        } else {
+                                            // Regular $nX
+                                            let replacement =
+                                                child_node_replacement_fmt.replace("{}", &digits);
+                                            output.push_str(&replacement);
+                                        }
                                     }
                                 }
                                 d if d.is_ascii_digit() => {
@@ -247,7 +289,7 @@ pub fn build_actions(
         r#"
 use dparser_lib::bindings::*;
 #[allow(unused_imports)]
-use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user, d_get_number_of_children};
+use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user, d_get_number_of_children, d_get_child};
 use std::os::raw::c_void;
         "#,
     );
