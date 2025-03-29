@@ -1,8 +1,8 @@
 pub mod bindings;
 pub mod builder;
 pub use bindings::{
-    d_loc_t, dparse, free_D_ParseNode, free_D_Parser, new_D_Parser, D_AmbiguityFn, D_ParseNode,
-    D_Parser, D_ParserTables, D_SyntaxErrorFn,
+    d_get_child, d_get_number_of_children, d_loc_t, dparse, free_D_ParseNode, free_D_Parser,
+    new_D_Parser, D_AmbiguityFn, D_ParseNode, D_Parser, D_ParserTables, D_SyntaxErrorFn,
 };
 pub use builder::build_actions;
 use std::os::raw::{c_char, c_int, c_void};
