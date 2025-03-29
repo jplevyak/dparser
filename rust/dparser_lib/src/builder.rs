@@ -113,40 +113,39 @@ fn process_body(
                                         // Check for [Y] after $nX
                                         if chars.peek() == Some(&'[') {
                                             chars.next(); // consume '['
-                                            let mut index_y = String::new();
-                                            while let Some(&d) = chars.peek() {
-                                                if d.is_ascii_digit() {
-                                                    chars.next(); // consume digit
-                                                    index_y.push(d);
-                                                } else {
+                                            let mut index_expression = String::new();
+                                            let mut found_closing_bracket = false;
+                                            while let Some(&next_char) = chars.peek() {
+                                                if next_char == ']' {
+                                                    chars.next(); // consume ']'
+                                                    found_closing_bracket = true;
                                                     break;
+                                                } else {
+                                                    chars.next(); // consume character
+                                                    index_expression.push(next_char);
                                                 }
                                             }
-                                            if !index_y.is_empty() && chars.peek() == Some(&']') {
-                                                chars.next(); // consume ']'
+
+                                            if found_closing_bracket && !index_expression.is_empty() {
                                                 let node_x_replacement =
                                                     child_node_replacement_fmt.replace("{}", &digits);
                                                 let final_replacement = format!(
                                                     "d_get_child({}, {})",
-                                                    node_x_replacement, index_y
+                                                    node_x_replacement, index_expression // Use the captured expression
                                                 );
                                                 output.push_str(&final_replacement);
                                             } else {
-                                                // Invalid $nX[Y] format, treat as $nX followed by literal chars
+                                                // Invalid or incomplete $nX[...] format, treat as $nX followed by literal chars
                                                 let replacement =
                                                     child_node_replacement_fmt.replace("{}", &digits);
                                                 output.push_str(&replacement);
                                                 output.push('[');
-                                                output.push_str(&index_y);
-                                                // Push the character that broke the digit loop if it wasn't ']'
-                                                if chars.peek() != Some(&']') {
-                                                    if let Some(c) = chars.next() {
+                                                output.push_str(&index_expression); // Push what was consumed
+                                                // If we didn't find the closing bracket, push the current char if any
+                                                if !found_closing_bracket {
+                                                   if let Some(c) = chars.next() {
                                                         output.push(c);
-                                                    }
-                                                } else {
-                                                    // If it was ']', consume and push it
-                                                    chars.next();
-                                                    output.push(']');
+                                                   }
                                                 }
                                             }
                                         } else {
