@@ -126,26 +126,28 @@ fn process_body(
                                                 }
                                             }
 
-                                            if found_closing_bracket && !index_expression.is_empty() {
-                                                let node_x_replacement =
-                                                    child_node_replacement_fmt.replace("{}", &digits);
+                                            if found_closing_bracket && !index_expression.is_empty()
+                                            {
+                                                let node_x_replacement = child_node_replacement_fmt
+                                                    .replace("{}", &digits);
                                                 let final_replacement = format!(
-                                                    "d_get_child({}, {})",
-                                                    node_x_replacement, index_expression // Use the captured expression
+                                                    "d_get_child({}, {}).as_ref().unwrap()",
+                                                    node_x_replacement,
+                                                    index_expression // Use the captured expression
                                                 );
                                                 output.push_str(&final_replacement);
                                             } else {
                                                 // Invalid or incomplete $nX[...] format, treat as $nX followed by literal chars
-                                                let replacement =
-                                                    child_node_replacement_fmt.replace("{}", &digits);
+                                                let replacement = child_node_replacement_fmt
+                                                    .replace("{}", &digits);
                                                 output.push_str(&replacement);
                                                 output.push('[');
                                                 output.push_str(&index_expression); // Push what was consumed
-                                                // If we didn't find the closing bracket, push the current char if any
+                                                                                    // If we didn't find the closing bracket, push the current char if any
                                                 if !found_closing_bracket {
-                                                   if let Some(c) = chars.next() {
+                                                    if let Some(c) = chars.next() {
                                                         output.push(c);
-                                                   }
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -185,15 +187,16 @@ fn process_body(
 
                                             // Generate the complex replacement for $X[Y] -> user data
                                             // d_user::<NODE_TYPE>(d_pn_ptr(d_get_child(d_pn(d_child_pn_ptr(_children, X), _offset).unwrap(), Y), _offset)).unwrap()
-                                            let node_x = child_node_replacement_fmt.replace("{}", &digits_x);
-                                            let node_y = format!("d_get_child({}, {})", node_x, digits_y);
+                                            let node_x =
+                                                child_node_replacement_fmt.replace("{}", &digits_x);
+                                            let node_y =
+                                                format!("d_get_child({}, {})", node_x, digits_y);
                                             let final_replacement = format!(
                                                 "d_user::<{}>(d_pn_ptr({}, _offset)).unwrap()",
                                                 node_type, // Use the passed-in node_type
                                                 node_y
                                             );
                                             output.push_str(&final_replacement);
-
                                         } else {
                                             // Invalid $X[Y] format, treat as $X followed by literal chars
                                             // Use the original $X replacement (accessing user data of child X)

@@ -7,7 +7,7 @@ unsafe extern "C" {
 }
 
 fn main() {
-    let input_string = "a x  b";
+    let input_string = "a x  b uvu";
 
     println!("Parsing input: '{}'", input_string);
 

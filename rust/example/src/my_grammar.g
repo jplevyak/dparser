@@ -17,7 +17,7 @@ pub const INDEX_OF_A:u32 = ${nterm A};
 
 }
 
-start: S {
+start: S T {
   println!("start: S global a {} x {}", $g.a, $0.x);
   *$$ = $0.clone();
 };
@@ -53,3 +53,15 @@ X: 'x' {
   $g.b += 1;
   println!("reduce X column {} global a {} x {}", $n0.start_loc.column(), $g.a, $$.x);
 };
+
+T: U* {
+   println!("[");
+   unsafe {
+   for i in 0..$#0 {
+     print!("({})", $n0[i].str().unwrap());
+   }
+   }
+  println!("]");
+};
+
+U: 'u' | 'v';;
