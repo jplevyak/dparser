@@ -62,7 +62,28 @@ fn process_body(
                             match next_c {
                                 '#' => {
                                     chars.next(); // consume '#'
-                                    output.push_str("(_n_children)");
+                                    if chars.peek().map_or(false, |c| c.is_ascii_digit()) {
+                                        // Handle $#X
+                                        let mut digits = String::new();
+                                        while let Some(&d) = chars.peek() {
+                                            if d.is_ascii_digit() {
+                                                chars.next(); // consume digit
+                                                digits.push(d);
+                                            } else {
+                                                break;
+                                            }
+                                        }
+                                        // First, get the replacement for $nX
+                                        let nX_replacement =
+                                            child_node_replacement_fmt.replace("{}", &digits);
+                                        // Then wrap it with d_get_number_of_children
+                                        let final_replacement =
+                                            format!("d_get_number_of_children({})", nX_replacement);
+                                        output.push_str(&final_replacement);
+                                    } else {
+                                        // Handle original $#
+                                        output.push_str("(_n_children)");
+                                    }
                                 }
                                 '$' => {
                                     chars.next(); // consume '$'
@@ -223,7 +244,7 @@ pub fn build_actions(
     output.push_str(
         r#"
 use dparser_lib::bindings::*;
-use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user};
+use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user, d_get_number_of_children};
 use std::os::raw::c_void;
         "#,
     );
