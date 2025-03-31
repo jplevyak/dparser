@@ -2,8 +2,8 @@
 S: A+;
 A: 'a' B* {
   print!("[");
-  for i in 0..$#1 {
-    let child_node = $n1[i]; // Use $n1[i] to get the i-th child node of B*
+  // Use $n1* to get an iterator/Vec over the children of B*
+  for child_node in $n1* { 
     let start_char = unsafe { *child_node.start_loc.s as char }; // Access start_loc.s
     print!("({})", start_char);
   }
