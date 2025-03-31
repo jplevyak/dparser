@@ -7,6 +7,7 @@ pub use bindings::{
 pub use builder::build_actions;
 use std::os::raw::{c_char, c_int, c_void};
 use std::vec::Vec; // Import Vec
+//use std::mem::MaybeUninit;
 
 pub fn d_globals<'a, T>(_parser: *mut D_Parser) -> Option<&'a mut T> {
     unsafe {
@@ -207,13 +208,15 @@ pub struct Parser<G: 'static, N: 'static> {
     parser: *mut D_Parser,
     _phantom_g: std::marker::PhantomData<G>,
     _phantom_n: std::marker::PhantomData<N>,
+    tables: D_ParserTables,
 }
 
 impl<G: 'static, N: 'static> Parser<G, N> {
-    pub fn new(tables: *mut D_ParserTables) -> Self {
+    pub fn new() -> Self {
         unsafe {
             let sizeof_n = std::mem::size_of::<N>() as c_int;
-            let parser = new_D_Parser(tables, sizeof_n);
+            let mut store = std::mem::MaybeUninit::uninit();
+            let parser = new_D_Parser(store.as_mut_ptr(), sizeof_n);
             (*parser).syntax_error_fn = Some(default_syntax_error_fn);
             (*parser).ambiguity_fn = Some(default_ambiguity_fn);
             (*parser).free_node_fn = Some(default_free_node_fn::<N>);
@@ -221,6 +224,7 @@ impl<G: 'static, N: 'static> Parser<G, N> {
                 parser,
                 _phantom_g: std::marker::PhantomData,
                 _phantom_n: std::marker::PhantomData,
+                tables: store.assume_init(),
             }
         }
     }
