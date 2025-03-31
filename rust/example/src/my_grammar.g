@@ -55,12 +55,10 @@ X: 'x' {
 };
 
 T: U* {
-   println!("[");
-   unsafe {
-   for i in 0..$#0 {
-     print!("({})", $n0[i].str().unwrap());
-   }
-   }
+  print!("[");
+  for n in $n0* {
+    print!("({})", n.str().unwrap());
+  }
   println!("]");
 };
 

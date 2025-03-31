@@ -3,7 +3,6 @@ pub mod builder;
 pub use bindings::{
     d_get_child, d_get_number_of_children, d_loc_t, dparse, free_D_ParseNode, free_D_Parser,
     new_D_Parser, D_AmbiguityFn, D_ParseNode, D_Parser, D_ParserTables, D_SyntaxErrorFn,
-    d_children_nodes, d_children_user, // Export new functions
 };
 pub use builder::build_actions;
 use std::os::raw::{c_char, c_int, c_void};
@@ -108,11 +107,13 @@ pub fn d_children_nodes(
     offset: i32,
 ) -> Vec<&'static mut D_ParseNode> {
     let mut nodes = Vec::new();
-    if let Some(parent_node) = d_child_pn(children, i, offset) {
-        let num_children = d_get_number_of_children(parent_node);
-        for j in 0..num_children {
-            if let Some(child_node) = unsafe { d_get_child(parent_node, j).as_mut() } {
-                nodes.push(child_node);
+    unsafe {
+        if let Some(parent_node) = d_child_pn(children, i, offset) {
+            let num_children = d_get_number_of_children(parent_node);
+            for j in 0..num_children {
+                if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
+                    nodes.push(child_node);
+                }
             }
         }
     }
@@ -126,24 +127,25 @@ pub fn d_children_user<'a, T: 'static + Default>(
     offset: i32,
 ) -> Vec<&'a mut T> {
     let mut users = Vec::new();
-    if let Some(parent_node) = d_child_pn(children, i, offset) {
-        let num_children = d_get_number_of_children(parent_node);
-        for j in 0..num_children {
-            if let Some(child_node) = unsafe { d_get_child(parent_node, j).as_mut() } {
-                if let Some(user_data) = d_user::<T>(child_node) {
-                    // Need to ensure the lifetime 'a is appropriate.
-                    // This might require careful handling depending on usage context.
-                    // For now, assuming 'a can be derived correctly.
-                    // Reinterpreting the lifetime might be necessary if 'a is shorter than 'static.
-                    let user_data_ptr = user_data as *mut T;
-                    users.push(unsafe { &mut *user_data_ptr });
+    unsafe {
+        if let Some(parent_node) = d_child_pn(children, i, offset) {
+            let num_children = d_get_number_of_children(parent_node);
+            for j in 0..num_children {
+                if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
+                    if let Some(user_data) = d_user::<T>(child_node) {
+                        // Need to ensure the lifetime 'a is appropriate.
+                        // This might require careful handling depending on usage context.
+                        // For now, assuming 'a can be derived correctly.
+                        // Reinterpreting the lifetime might be necessary if 'a is shorter than 'static.
+                        let user_data_ptr = user_data as *mut T;
+                        users.push(&mut *user_data_ptr);
+                    }
                 }
             }
         }
     }
     users
 }
-
 
 impl d_loc_t {
     pub fn str(&self) -> Result<&str, std::str::Utf8Error> {
