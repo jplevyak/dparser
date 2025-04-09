@@ -73,7 +73,7 @@ ifeq ($(D_PROFILE),1)
 CFLAGS += -pg
 endif
 
-CFLAGS += -std=c23 -pedantic
+CFLAGS += -pedantic
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/make_dparser.1 dparser/make_dparser.cat
