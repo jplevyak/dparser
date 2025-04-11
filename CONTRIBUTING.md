@@ -13,7 +13,7 @@ The first mechanism is suitable for C, C++, Rust and other statically compiled l
 
 The `make_dparser` binary has native support for C and C++ as it can output a C/C++ compatible file containing both the parser tables and the actions.  The parser tables are then compiled into a C/C++ compatible data object file.  The actions are already in C/C++ and linked into the parser tables.
 
-For non-C/C++ languages, the actions can be output to a different file along with the metadate necessary to link them to the parser tables at load time.  The actions can then be converted to a target language file using a target language program, compiled to a target language binary, loaded by a target language library and linked to the parser tables at load time.
+For non-C/C++ languages, the actions can be output to a different file along with the metadate necessary for them to link automatically to the parser tables.  The actions can then be converted to a target language file using a target language program, compiled to a target language binary with specific C compatible function names and calling convetions such that they will be linked into the parser tables at link time.
 
 ### Building the parser tables and actions file for non-C/C++ languages
 
