@@ -53,7 +53,7 @@ For instance, the Rust translator converts `$$` to:
 d_user::<NodeStruct>(d_pn_ptr(_ps, _offset)).unwrap()
 ```
 
-where the d\_user and d\_pn\_ptr functions are provided by the Rust library.  The d\_user function is returns a reference to the user data structure of the node.  The d\_pn\_ptr function returns a reference to the parse node which is at the given offset within an internal DParser data structure.  This is only an example and every target language is free to decide how they would like handle the implementation.
+where the d\_user and d\_pn\_ptr functions are provided by the Rust library.  The d\_user function returns a reference to the user data structure of the node.  The d\_pn\_ptr function returns a reference to the parse node which is at the given offset within an internal DParser data structure.  This is only an example and every target language is free to decide how they would like handle the implementation.
 
 
 ### C format data structures
