@@ -257,16 +257,16 @@ pub fn build_actions(
     reader.read_to_string(&mut content)?;
 
     // Define base replacement strings and format templates
-    let globals_replacement = format!("d_globals::<{}>(_parser).unwrap()", globals_type);
+    let globals_replacement = format!("d_globals::<{}>(_parser)", globals_type);
     // Format string expecting index {}, with node_type already substituted
     let child_user_replacement_fmt = format!(
-        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset)).unwrap()",
+        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset))",
         node_type
     );
-    let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset)).unwrap()", node_type);
+    let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset))", node_type);
     // Format string expecting index {}
-    let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset).unwrap()";
-    let node_replacement = "d_pn(_ps, _offset).unwrap()";
+    let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset)";
+    let node_replacement = "d_pn(_ps, _offset)";
 
     output.push_str(
         r#"

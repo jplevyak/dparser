@@ -8,38 +8,26 @@ pub use builder::build_actions;
 use std::os::raw::{c_char, c_int, c_void};
 use std::vec::Vec; // Import Vec
 
-pub fn d_globals<'a, T>(_parser: *mut D_Parser) -> Option<&'a mut T> {
+pub fn d_globals<'a, T>(_parser: *mut D_Parser) -> &'a mut T {
     unsafe {
-        if _parser.is_null() {
-            return None;
-        }
-        if (*_parser).initial_globals.is_null() {
-            return None;
-        }
+        assert!(!_parser.is_null());
+        assert!(!(*_parser).initial_globals.is_null());
         let ptr: *mut T = (*_parser).initial_globals.cast::<T>();
-        Some(&mut *ptr)
+        &mut *ptr
     }
 }
 
-pub fn d_child_pn(
-    children: *mut *mut c_void,
-    i: i32,
-    offset: i32,
-) -> Option<&'static mut D_ParseNode> {
+pub fn d_child_pn(children: *mut *mut c_void, i: i32, offset: i32) -> &'static mut D_ParseNode {
     unsafe {
-        if children.is_null() {
-            return None;
-        }
+        assert!(!children.is_null());
         let child_ptr: *mut *mut c_void = children.offset(i.try_into().unwrap());
-        if child_ptr.is_null() {
-            return None;
-        }
+        assert!(!child_ptr.is_null());
         let child: *mut c_void = *child_ptr;
         let parse_node_ptr_raw: *mut u8 = child
             .cast::<u8>()
             .wrapping_offset(offset.try_into().unwrap());
         let parse_node_ptr: *mut D_ParseNode = parse_node_ptr_raw.cast::<D_ParseNode>();
-        Some(&mut *parse_node_ptr)
+        &mut *parse_node_ptr
     }
 }
 
@@ -50,15 +38,13 @@ pub fn d_child_pn_ptr(children: *mut *mut c_void, i: i32) -> *mut c_void {
     }
 }
 
-pub fn d_pn(pn: *mut c_void, offset: i32) -> Option<&'static mut D_ParseNode> {
+pub fn d_pn(pn: *mut c_void, offset: i32) -> &'static mut D_ParseNode {
     unsafe {
-        if pn.is_null() {
-            return None;
-        }
+        assert!(!pn.is_null());
         let parse_node_ptr_raw: *mut u8 =
             pn.cast::<u8>().wrapping_offset(offset.try_into().unwrap());
         let parse_node_ptr: *mut D_ParseNode = parse_node_ptr_raw.cast::<D_ParseNode>();
-        Some(&mut *parse_node_ptr)
+        &mut *parse_node_ptr
     }
 }
 
@@ -70,7 +56,7 @@ pub fn d_pn_ptr(pn: *mut c_void, offset: i32) -> *mut D_ParseNode {
     parse_node_ptr_raw as *mut D_ParseNode
 }
 
-pub fn d_user<'a, T: 'static + Default>(pn: *mut D_ParseNode) -> Option<&'a mut T> {
+pub fn d_user<'a, T: 'static + Default>(pn: *mut D_ParseNode) -> &'a mut T {
     unsafe {
         let field_address: *mut *mut c_void = &mut (*pn).user;
         let ptr: *mut T = (*field_address).cast::<T>();
@@ -79,9 +65,9 @@ pub fn d_user<'a, T: 'static + Default>(pn: *mut D_ParseNode) -> Option<&'a mut 
             let new_t = Box::new(T::default());
             *field_address = Box::into_raw(new_t) as *mut c_void;
             let ptr: *mut T = (*field_address).cast::<T>();
-            Some(&mut *ptr)
+            &mut *ptr
         } else {
-            Some(&mut *ptr)
+            &mut *ptr
         }
     }
 }
@@ -108,12 +94,11 @@ pub fn d_children_nodes(
 ) -> Vec<&'static mut D_ParseNode> {
     let mut nodes = Vec::new();
     unsafe {
-        if let Some(parent_node) = d_child_pn(children, i, offset) {
-            let num_children = d_get_number_of_children(parent_node);
-            for j in 0..num_children {
-                if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
-                    nodes.push(child_node);
-                }
+        let parent_node = d_child_pn(children, i, offset);
+        let num_children = d_get_number_of_children(parent_node);
+        for j in 0..num_children {
+            if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
+                nodes.push(child_node);
             }
         }
     }
@@ -128,19 +113,17 @@ pub fn d_children_user<'a, T: 'static + Default>(
 ) -> Vec<&'a mut T> {
     let mut users = Vec::new();
     unsafe {
-        if let Some(parent_node) = d_child_pn(children, i, offset) {
-            let num_children = d_get_number_of_children(parent_node);
-            for j in 0..num_children {
-                if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
-                    if let Some(user_data) = d_user::<T>(child_node) {
-                        // Need to ensure the lifetime 'a is appropriate.
-                        // This might require careful handling depending on usage context.
-                        // For now, assuming 'a can be derived correctly.
-                        // Reinterpreting the lifetime might be necessary if 'a is shorter than 'static.
-                        let user_data_ptr = user_data as *mut T;
-                        users.push(&mut *user_data_ptr);
-                    }
-                }
+        let parent_node = d_child_pn(children, i, offset);
+        let num_children = d_get_number_of_children(parent_node);
+        for j in 0..num_children {
+            if let Some(child_node) = d_get_child(parent_node, j).as_mut() {
+                let user_data = d_user::<T>(child_node);
+                // Need to ensure the lifetime 'a is appropriate.
+                // This might require careful handling depending on usage context.
+                // For now, assuming 'a can be derived correctly.
+                // Reinterpreting the lifetime might be necessary if 'a is shorter than 'static.
+                let user_data_ptr = user_data as *mut T;
+                users.push(&mut *user_data_ptr);
             }
         }
     }

@@ -29,10 +29,7 @@ fn main() {
                 } else {
                     println!(
                         "Root node x {}",
-                        d_user::<NodeStruct>(root_node.node.as_mut().unwrap())
-                            .as_ref()
-                            .unwrap()
-                            .x
+                        d_user::<NodeStruct>(root_node.node.as_mut().unwrap()).x
                     );
                 }
             }
