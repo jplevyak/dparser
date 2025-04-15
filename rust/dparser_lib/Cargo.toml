@@ -7,6 +7,8 @@ description = "The scannerless GLR dparser library"
 license = "BSD-3-Clause"
 repository = "https://github.com/jplevyak/dparser"
 keywords = ["parser", "scannerless", "GLR"]
+categories = ["parsing", "development-tools", "compiler"]
+readme = "README.md"
 build = "build.rs"
 links = "dparse"
 
