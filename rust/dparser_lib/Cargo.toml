@@ -13,7 +13,8 @@ readme = "README.md"
 build = "build.rs"
 links = "dparse"
 include = [
-  "src/dparser.h",
+  "src/*",
+  "*",
   "../../README.md",
   "../../LICENSE.txt",
   "../../*.c",
