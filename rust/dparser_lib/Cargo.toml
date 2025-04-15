@@ -6,11 +6,21 @@ authors = ["John Plevyak <jplevyak@gmail.com>"]
 description = "The scannerless GLR dparser library"
 license = "BSD-3-Clause"
 repository = "https://github.com/jplevyak/dparser"
+homepage = "https://github.com/jplevyak/dparser"
 keywords = ["parser", "scannerless", "GLR"]
 categories = ["parsing", "development-tools", "compiler"]
 readme = "README.md"
 build = "build.rs"
 links = "dparse"
+include = [
+  "src/dparser.h",
+  "../../README.md",
+  "../../LICENSE.txt",
+  "../../*.c",
+  "../../*.h",
+  "../../*.g",
+  "../../Makefile",
+]
 
 [dependencies]
 regex = "1"
