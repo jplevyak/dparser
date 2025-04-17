@@ -137,6 +137,8 @@ version:
 test:
 	(MAKE=$(MAKE) ./parser_tests)
 
+check: test
+
 install:
 	mkdir -p $(PREFIX)/bin
 	cp -f $(EXECUTABLES) $(PREFIX)/bin
