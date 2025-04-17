@@ -13,10 +13,10 @@
 #define LATEST(_p, _pn)                              \
   do {                                               \
     while ((_pn)->latest != (_pn)->latest->latest) { \
-      PNode *t = (_pn)->latest->latest;              \
-      ref_pn(t);                                     \
+      PNode *_t = (_pn)->latest->latest;             \
+      ref_pn(_t);                                    \
       unref_pn((_p), (_pn)->latest);                 \
-      (_pn)->latest = t;                             \
+      (_pn)->latest = _t;                            \
     }                                                \
     (_pn) = (_pn)->latest;                           \
   } while (0)
@@ -145,10 +145,14 @@ SNode *find_SNode(Parser *p, uint state, D_Scope *sc) {
   SNodeHash *ph = &p->snode_hash;
   SNode *sn;
   uint h = SNODE_HASH(state, sc);
+  SNode *result = NULL;
   if (ph->v)
     for (sn = ph->v[h % ph->m]; sn; sn = sn->bucket_next)
-      if (sn->state - p->t->state == state && sn->initial_scope == sc) return sn;
-  return NULL;
+      if (sn->state - p->t->state == state && sn->initial_scope == sc) {
+        assert(!result);
+        result = sn;
+      }
+  return result;
 }
 
 void insert_SNode_internal(Parser *p, SNode *sn) {
@@ -295,14 +299,17 @@ PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *s
   PNode *pn;
   uint h = PNODE_HASH(start, end_skip, symbol, sc);
   *hash = h;
+  PNode *result = NULL;
   if (ph->v)
     for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
       if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
           pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
-        LATEST(p, pn);
-        return pn;
+        PNode *t = pn;
+        LATEST(p, t);
+        assert(!result  || result == t);
+        result = t;
       }
-  return NULL;
+  return result;
 }
 
 void insert_PNode_internal(Parser *p, PNode *pn) {
