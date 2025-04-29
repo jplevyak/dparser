@@ -4,6 +4,20 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let dparser_c_include_path = manifest_dir.join("../..");
+
+    if !dparser_c_include_path.is_dir() {
+        panic!(
+            "dparser C include directory not found at: {}",
+            dparser_c_include_path.display()
+        );
+    }
+    let include_path_str = dparser_c_include_path.to_str().unwrap();
+
+    println!("cargo:include={}", include_path_str);
+    let path_to_make_dparser = PathBuf::from(env::var("OUT_DIR").unwrap()).join("make_dparser");
+    println!("cargo:binary_path={}", path_to_make_dparser.display());
     // println!("cargo:rustc-link-search=native=../../");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -35,9 +49,4 @@ fn main() {
     } else {
         panic!("make_dparser not found at {:?}", src_path);
     }
-
-    println!(
-        "cargo:rustc-env=DPARSE_CRATE_BINARY_PATH={}",
-        dest_path.display()
-    );
 }

@@ -131,6 +131,10 @@ ALL_SRCS = $(MAKE_PARSER_SRCS) $(BASE_SAMPLE_PARSER_SRCS) $(LIB_SRCS) $(MK_LIB_S
 
 all: $(EXECS) $(LIBRARIES) make_dparser.cat
 
+debug:
+	make clean
+	D_DEBUG=1 D_OPTIMIZE=0 $(MAKE)
+
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 

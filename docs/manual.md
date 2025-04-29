@@ -182,16 +182,21 @@ and those which are global (called for every terminal).  Here is an example of
 a scanner for a single terminal.  Notice how it can be mixed with regular
 string terminals.
 ```C
-{
-    extern char *ops;
-    extern void *ops_cache;
-    int ops_scan(char *ops, void *ops_cache, char **as,
-                 int *col, int *line,
-                 unsigned short *op_assoc, int *op_priority);
-}
+  char *my_ops = "+";
+  void *my_ops_cache = NULL;
+  int my_ops_scan(d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
+    if (loc->s[0] == *my_ops) {
+      my_ops_cache = (void*)loc->s;
+      loc->s++;
+      *op_assoc = ASSOC_BINARY_LEFT;
+      *op_priority = 9500;
+      return 1;
+    }
+    return 0;
+  }
 ```
 ```Yacc
-X: '1' (${scan ops_scan(ops, ops_cache)} '2')*;
+X: '1' (${scan ops_scan} '2')*;
 ```
 
 The user provides the `ops_scan` function.  This example is from
@@ -289,16 +294,6 @@ declarations operate on disjoint subsets of parsing states.
 
 Priorities can vary from `MININT` to `MAXINT` and are specified as integers.
 
-Associativity can take the values:
-```Yacc
-assoc : '$unary_op_right'  | '$unary_op_left'
-      | '$binary_op_right' | '$binary_op_left'
-      | '$unary_right'     | '$unary_left'
-      | '$binary_right'    | '$binary_left'
-      | '$right'           | '$left'
-      ;
-```
-
 ### Token Prioritites
 
 Terminal priorities apply after the set of matching strings has been found and
@@ -324,8 +319,6 @@ Possible operator associativities are:
 ```Yacc
 operator_assoc : '$unary_op_right'  | '$unary_op_left'
                | '$binary_op_right' | '$binary_op_left'
-               | '$unary_right'     | '$unary_left'
-               | '$binary_right'    | '$binary_left'
                ;
 ```
 Example:
@@ -343,10 +336,53 @@ possible associativities:
 ```Yacc
 rule_assoc: '$right' | '$left';
 ```
+
+Example:
+```Yacc
+E: E '+' E $right 2 | E '*' E $right 1;
+```
+
 Rule and operator priorities can be intermixed and are interpreted at run time
 (**not** when the tables are built).  This makes it possible for user-defined
 scanners to return the associativities and priorities of tokens.
 
+Note, for historical reasons, specific unary and binary operator associativities
+can be provided, but these are not necessary as they will be inferred from the rule.
+
+deprecated_rule_assoc
+               : '$unary_right'     | '$unary_left'
+               | '$binary_right'    | '$binary_left';
+
+So for example:
+```Yacc
+E: '-' E $right 1 | E '+' E $left 2;
+```
+
+are equivalent to:
+
+```Yacc
+E: '-' E $unary_right 1 | E '+' E $binary_left 2;
+```
+
+### Ambiguity Resolution
+
+Ambiguities are resolved by the following rules:
+
+1. Local priorities and associativities are used to resolve ambiguities
+for operators which are adjacent.  This suffices for most cases of simple
+mathematical expressions.
+
+2. If the above fails, all the ambiguous parse nodes are sorted by least height, then highest priority, then earliest start and then the priorites are compares pairwise in order. The first difference in priorities is used to resolve the ambiguity in favor of highest priority node's parse tree. This follows the intuition that the higher priority rules should be resolved first.  It may produce unintuitive results in cases where many different parses are possible and non-local high priority reductions result in lower priority reductions being selected later (higher) in the parse tree. Such cases may require restructuring the grammar.
+
+3. If the above fails, the longest match is used to resolve the ambiguity.
+
+4. If the above fails, smallest height is used to resolve the ambiguity.
+
+5. If the above fails, any user defined ambiguity resolution function is called.
+
+Note that these default ambiguity resolution rules can be overridden by flags and the default ambiguity resolution function will print out the ambiguous parse trees if the `verbose_level` flag is set after which it will abort.
+
+e
 
 ## Actions
 

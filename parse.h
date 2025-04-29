@@ -4,7 +4,6 @@
 #ifndef _parse_H_
 #define _parse_H_
 
-#define NO_DPN ((D_ParseNode *)0x1)
 #define DPN_TO_PN(_dpn) ((PNode *)(_dpn == NULL ? NULL : (((char *)_dpn) - ((long)sizeof(PNode) - (long)sizeof(D_ParseNode)))))
 #define is_epsilon_PNode(_pn) ((_pn)->parse_node.start_loc.s == (_pn)->parse_node.end)
 

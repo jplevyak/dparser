@@ -11,3 +11,4 @@ sample_parser
 /.build
 /.vs
 /.install
+.aider*
