@@ -12,3 +12,6 @@ sample_parser
 /.vs
 /.install
 .aider*
+/Cargo.lock
+/target
+/.vscode
