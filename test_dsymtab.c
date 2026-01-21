@@ -319,46 +319,48 @@ static int test_commit_scope(void) {
 
 static int test_update_symbol(void) {
   TEST_START("Update symbol value");
-  
+
   D_Scope *scope = new_D_Scope(NULL);
+  D_Scope *original_scope = scope;  // Save original before UPDATE_D_SYM modifies it
   D_Sym *original = NEW_D_SYM(scope, "counter", NULL);
   original->user = 0;
-  
-  D_Sym *updated = UPDATE_D_SYM(original, &scope);
+
+  D_Sym *updated = UPDATE_D_SYM(original, &scope);  // scope is modified!
   TEST_ASSERT(updated != NULL, "Updated symbol should not be NULL");
   TEST_ASSERT(updated != original, "Updated symbol should be different instance");
   TEST_ASSERT(updated->update_of == original, "Should point to original");
-  
+
   updated->user = 1;
   D_Sym *current = current_D_Sym(scope, original);
   TEST_ASSERT(current == updated, "Current should be updated version");
   TEST_ASSERT(current->user == 1, "Current should have new value");
-  
-  free_D_Scope(scope, 1);
+
+  free_D_Scope(original_scope, 1);  // Free original, which frees the new scope too
   TEST_PASS();
 }
 
 static int test_multiple_updates(void) {
   TEST_START("Multiple updates to same symbol");
-  
+
   D_Scope *scope = new_D_Scope(NULL);
+  D_Scope *original_scope = scope;  // Save original before UPDATE_D_SYM modifies it
   D_Sym *v0 = NEW_D_SYM(scope, "x", NULL);
   v0->user = 0;
-  
-  D_Sym *v1 = UPDATE_D_SYM(v0, &scope);
+
+  D_Sym *v1 = UPDATE_D_SYM(v0, &scope);  // scope is modified!
   v1->user = 1;
-  
+
   D_Sym *v2 = update_additional_D_Sym(scope, v1, sizeof(D_Sym));
   v2->user = 2;
-  
+
   D_Sym *v3 = update_additional_D_Sym(scope, v2, sizeof(D_Sym));
   v3->user = 3;
-  
+
   D_Sym *current = current_D_Sym(scope, v0);
   TEST_ASSERT(current == v3, "Current should be latest update");
   TEST_ASSERT(current->user == 3, "Current value should be 3");
-  
-  free_D_Scope(scope, 1);
+
+  free_D_Scope(original_scope, 1);  // Free original, which frees the new scope too
   TEST_PASS();
 }
 
@@ -600,7 +602,12 @@ static int test_owned_by_user_flag(void) {
 
   TEST_ASSERT(nested->owned_by_user == 1, "Should set owned_by_user flag");
 
-  // Free with force=1 to free everything
+  // Child scopes with owned_by_user=1 won't be freed by parent with force=0
+  // We need to manually free them first, or free parent's down chain manually
+  // Free the nested scope with force=1 before freeing parent
+  nested->down_next = NULL;  // Unlink from parent's down chain
+  global->down = NULL;
+  free_D_Scope(nested, 1);  // Manually free with force=1
   free_D_Scope(global, 1);
 
   TEST_PASS();
