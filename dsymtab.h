@@ -1,6 +1,80 @@
 /*
   Copyright 2002-2004 John Plevyak, All Rights Reserved
 */
+
+/*
+ * DParser Symbol Table API
+ * ========================
+ *
+ * MEMORY OWNERSHIP SEMANTICS:
+ *
+ * Scopes (D_Scope):
+ *   - Created by: new_D_Scope(), enter_D_Scope(), global_D_Scope(), scope_D_Scope()
+ *   - Owned by: Caller (typically parser state)
+ *   - Must be freed with: free_D_Scope(scope, force)
+ *   - Automatic free: Child scopes freed when parent is freed
+ *   - Exception: If owned_by_user flag is set, only freed when force=1
+ *   - Lifetime: Must outlive any symbols it contains
+ *
+ * Symbols (D_Sym):
+ *   - Created by: new_D_Sym(), UPDATE_D_SYM(), update_additional_D_Sym()
+ *   - Owned by: The scope they're created in
+ *   - Freed automatically: When scope is freed with free_D_Scope()
+ *   - User data (D_UserSym): NOT freed - caller's responsibility
+ *   - Symbol name string: NOT owned - points into input buffer
+ *
+ * Symbol Names:
+ *   - NOT copied or owned by symbol table
+ *   - Must point to stable memory (input buffer, string pool)
+ *   - Must outlive all symbols that reference them
+ *   - Typically point directly into parser input buffer
+ *
+ * Update Symbols:
+ *   - Created during speculative parsing
+ *   - Owned by scope's updates list
+ *   - Freed automatically with scope
+ *   - Form a chain via update_of pointer
+ *
+ * TYPICAL USAGE PATTERN:
+ *
+ *   // Create global scope
+ *   D_Scope *global = new_D_Scope(NULL);
+ *
+ *   // Create symbol (name must outlive symbol)
+ *   D_Sym *sym = NEW_D_SYM(global, "varname", NULL);
+ *   sym->user = my_data;  // User responsible for freeing my_data
+ *
+ *   // Enter nested scope
+ *   D_Scope *local = new_D_Scope(global);
+ *
+ *   // Update symbol (creates new version)
+ *   D_Sym *updated = UPDATE_D_SYM(sym, &local);
+ *   updated->user = new_data;
+ *
+ *   // Cleanup (frees all scopes and symbols)
+ *   free_D_Scope(global, 1);
+ *   // User must free my_data and new_data separately
+ *
+ * SCOPE RELATIONSHIPS:
+ *
+ *   up         - Lexical parent scope
+ *   down       - First child scope
+ *   down_next  - Next sibling scope
+ *   search     - Scope to search for symbols
+ *   dynamic    - Additional scope to search (e.g., class methods)
+ *   up_updates - Prior scope in speculative parse path
+ *
+ * SPECULATIVE PARSING:
+ *
+ *   GLR parsers create multiple parse paths. Symbol table supports this by:
+ *   - enter_D_Scope() creates speculative parse instance
+ *   - UPDATE_D_SYM() creates symbol versions per parse path
+ *   - commit_D_Scope() collapses to single successful path
+ *   - current_D_Sym() finds correct version for parse path
+ *
+ * See dsymtab.c for detailed implementation notes.
+ */
+
 #ifndef _dsymtab_H_
 #define _dsymtab_H_
 

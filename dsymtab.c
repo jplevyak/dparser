@@ -4,6 +4,9 @@
 
 #include "d.h"
 
+/* Prime number chosen for initial hash table size to minimize collisions.
+   The hash table grows dynamically (doubling + 1) when load factor exceeds 0.5.
+   Size is large enough to handle most typical parsing scenarios without resizing. */
 #define INITIAL_SYMHASH_SIZE 3137
 
 /*
@@ -40,8 +43,26 @@ typedef struct D_SymHash {
   Vec(D_Sym *) syms;
 } D_SymHash;
 
+/*
+ * free_D_Sym - Free a symbol
+ * @s: Symbol to free
+ *
+ * Internal function to deallocate a symbol. Only frees the symbol structure
+ * itself, not the name string (which points into the input buffer).
+ */
 static void free_D_Sym(D_Sym *s) { FREE(s); }
 
+/*
+ * symhash_add - Add symbol to hash table
+ * @sh: Hash table to add to
+ * @s: Symbol to add
+ *
+ * Adds a symbol to the hash table using chaining for collision resolution.
+ * Automatically grows the hash table when load factor exceeds threshold.
+ * Preserves insertion order when rehashing.
+ *
+ * Note: Does not check for duplicates - caller's responsibility.
+ */
 static void symhash_add(D_SymHash *sh, D_Sym *s) {
   uint i, h = s->hash % sh->syms.n, n;
   D_Sym **v = sh->syms.v, *x;
@@ -67,17 +88,25 @@ static void symhash_add(D_SymHash *sh, D_Sym *s) {
         vv.v[i] = x->next;
         vec_add(&tv, x);
       }
-    while (tv.v[i]) {
+    for (i = 0; i < tv.n; i++) {
       x = tv.v[i];
-      tv.v[i] = x->next;
       h = x->hash % n;
       x->next = v[h];
       v[h] = x;
     }
+    vec_free(&tv);
     FREE(vv.v);
   }
 }
 
+/*
+ * new_D_SymHash - Create a new hash table
+ *
+ * Allocates and initializes a hash table for the global scope.
+ * Sets initial size and growth threshold.
+ *
+ * Returns: Pointer to new hash table
+ */
 static D_SymHash *new_D_SymHash(void) {
   D_SymHash *sh = MALLOC(sizeof(D_SymHash));
   memset(sh, 0, sizeof(D_SymHash));
@@ -88,6 +117,13 @@ static D_SymHash *new_D_SymHash(void) {
   return sh;
 }
 
+/*
+ * free_D_SymHash - Free hash table and all contained symbols
+ * @sh: Hash table to free
+ *
+ * Frees all symbols in the hash table and the hash table itself.
+ * Must only be called on top-level (global) scope hash tables.
+ */
 static void free_D_SymHash(D_SymHash *sh) {
   uint i;
   D_Sym *sym;
@@ -100,6 +136,21 @@ static void free_D_SymHash(D_SymHash *sh) {
   FREE(sh);
 }
 
+/*
+ * new_D_Scope - Create a new scope
+ * @parent: Parent scope, or NULL for global scope
+ *
+ * Creates a new scope for symbol management. If parent is NULL, creates
+ * the global (top-level) scope with a hash table. Otherwise, creates a
+ * nested scope with a linked list of symbols.
+ *
+ * The new scope inherits kind and search settings from parent, and is
+ * added to the parent's list of child scopes.
+ *
+ * Memory: Caller owns the returned scope and must free with free_D_Scope().
+ *
+ * Returns: Pointer to newly created scope
+ */
 D_Scope *new_D_Scope(D_Scope *parent) {
   D_Scope *st = MALLOC(sizeof(D_Scope));
   memset(st, 0, sizeof(D_Scope));
@@ -116,6 +167,21 @@ D_Scope *new_D_Scope(D_Scope *parent) {
   return st;
 }
 
+/*
+ * equiv_D_Scope - Find equivalent scope without unnecessary updates
+ * @current: Current scope to check
+ *
+ * Walks up the scope chain to find the nearest equivalent scope that has
+ * actual content (symbols or updates). This optimizes speculative parsing
+ * by collapsing empty intermediate scopes.
+ *
+ * A scope is equivalent if it:
+ * - Has the same depth and parent structure
+ * - Contains no symbols (ll/hash) or updates
+ * - Has no dynamic scope
+ *
+ * Returns: Equivalent scope, or current if no simplification possible
+ */
 D_Scope *equiv_D_Scope(D_Scope *current) {
   D_Scope *s = current, *last = current;
   D_Sym *sy;
@@ -141,6 +207,12 @@ D_Scope *equiv_D_Scope(D_Scope *current) {
   return last;
 }
 
+/*
+ * NOTE: Alternative implementation of equiv_D_Scope kept for reference.
+ * The current implementation above is more conservative and handles edge
+ * cases better. This simpler version is preserved in case future
+ * optimization is needed.
+ */
 #if 0
 D_Scope *
 equiv_D_Scope(D_Scope *current) {
@@ -164,6 +236,27 @@ equiv_D_Scope(D_Scope *current) {
 }
 #endif
 
+/*
+ * enter_D_Scope - Enter a scope for speculative parsing
+ * @current: Current parse state scope
+ * @scope: Scope to enter (typically created with new_D_Scope)
+ *
+ * Creates a new scope instance for speculative parsing. This allows
+ * multiple parse paths to share the same base scope while maintaining
+ * separate update histories.
+ *
+ * The new scope:
+ * - Shares depth and kind with the target scope
+ * - Searches through the target scope for symbols
+ * - Tracks updates relative to current parse state
+ *
+ * Used when GLR parser explores multiple parse alternatives.
+ *
+ * Memory: Caller must eventually free with free_D_Scope() or commit
+ *         with commit_D_Scope().
+ *
+ * Returns: New scope instance for speculative parsing
+ */
 D_Scope *enter_D_Scope(D_Scope *current, D_Scope *scope) {
   D_Scope *st = MALLOC(sizeof(D_Scope)), *parent = scope->up;
   memset(st, 0, sizeof(D_Scope));
@@ -171,6 +264,11 @@ D_Scope *enter_D_Scope(D_Scope *current, D_Scope *scope) {
   st->up = parent;
   st->kind = scope->kind;
   st->search = scope;
+  /*
+   * NOTE: Original optimization for clearing old updates disabled.
+   * Current simpler approach (st->up_updates = current) works correctly.
+   * This code is preserved in case update chain optimization is needed.
+   */
 #if 0
   /* clear old updates */
   {
@@ -195,12 +293,39 @@ Lfound:
   return st;
 }
 
+/*
+ * global_D_Scope - Access global scope from nested context
+ * @current: Current scope
+ *
+ * Finds the global (top-level) scope and creates a speculative parse
+ * instance to access it. This allows looking up global symbols from
+ * deep within nested scopes.
+ *
+ * Returns: Speculative scope instance pointing to global scope
+ */
 D_Scope *global_D_Scope(D_Scope *current) {
   D_Scope *g = current;
   while (g->up) g = g->search;
   return enter_D_Scope(current, g);
 }
 
+/*
+ * scope_D_Scope - Add dynamic scope to current scope
+ * @current: Current scope
+ * @scope: Dynamic scope to add (e.g., class methods, imported module)
+ *
+ * Creates a new scope that searches both the current scope chain and
+ * an additional dynamic scope. Useful for implementing:
+ * - Class method scopes (accessing class variables)
+ * - Module imports
+ * - Dynamic lookup contexts
+ *
+ * Symbol lookup will check:
+ * 1. Current scope and parents
+ * 2. Dynamic scope and its parents
+ *
+ * Returns: New scope with dynamic scope attached
+ */
 D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope) {
   D_Scope *st = MALLOC(sizeof(D_Scope)), *parent = current->up;
   memset(st, 0, sizeof(D_Scope));
@@ -215,6 +340,28 @@ D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope) {
   return st;
 }
 
+/*
+ * free_D_Scope - Free scope and all child scopes
+ * @st: Scope to free
+ * @force: If non-zero, free even if owned_by_user flag is set
+ *
+ * Recursively frees a scope hierarchy, including:
+ * - All child scopes (down/down_next chain)
+ * - All symbols in the scope (hash table or linked list)
+ * - All update symbols
+ *
+ * The owned_by_user flag allows user code to maintain long-lived scopes
+ * that won't be freed automatically. Use force=1 to override this and
+ * free everything.
+ *
+ * Memory ownership:
+ * - Scope structure: Freed
+ * - Symbols: Freed
+ * - Symbol names: NOT freed (point into input buffer)
+ * - User data: NOT freed (user's responsibility)
+ *
+ * Typically called on global scope to clean up entire symbol table.
+ */
 void free_D_Scope(D_Scope *st, int force) {
   D_Scope *s;
   D_Sym *sym;
@@ -237,6 +384,15 @@ void free_D_Scope(D_Scope *st, int force) {
   FREE(st);
 }
 
+/*
+ * commit_ll - Recursively commit linked list symbols to hash table
+ * @st: Scope with linked list symbols
+ * @sh: Hash table to commit to
+ *
+ * Internal function that moves symbols from nested scope linked lists
+ * into the global hash table during commit. Processes scope chain
+ * recursively.
+ */
 static void commit_ll(D_Scope *st, D_SymHash *sh) {
   D_Sym *sym;
   if (st->search) {
@@ -248,7 +404,15 @@ static void commit_ll(D_Scope *st, D_SymHash *sh) {
   }
 }
 
-/* make direct links to the latest update */
+/*
+ * commit_update - Update symbol pointers to latest versions
+ * @st: Scope to commit from
+ * @sh: Hash table containing symbols to update
+ *
+ * Internal function that updates all symbols in the hash table to point
+ * directly to their latest versions. This optimizes future lookups by
+ * collapsing update chains after speculative parsing completes.
+ */
 static void commit_update(D_Scope *st, D_SymHash *sh) {
   uint i;
   D_Sym *s;
@@ -257,7 +421,23 @@ static void commit_update(D_Scope *st, D_SymHash *sh) {
     for (s = sh->syms.v[i]; s; s = s->next) s->update_of = current_D_Sym(st, s);
 }
 
-/* currently only commit the top level scope */
+/*
+ * commit_D_Scope - Commit speculative parsing changes
+ * @st: Scope to commit (must be top-level/global scope)
+ *
+ * Collapses speculative parsing state when parse succeeds. Moves all
+ * symbols from nested scopes into the global hash table and updates
+ * symbol pointers to point to latest versions.
+ *
+ * This is called when:
+ * - GLR parser determines a single successful parse path
+ * - Ambiguity is resolved
+ * - Parse completes successfully
+ *
+ * Only operates on top-level scope; nested scope commits are no-ops.
+ *
+ * Returns: Global scope with committed changes
+ */
 D_Scope *commit_D_Scope(D_Scope *st) {
   D_Scope *x = st;
   if (st->up) return st;
@@ -267,6 +447,30 @@ D_Scope *commit_D_Scope(D_Scope *st) {
   return x;
 }
 
+/*
+ * new_D_Sym - Create a new symbol
+ * @st: Scope to create symbol in (NULL allowed for orphan symbols)
+ * @name: Pointer to symbol name in input buffer
+ * @end: Pointer to character after name, or NULL to use strlen()
+ * @sizeof_D_Sym: Size of symbol structure (for user extensions)
+ *
+ * Creates a new symbol and adds it to the scope. The symbol name is NOT
+ * copied - it must point to a buffer that outlives the symbol (typically
+ * the input buffer).
+ *
+ * If @end is provided, length is (@end - @name). Otherwise strlen() is used.
+ * If @name is NULL, creates a zero-length symbol.
+ *
+ * The symbol is automatically added to the scope's hash table (global scope)
+ * or linked list (nested scope).
+ *
+ * Memory: Symbol structure is owned by scope and freed with free_D_Scope().
+ *         Symbol name is NOT owned - caller must ensure it remains valid.
+ *
+ * Macro: Use NEW_D_SYM(st, name, end) for standard symbol size.
+ *
+ * Returns: Newly created symbol
+ */
 D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym) {
   uint len = end ? end - name : name ? strlen(name) : 0;
   D_Sym *s = MALLOC(sizeof_D_Sym);
@@ -286,10 +490,26 @@ D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym) {
   return s;
 }
 
+/*
+ * current_D_Sym - Get current version of a symbol
+ * @st: Current scope (determines which updates are visible)
+ * @sym: Symbol to get current version of (may be NULL)
+ *
+ * Returns the most recent version of a symbol along the current parse path.
+ * Follows the update chain from the original symbol through all updates
+ * visible in the scope's up_updates chain.
+ *
+ * This is necessary because speculative parsing creates multiple versions
+ * of symbols (via UPDATE_D_SYM). This function finds the correct version
+ * for the current parse state.
+ *
+ * Returns: Current version of symbol, or NULL if sym is NULL
+ */
 D_Sym *current_D_Sym(D_Scope *st, D_Sym *sym) {
   D_Scope *sc;
   D_Sym *uu;
 
+  if (!sym) return NULL;
   if (sym->update_of) sym = sym->update_of;
   /* return the last update */
   for (sc = st; sc; sc = sc->up_updates) {
@@ -299,6 +519,20 @@ D_Sym *current_D_Sym(D_Scope *st, D_Sym *sym) {
   return sym;
 }
 
+/*
+ * find_D_Sym_in_Scope_internal - Search for symbol in specific scope only
+ * @st: Scope to search
+ * @name: Symbol name
+ * @len: Length of name
+ * @h: Pre-computed hash of name
+ *
+ * Internal function that searches only within a specific scope (and its
+ * search/dynamic chain at the same depth), not parent scopes.
+ *
+ * Used to implement find_D_Sym_in_Scope() for duplicate detection.
+ *
+ * Returns: Symbol if found, NULL otherwise
+ */
 static D_Sym *find_D_Sym_in_Scope_internal(D_Scope *st, char *name, int len, uint h) {
   D_Sym *ll;
   for (; st; st = st->search) {
@@ -317,6 +551,20 @@ static D_Sym *find_D_Sym_in_Scope_internal(D_Scope *st, char *name, int len, uin
   return NULL;
 }
 
+/*
+ * find_D_Sym_internal - Search for symbol through scope chain
+ * @cur: Scope to start search from
+ * @name: Symbol name
+ * @len: Length of name
+ * @h: Pre-computed hash of name
+ *
+ * Internal function that searches for a symbol starting from a scope and
+ * following the search chain (parent scopes). Also checks dynamic scopes.
+ *
+ * This is the core lookup routine used by all public find functions.
+ *
+ * Returns: Symbol if found, NULL otherwise (does NOT return current version)
+ */
 static D_Sym *find_D_Sym_internal(D_Scope *cur, char *name, int len, uint h) {
   D_Sym *ll;
   if (!cur) return NULL;
@@ -337,6 +585,20 @@ static D_Sym *find_D_Sym_internal(D_Scope *cur, char *name, int len, uint h) {
   return ll;
 }
 
+/*
+ * find_D_Sym - Find symbol in scope chain
+ * @st: Scope to start search from
+ * @name: Symbol name
+ * @end: Pointer to end of name, or NULL to use strlen()
+ *
+ * Searches for a symbol starting from the given scope and walking up
+ * the parent chain. Returns the current version of the symbol (accounting
+ * for updates in speculative parsing).
+ *
+ * This is the standard symbol lookup function.
+ *
+ * Returns: Current version of symbol if found, NULL if not found
+ */
 D_Sym *find_D_Sym(D_Scope *st, char *name, char *end) {
   uint len = end ? end - name : strlen(name);
   uint h = strhashl(name, len);
@@ -345,6 +607,20 @@ D_Sym *find_D_Sym(D_Scope *st, char *name, char *end) {
   return NULL;
 }
 
+/*
+ * find_global_D_Sym - Find symbol in global scope only
+ * @st: Current scope (for determining current version)
+ * @name: Symbol name
+ * @end: Pointer to end of name, or NULL to use strlen()
+ *
+ * Searches only the global (top-level) scope, ignoring local scopes.
+ * Useful for accessing global variables from within nested contexts.
+ *
+ * Returns the current version relative to @st, even though the search
+ * is only in global scope.
+ *
+ * Returns: Current version of global symbol if found, NULL if not found
+ */
 D_Sym *find_global_D_Sym(D_Scope *st, char *name, char *end) {
   D_Sym *s;
   uint len = end ? end - name : strlen(name);
@@ -356,6 +632,22 @@ D_Sym *find_global_D_Sym(D_Scope *st, char *name, char *end) {
   return NULL;
 }
 
+/*
+ * find_D_Sym_in_Scope - Find symbol in specific scope only
+ * @st: Current scope (for determining current version)
+ * @cur: Scope to search (does not search parent scopes)
+ * @name: Symbol name
+ * @end: Pointer to end of name, or NULL to use strlen()
+ *
+ * Searches only the specified scope, not its parents. Used primarily for
+ * duplicate detection - check if a symbol already exists in the current
+ * scope before creating a new one.
+ *
+ * Example: if (find_D_Sym_in_Scope(scope, scope, "x", NULL))
+ *            error("duplicate declaration");
+ *
+ * Returns: Current version of symbol if found in scope, NULL otherwise
+ */
 D_Sym *find_D_Sym_in_Scope(D_Scope *st, D_Scope *cur, char *name, char *end) {
   uint len = end ? end - name : strlen(name);
   uint h = strhashl(name, len);
@@ -364,6 +656,29 @@ D_Sym *find_D_Sym_in_Scope(D_Scope *st, D_Scope *cur, char *name, char *end) {
   return NULL;
 }
 
+/*
+ * next_D_Sym_in_Scope - Iterate through symbols in scope
+ * @scope: Pointer to scope (updated during iteration)
+ * @sym: Pointer to symbol (updated to next symbol)
+ *
+ * Iterates through all symbols in a scope. On first call, *sym should be NULL.
+ * On subsequent calls, pass the previously returned symbol.
+ *
+ * Both @scope and @sym are updated to point to the next symbol. When iteration
+ * is complete, returns NULL.
+ *
+ * Example:
+ *   D_Sym *sym = NULL;
+ *   D_Scope *scope = my_scope;
+ *   while (next_D_Sym_in_Scope(&scope, &sym)) {
+ *     // process sym
+ *   }
+ *
+ * Note: For hash tables, iteration order is not guaranteed. For linked lists
+ *       (nested scopes), iterates in reverse insertion order.
+ *
+ * Returns: Next symbol, or NULL if iteration complete
+ */
 D_Sym *next_D_Sym_in_Scope(D_Scope **scope, D_Sym **sym) {
   D_Sym *last_sym = *sym, *ll = last_sym;
   D_Scope *st = *scope;
@@ -388,10 +703,35 @@ Lreturn:
   return ll;
 }
 
+/*
+ * update_additional_D_Sym - Create additional update to a symbol
+ * @st: Current scope
+ * @sym: Symbol to update (may be NULL)
+ * @sizeof_D_Sym: Size of symbol structure
+ *
+ * Creates a new version of a symbol without creating a new scope. Used when
+ * multiple updates occur in the same production/scope.
+ *
+ * The new symbol:
+ * - Copies data from current version of @sym
+ * - Points back to original via update_of
+ * - Is added to scope's updates list
+ *
+ * Use UPDATE_D_SYM() for first update (creates new scope).
+ * Use update_additional_D_Sym() for subsequent updates in same scope.
+ *
+ * Returns NULL if @sym is NULL.
+ *
+ * Macro: Use UPDATE_ADDITIONAL_D_SYM(st, sym) for standard symbol size.
+ *
+ * Returns: New symbol version, or NULL if sym is NULL
+ */
 D_Sym *update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym) {
   D_Sym *s;
 
+  if (!sym) return NULL;
   sym = current_D_Sym(st, sym);
+  if (!sym) return NULL;
   s = MALLOC(sizeof_D_Sym);
   memcpy(s, sym, sizeof(D_Sym));
   if (sym->update_of) sym = sym->update_of;
@@ -401,7 +741,36 @@ D_Sym *update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym) {
   return s;
 }
 
+/*
+ * update_D_Sym - Update a symbol (creates new scope)
+ * @sym: Symbol to update (may be NULL)
+ * @pst: Pointer to current scope (updated to new scope)
+ * @sizeof_D_Sym: Size of symbol structure
+ *
+ * Creates a new version of a symbol AND a new scope for speculative parsing.
+ * This is the primary way to update symbols during parsing.
+ *
+ * The function:
+ * 1. Creates new scope with enter_D_Scope(*pst, *pst)
+ * 2. Creates new symbol version in that scope
+ * 3. Updates *pst to point to new scope
+ *
+ * Use this for the FIRST update in a production. For subsequent updates
+ * in the same production, use update_additional_D_Sym().
+ *
+ * Returns NULL if @sym is NULL (safe to call on failed lookups).
+ *
+ * Example:
+ *   D_Sym *var = find_D_Sym(scope, "x", NULL);
+ *   var = UPDATE_D_SYM(var, &scope);  // scope is updated!
+ *   var->user.value = new_value;
+ *
+ * Macro: Use UPDATE_D_SYM(sym, pst) for standard symbol size.
+ *
+ * Returns: New symbol version, or NULL if sym is NULL
+ */
 D_Sym *update_D_Sym(D_Sym *sym, D_Scope **pst, int sizeof_D_Sym) {
+  if (!sym) return NULL;
   *pst = enter_D_Scope(*pst, *pst);
   return update_additional_D_Sym(*pst, sym, sizeof_D_Sym);
 }

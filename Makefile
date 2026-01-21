@@ -118,7 +118,7 @@ INSTALL_LIBRARIES = $(LIBDPARSE)
 INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h
 MANPAGES = make_dparser.1
 
-EXECS = $(EXECUTABLES) sample_parser test_parser
+EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab
 ifeq ($(OS_TYPE),CYGWIN)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
@@ -140,6 +140,9 @@ version:
 
 test:
 	(MAKE=$(MAKE) ./parser_tests)
+
+test-dsymtab: test_dsymtab
+	./test_dsymtab
 
 check: test
 
@@ -178,6 +181,9 @@ sample_parser: $(SAMPLE_PARSER_OBJS) $(INSTALL_LIBRARIES)
 
 test_parser: $(TEST_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+
+test_dsymtab: test_dsymtab.o $(INSTALL_LIBRARIES)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 myexample: make_dparser
 	$(MAKE_DPARSER) my.g
