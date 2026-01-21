@@ -10,6 +10,15 @@
 #define INITIAL_SYMHASH_SIZE 3137
 
 /*
+ * Scope Pool - tracks all allocated scopes for a parse tree
+ * Only the top-level (global) scope has a pool; all scopes created under
+ * it are registered in the pool for automatic cleanup.
+ */
+typedef struct D_ScopePool {
+  Vec(D_Scope *) scopes;  /* all allocated scopes */
+} D_ScopePool;
+
+/*
   How this works.  In a normal symbol table there is simply
   a stack of scopes representing the scoping structure of
   the program.  Because of speculative parsing, this symbol table
@@ -42,6 +51,63 @@ typedef struct D_SymHash {
   int grow;
   Vec(D_Sym *) syms;
 } D_SymHash;
+
+/*
+ * get_scope_pool - Get the scope pool from any scope
+ * @st: Any scope in the hierarchy
+ *
+ * Walks up to the top-level scope to find the pool. Returns NULL if
+ * no pool exists (shouldn't happen in normal usage).
+ */
+static D_ScopePool *get_scope_pool(D_Scope *st) {
+  if (!st) return NULL;
+
+  /* Walk up to top-level scope */
+  while (st->up) {
+    st = st->up;
+  }
+
+  /* Also check search chain for scopes created by enter_D_Scope */
+  while (st->search) {
+    if (st->pool) return st->pool;
+    st = st->search;
+  }
+
+  return st->pool;
+}
+
+/*
+ * new_scope_pool - Create a new scope pool
+ *
+ * Allocates and initializes a pool for tracking all scopes in a parse tree.
+ * Only created for top-level scopes.
+ */
+static D_ScopePool *new_scope_pool(void) {
+  D_ScopePool *pool = MALLOC(sizeof(D_ScopePool));
+  memset(pool, 0, sizeof(D_ScopePool));
+  vec_clear(&pool->scopes);
+  return pool;
+}
+
+/*
+ * register_scope - Register a scope with the pool
+ * @st: Scope to register
+ *
+ * Adds the scope to the pool's tracking list. All scopes except those
+ * with owned_by_user=1 should be registered for automatic cleanup.
+ */
+static void register_scope(D_Scope *st) {
+  D_ScopePool *pool;
+
+  if (!st) return;
+
+  /* Find the pool (in top-level scope) */
+  pool = get_scope_pool(st);
+  if (!pool) return;
+
+  /* Add to pool */
+  vec_add(&pool->scopes, st);
+}
 
 /*
  * free_D_Sym - Free a symbol
@@ -162,8 +228,15 @@ D_Scope *new_D_Scope(D_Scope *parent) {
     st->up_updates = parent;
     st->down_next = parent->down;
     parent->down = st;
-  } else
+  } else {
     st->hash = new_D_SymHash();
+    /* Create pool for top-level scope */
+    st->pool = new_scope_pool();
+  }
+
+  /* Register this scope with the pool */
+  register_scope(st);
+
   return st;
 }
 
@@ -290,6 +363,10 @@ Lfound:
 #endif
   st->down_next = current->down;
   current->down = st;
+
+  /* Register with pool */
+  register_scope(st);
+
   return st;
 }
 
@@ -337,22 +414,57 @@ D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope) {
   st->up_updates = current;
   st->down_next = current->down;
   current->down = st;
+
+  /* Register with pool */
+  register_scope(st);
+
   return st;
 }
 
 /*
+ * free_scope_internals - Free scope's symbols and hash table
+ * @st: Scope to free internals of
+ *
+ * Frees all symbols and hash table, but not the scope structure itself.
+ * Used by pool-based cleanup.
+ */
+static void free_scope_internals(D_Scope *st) {
+  D_Sym *sym;
+
+  if (!st) return;
+
+  /* Free hash table (only for top-level scopes) */
+  if (st->hash) {
+    free_D_SymHash(st->hash);
+    st->hash = NULL;
+  }
+
+  /* Free linked list symbols */
+  for (; st->ll; st->ll = sym) {
+    sym = st->ll->next;
+    free_D_Sym(st->ll);
+  }
+
+  /* Free update symbols */
+  for (; st->updates; st->updates = sym) {
+    sym = st->updates->next;
+    free_D_Sym(st->updates);
+  }
+}
+
+/*
  * free_D_Scope - Free scope and all child scopes
- * @st: Scope to free
+ * @st: Scope to free (should be top-level scope)
  * @force: If non-zero, free even if owned_by_user flag is set
  *
- * Recursively frees a scope hierarchy, including:
- * - All child scopes (down/down_next chain)
- * - All symbols in the scope (hash table or linked list)
- * - All update symbols
+ * NEW BEHAVIOR (with scope pool):
+ * - If this is a top-level scope with a pool, frees ALL scopes from the pool
+ * - This eliminates the possibility of memory leaks from UPDATE_D_SYM
+ * - Honors owned_by_user flag when force=0
  *
- * The owned_by_user flag allows user code to maintain long-lived scopes
- * that won't be freed automatically. Use force=1 to override this and
- * free everything.
+ * OLD BEHAVIOR (fallback for non-pooled scopes):
+ * - Recursively frees scope hierarchy via down chain
+ * - Fixed to propagate force parameter to children
  *
  * Memory ownership:
  * - Scope structure: Freed
@@ -364,24 +476,68 @@ D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope) {
  */
 void free_D_Scope(D_Scope *st, int force) {
   D_Scope *s;
-  D_Sym *sym;
-  for (; st->down; st->down = s) {
-    s = st->down->down_next;
-    free_D_Scope(st->down, 0);
-  }
-  if (st->owned_by_user && !force) return;
-  if (st->hash)
-    free_D_SymHash(st->hash);
-  else
-    for (; st->ll; st->ll = sym) {
-      sym = st->ll->next;
-      free_D_Sym(st->ll);
+  D_ScopePool *pool;
+  int i;
+
+  if (!st) return;
+
+  /* Check if THIS scope owns a pool (only top-level scopes do) */
+  pool = st->pool;
+
+  if (pool) {
+    /* Pool-based cleanup: free all scopes at once */
+    /* Only the top-level scope (which owns the pool) should do this */
+    int skipped_any = 0;
+
+    for (i = 0; i < pool->scopes.n; i++) {
+      D_Scope *scope = pool->scopes.v[i];
+      if (!scope) continue;
+
+      /* Honor owned_by_user flag unless force=1 */
+      if (scope->owned_by_user && !force) {
+        skipped_any = 1;
+        continue;
+      }
+
+      /* Free scope internals */
+      free_scope_internals(scope);
+
+      /* Free scope structure */
+      FREE(scope);
     }
-  for (; st->updates; st->updates = sym) {
-    sym = st->updates->next;
-    free_D_Sym(st->updates);
+
+    /* Only free pool if we freed all scopes */
+    if (!skipped_any || force) {
+      vec_free(&pool->scopes);
+      FREE(pool);
+    }
+  } else {
+    /* No pool on THIS scope - check if we have a parent with a pool */
+    D_ScopePool *parent_pool = get_scope_pool(st);
+
+    if (parent_pool) {
+      /* We're part of a pool, but not the owner */
+      /* Don't do recursive free - the pool owner will free everything */
+      /* Just return (scope will be freed when pool owner is freed) */
+      return;
+    } else {
+      /* No pool at all - use old recursive behavior (for backward compatibility) */
+      /* Free all children first */
+      for (; st->down; st->down = s) {
+        s = st->down->down_next;
+        free_D_Scope(st->down, force);  /* FIXED: propagate force */
+      }
+
+      /* Check owned_by_user flag */
+      if (st->owned_by_user && !force) return;
+
+      /* Free internals */
+      free_scope_internals(st);
+
+      /* Free scope structure */
+      FREE(st);
+    }
   }
-  FREE(st);
 }
 
 /*

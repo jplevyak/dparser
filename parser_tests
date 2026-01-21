@@ -3,7 +3,7 @@ shopt -s extglob
 
 # unset D_USE_FREELISTS for best valgrind results
 # setenv VALGRIND 'valgrind -q '
-VALGRIND=
+VALGRIND=''
 
 keep=false
 for arg in "$@"; do

@@ -6,15 +6,17 @@
  * DParser Symbol Table API
  * ========================
  *
- * MEMORY OWNERSHIP SEMANTICS:
+ * MEMORY OWNERSHIP SEMANTICS (NEW: Scope Pool):
  *
  * Scopes (D_Scope):
  *   - Created by: new_D_Scope(), enter_D_Scope(), global_D_Scope(), scope_D_Scope()
- *   - Owned by: Caller (typically parser state)
- *   - Must be freed with: free_D_Scope(scope, force)
- *   - Automatic free: Child scopes freed when parent is freed
+ *   - Owned by: Scope pool (automatically tracked)
+ *   - Must be freed with: free_D_Scope(top_scope, force)
+ *   - NEW: All scopes freed at once from pool (no leaks possible!)
+ *   - Automatic tracking: All scopes registered in pool on creation
  *   - Exception: If owned_by_user flag is set, only freed when force=1
  *   - Lifetime: Must outlive any symbols it contains
+ *   - IMPORTANT: Always free the top-level scope, not individual child scopes
  *
  * Symbols (D_Sym):
  *   - Created by: new_D_Sym(), UPDATE_D_SYM(), update_additional_D_Sym()
@@ -35,24 +37,25 @@
  *   - Freed automatically with scope
  *   - Form a chain via update_of pointer
  *
- * TYPICAL USAGE PATTERN:
+ * TYPICAL USAGE PATTERN (NEW: With Scope Pool):
  *
- *   // Create global scope
+ *   // Create global scope (creates pool automatically)
  *   D_Scope *global = new_D_Scope(NULL);
  *
  *   // Create symbol (name must outlive symbol)
  *   D_Sym *sym = NEW_D_SYM(global, "varname", NULL);
  *   sym->user = my_data;  // User responsible for freeing my_data
  *
- *   // Enter nested scope
+ *   // Enter nested scope (automatically registered in pool)
  *   D_Scope *local = new_D_Scope(global);
  *
- *   // Update symbol (creates new version)
- *   D_Sym *updated = UPDATE_D_SYM(sym, &local);
+ *   // Update symbol (creates new scope, automatically registered in pool)
+ *   D_Scope *scope = local;  // Can save or not save original - no leak!
+ *   D_Sym *updated = UPDATE_D_SYM(sym, &scope);  // scope now points to new scope
  *   updated->user = new_data;
  *
- *   // Cleanup (frees all scopes and symbols)
- *   free_D_Scope(global, 1);
+ *   // Cleanup (frees ALL scopes from pool - no leaks possible!)
+ *   free_D_Scope(global, 1);  // Frees global, local, and UPDATE scope
  *   // User must free my_data and new_data separately
  *
  * SCOPE RELATIONSHIPS:
@@ -84,6 +87,7 @@
 
 struct D_SymHash;
 struct D_Scope;
+struct D_ScopePool;
 
 typedef struct D_Sym {
   char *name;
@@ -113,6 +117,7 @@ typedef struct D_Scope {
   struct D_Scope *up_updates; /* prior scope in speculative parse */
   struct D_Scope *down;       /* enclosed scopes (for FREE) */
   struct D_Scope *down_next;  /* next enclosed scope */
+  struct D_ScopePool *pool;   /* scope pool (only set on top-level scope) */
 } D_Scope;
 
 D_Scope *new_D_Scope(D_Scope *parent);

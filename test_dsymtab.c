@@ -321,7 +321,7 @@ static int test_update_symbol(void) {
   TEST_START("Update symbol value");
 
   D_Scope *scope = new_D_Scope(NULL);
-  D_Scope *original_scope = scope;  // Save original before UPDATE_D_SYM modifies it
+  D_Scope *top_scope = scope;  // Keep reference to top scope for cleanup
   D_Sym *original = NEW_D_SYM(scope, "counter", NULL);
   original->user = 0;
 
@@ -335,7 +335,7 @@ static int test_update_symbol(void) {
   TEST_ASSERT(current == updated, "Current should be updated version");
   TEST_ASSERT(current->user == 1, "Current should have new value");
 
-  free_D_Scope(original_scope, 1);  // Free original, which frees the new scope too
+  free_D_Scope(top_scope, 1);  // Pool frees ALL scopes (original + updated)!
   TEST_PASS();
 }
 
@@ -343,7 +343,7 @@ static int test_multiple_updates(void) {
   TEST_START("Multiple updates to same symbol");
 
   D_Scope *scope = new_D_Scope(NULL);
-  D_Scope *original_scope = scope;  // Save original before UPDATE_D_SYM modifies it
+  D_Scope *top_scope = scope;  // Keep reference to top scope for cleanup
   D_Sym *v0 = NEW_D_SYM(scope, "x", NULL);
   v0->user = 0;
 
@@ -360,7 +360,7 @@ static int test_multiple_updates(void) {
   TEST_ASSERT(current == v3, "Current should be latest update");
   TEST_ASSERT(current->user == 3, "Current value should be 3");
 
-  free_D_Scope(original_scope, 1);  // Free original, which frees the new scope too
+  free_D_Scope(top_scope, 1);  // Pool frees ALL scopes!
   TEST_PASS();
 }
 
@@ -602,12 +602,9 @@ static int test_owned_by_user_flag(void) {
 
   TEST_ASSERT(nested->owned_by_user == 1, "Should set owned_by_user flag");
 
-  // Child scopes with owned_by_user=1 won't be freed by parent with force=0
-  // We need to manually free them first, or free parent's down chain manually
-  // Free the nested scope with force=1 before freeing parent
-  nested->down_next = NULL;  // Unlink from parent's down chain
-  global->down = NULL;
-  free_D_Scope(nested, 1);  // Manually free with force=1
+  // With scope pool: owned_by_user scopes are NOT freed when force=0
+  // But pool remains valid for later cleanup with force=1
+  // For now, just free everything with force=1
   free_D_Scope(global, 1);
 
   TEST_PASS();
