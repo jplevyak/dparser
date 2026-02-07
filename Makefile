@@ -41,6 +41,9 @@ endif
 
 ifeq ($(D_USE_GC),1)
 CFLAGS += -DUSE_GC ${GC_CFLAGS}
+ifeq ($(OS_TYPE),Darwin)
+LIBS += -L/opt/homebrew/lib
+endif
 LIBS += -lgc
 ifeq ($(OS_TYPE),Linux)
   LIBS += -ldl
@@ -73,7 +76,10 @@ ifeq ($(D_PROFILE),1)
 CFLAGS += -pg
 endif
 
-CFLAGS += -std=c23 -pedantic
+CFLAGS += -std=c23 -pedantic 
+ifeq ($(OS_TYPE),Darwin)
+CFLAGS += -I/opt/homebrew/include
+endif
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/make_dparser.1 dparser/make_dparser.cat
@@ -153,8 +159,10 @@ install:
 	cp -f $(INCLUDES) $(PREFIX)/include
 	mkdir -p $(PREFIX)/lib
 	cp -f $(INSTALL_LIBRARIES) $(PREFIX)/lib
+ifneq ($(OS_TYPE),Darwin)
 	mkdir -p $(PREFIX)/man/man1
 	cp -f $(MANPAGES) $(PREFIX)/man/man1
+endif
 
 deinstall:
 	rm $(EXECUTABLES:%=$(PREFIX)/bin/%)
