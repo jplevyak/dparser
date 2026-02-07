@@ -26,7 +26,7 @@ ${declare whitespace python_whitespace}
 file_input: (NL | stmt)*;
 
 /* Tokens */
-NAME ::= "[a-zA-Z_][a-zA-Z0-9_]*";
+NAME: "[a-zA-Z_][a-zA-Z0-9_]*" $term -1;
 NUMBER ::= integer | floatnumber | imagnumber;
 STRING ::= stringprefix?(shortstring | longstring);
 

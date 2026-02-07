@@ -148,5 +148,47 @@ def advanced():
     if (n := len(l)) > 10:
         pass
 
+# 6. More Features
+def imports():
+    import os
+    import sys as s
+    from math import sin, cos as c
+    from . import local
+    from ... import deep
+    from .sub import *
+
+def type_aliases():
+    type MyInt = int
+    type List[T] = list[T]
+
+def extended_unpacking():
+    l = [1, 2, 3]
+    a, *b, c = l
+    *d, = l
+    d = {**{'a': 1}, **{'b': 2}}
+    s = {*{1, 2}, *{3, 4}}
+
+async def async_features():
+    async for x in range(10):
+        pass
+    
+    async with open('file') as f:
+        pass
+
+def generators():
+    yield from range(10)
+
+@decorator
+class AdvancedClass(Base, metaclass=type):
+    pass
+
+def raising():
+    raise ValueError from None
+
 if __name__ == "__main__":
     literals()
+    operations(1, 2)
+    statements()
+    # imports() # Skip runtime execution of imports to avoid errors
+    # type_aliases() # Python 3.12+
+
