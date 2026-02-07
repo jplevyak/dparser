@@ -110,6 +110,9 @@ SAMPLE_PARSER_OBJS = $(SAMPLE_PARSER_SRCS:%.c=%.o)
 TEST_PARSER_SRCS = test_parser.c
 TEST_PARSER_OBJS = $(TEST_PARSER_SRCS:%.c=%.o)
 
+PYTHON_PARSER_SRCS = python_driver.c python.g.d_parser.c
+PYTHON_PARSER_OBJS = $(PYTHON_PARSER_SRCS:%.c=%.o)
+
 MAKE_DPARSER = ./make_dparser
 
 EXECUTABLES = make_dparser
@@ -178,6 +181,12 @@ sample_parser: $(SAMPLE_PARSER_OBJS) $(INSTALL_LIBRARIES)
 
 test_parser: $(TEST_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+
+python_parser: $(PYTHON_PARSER_OBJS) $(INSTALL_LIBRARIES)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+
+test_python: python_parser
+	./python_parser coverage.py
 
 myexample: make_dparser
 	$(MAKE_DPARSER) my.g
