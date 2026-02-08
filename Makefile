@@ -193,7 +193,6 @@ sample_parser: $(SAMPLE_PARSER_OBJS) $(INSTALL_LIBRARIES)
 test_parser: $(TEST_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
 
-
 test_dsymtab: test_dsymtab.o $(INSTALL_LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
@@ -202,7 +201,6 @@ python_parser: $(PYTHON_PARSER_OBJS) $(INSTALL_LIBRARIES)
 
 test_python: python_parser
 	./python_parser coverage.py
-
 
 myexample: make_dparser
 	$(MAKE_DPARSER) my.g
