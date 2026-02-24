@@ -203,6 +203,7 @@ my_ambiguity_fn(struct D_Parser *dp,
   }
   if (result == Py_None) {
 hack:
+    Py_XDECREF(result);
     Py_DECREF(list);
     Py_DECREF(arglist);
     i = 0;
