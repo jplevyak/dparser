@@ -158,7 +158,7 @@ my_syntax_error_fn(struct D_Parser *dp) {
       return;
   loc_inst = new_loc_inst(dp, &dp->loc);
   arglist = Py_BuildValue("(O)", loc_inst);
-  result = PyEval_CallObject(ppi->syntax_error_fn, arglist);
+  result = PyObject_CallObject(ppi->syntax_error_fn, arglist);
   Py_XDECREF(result);
   Py_DECREF(arglist);
   Py_DECREF(loc_inst);
@@ -176,7 +176,7 @@ my_initial_white_space_fn(struct D_Parser *dp,
   }
   loc_inst = new_loc_inst(dp, loc);
   arglist = Py_BuildValue("(O)", loc_inst);
-  result = PyEval_CallObject(ppi->initial_white_space_fn, arglist);
+  result = PyObject_CallObject(ppi->initial_white_space_fn, arglist);
   Py_DECREF(loc_inst);
   Py_DECREF(arglist);
   Py_XDECREF(result);
@@ -196,13 +196,14 @@ my_ambiguity_fn(struct D_Parser *dp,
     PyList_SetItem(list, i, make_py_node(dp, v[i]));
   }
   arglist = Py_BuildValue("(O)", list);
-  result = PyEval_CallObject(d_interface(dp)->ambiguity_fn, arglist);
+  result = PyObject_CallObject(d_interface(dp)->ambiguity_fn, arglist);
   if (result == NULL) {
     PyErr_Print();
     goto hack;
   }
   if (result == Py_None) {
 hack:
+    Py_XDECREF(result);
     Py_DECREF(list);
     Py_DECREF(arglist);
     i = 0;
@@ -434,7 +435,7 @@ make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string) {
           Py_DECREF(user);
           return NULL;
         }
-	PyObject *result = PyEval_CallObject(make_token, arglist);
+	PyObject *result = PyObject_CallObject(make_token, arglist);
 	Py_DECREF(user);
 	Py_DECREF(arglist);
         if (result == NULL) {
@@ -522,7 +523,7 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
       PyTuple_SetItem(arglist, i, ppi->self);
     }
   }
-  result = PyEval_CallObject(action, arglist);
+  result = PyObject_CallObject(action, arglist);
   if (globals_holder) {
     Py_DECREF(parser->initial_globals);
     parser->initial_globals = PyList_GetItem(globals_holder, 0);
