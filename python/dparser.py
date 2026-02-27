@@ -99,7 +99,7 @@ class D_ParseNodePtr:
             if not children:
                 dparser_swigc.d_get_number_of_children(self.this)
                 children = []
-                for i in range(dparser_swigc.d_get_number_off_children(
+                for i in range(dparser_swigc.d_get_number_of_children(
                                 self.this)):
                     children.append(
                         D_ParseNode(dparser_swigc.d_get_child(self.this, i),
