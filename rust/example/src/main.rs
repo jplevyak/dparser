@@ -2,6 +2,10 @@ use dparser_lib::{D_ParserTables, ParseNodeWrapper, Parser};
 
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
+unsafe extern "C" {
+    unsafe static mut parser_tables_gram: D_ParserTables;
+}
+
 fn main() {
     let input_string = "a x  b uvu";
 
@@ -9,7 +13,7 @@ fn main() {
 
     // Instantiate the parser
     let mut parser: Parser<GlobalsStruct, NodeStruct> =
-        { Parser::new() };
+        { Parser::new(&raw mut parser_tables_gram) };
     parser.set_save_parse_tree(true);
     let mut initial_globals = GlobalsStruct { a: 0, b: 0 };
     let result: Option<ParseNodeWrapper<'_, Parser<GlobalsStruct, NodeStruct>>> =
