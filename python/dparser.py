@@ -99,7 +99,7 @@ class D_ParseNodePtr:
             if not children:
                 dparser_swigc.d_get_number_of_children(self.this)
                 children = []
-                for i in xrange(dparser_swigc.d_get_number_off_children(
+                for i in range(dparser_swigc.d_get_number_of_children(
                                 self.this)):
                     children.append(
                         D_ParseNode(dparser_swigc.d_get_child(self.this, i),
@@ -234,7 +234,7 @@ class Parser:
                                          x.__code__.co_firstlineno))
             functions.extend(f)
         if len(functions) == 0:
-            raise "\nno actions found.  Action names must start with 'd_'"
+            raise NoActionsFound("\nno actions found.  Action names must start with 'd_'")
 
         if parser_folder is None:
             parser_folder = os.path.dirname(sys.argv[0])
@@ -252,10 +252,10 @@ class Parser:
                 grammar_str.append(f.__doc__)
                 self.tables.update(f.__doc__)
             else:
-                raise "\naction missing doc string:\n\t" + f.__name__
+                raise ParsingException("\naction missing doc string:\n\t" + f.__name__)
             grammar_str.append(" ${action};\n")
             if f.__code__.co_argcount == 0:
-                raise ("\naction " + f.__name__ +
+                raise ParsingException("\naction " + f.__name__ +
                        " must take at least one argument\n")
             speculative = 0
             arg_types = [0]
@@ -280,7 +280,7 @@ class Parser:
                 elif var == 'parser':
                     arg_types.append(7)
                 else:
-                    raise ("\nunknown argument name:\n\t" + var +
+                    raise ParsingException("\nunknown argument name:\n\t" + var +
                            "\nin function:\n\t" + f.__name__)
             self.actions.append((f, arg_types, speculative))
         grammar_str = ''.join(grammar_str).encode()
@@ -304,14 +304,7 @@ class Parser:
               dont_use_height_for_disambiguation=False,
               start_symbol=''):
 
-        # workaround python3/2
-        t = str
-        try:
-            t = basestring
-        except NameError:
-            pass
-
-        if not isinstance(buf, t):
+        if not isinstance(buf, str):
             raise ParsingException(
                     "Message to parse is not a string: %r" % buf)
 
