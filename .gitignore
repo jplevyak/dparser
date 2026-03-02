@@ -8,7 +8,10 @@ tests/*.d_parser.c
 make_dparser
 test_parser
 sample_parser
+/.aider*
 /.build
 /.vs
 /.install
-.aider*
+/Cargo.lock
+/target
+/.vscode

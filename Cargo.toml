@@ -1,0 +1,3 @@
+[workspace]
+members = ["rust/dparser_lib", "rust/example"]
+resolver = "3"
