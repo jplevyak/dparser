@@ -344,11 +344,11 @@ run_parser(D_Parser *dp, PyObject *string, int buf_idx) {
   D_ParseNode *pn = NULL;
   D_ParserPyInterface *ppi = d_interface(dp);
 
-  ppi->buf_start = PyString_AsString(string);
+  ppi->buf_start = PyBytes_AsString(string);
   ppi->py_buf_start = string;
   Py_INCREF(string);
   ppi->parsing = 1;
-  pn = dparse(dp, ppi->buf_start+buf_idx, PyString_Size(string)-buf_idx);
+  pn = dparse(dp, ppi->buf_start+buf_idx, PyBytes_Size(string)-buf_idx);
   ppi->parsing = 0;
   ppi->top_node = pn;
 
@@ -466,7 +466,7 @@ print_debug_info(D_ParseNode *dd, PyObject *tuple, int speculative, int pdi) {
   action = PyTuple_GetItem(tuple, 0);
   string = PyObject_GetAttrString(action, "__name__");
   if (!speculative || pdi != 2)
-    printf("%30s%s:\t%s\n", PyString_AsString(string), speculative ? " ???" : "    ", buf);
+    printf("%30s%s:\t%s\n", PyUnicode_AsUTF8(string), speculative ? " ???" : "    ", buf);
   Py_DECREF(string);
 }
 
@@ -486,7 +486,7 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
   PyTuple_SetItem(arglist, 0, children_list);
   for (i=1; i<arg_count; i++) {
     PyObject *item = PyList_GetItem(arg_types, i);
-    int type = PyInt_AsLong(item);
+    int type = PyLong_AsLong(item);
     if (type == 1) {
       PyTuple_SetItem(arglist, i, Py_BuildValue("i", speculative));
     }
