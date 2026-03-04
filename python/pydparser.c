@@ -347,10 +347,15 @@ run_parser(D_Parser *dp, PyObject *string, int buf_idx) {
   ppi->buf_start = PyBytes_AsString(string);
   if (!ppi->buf_start)
     return NULL;
+  Py_ssize_t size = PyBytes_Size(string);
+  if (buf_idx < 0 || buf_idx > size) {
+    PyErr_SetString(PyExc_IndexError, "buf_idx out of range");
+    return NULL;
+  }
   ppi->py_buf_start = string;
   Py_INCREF(string);
   ppi->parsing = 1;
-  pn = dparse(dp, ppi->buf_start+buf_idx, PyBytes_Size(string)-buf_idx);
+  pn = dparse(dp, ppi->buf_start+buf_idx, size-buf_idx);
   ppi->parsing = 0;
   ppi->top_node = pn;
 
