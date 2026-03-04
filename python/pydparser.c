@@ -352,10 +352,15 @@ run_parser(D_Parser *dp, PyObject *string, int buf_idx) {
     PyErr_SetString(PyExc_IndexError, "buf_idx out of range");
     return NULL;
   }
+  Py_ssize_t len = size - buf_idx;
+  if (len > INT_MAX) {
+    PyErr_SetString(PyExc_OverflowError, "input is too large");
+    return NULL;
+  }
   ppi->py_buf_start = string;
   Py_INCREF(string);
   ppi->parsing = 1;
-  pn = dparse(dp, ppi->buf_start+buf_idx, size-buf_idx);
+  pn = dparse(dp, ppi->buf_start+buf_idx, (int)len);
   ppi->parsing = 0;
   ppi->top_node = pn;
 
