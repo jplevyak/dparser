@@ -2,10 +2,11 @@
 # contributions by Milosz Krajewski
 # contributions by John Plevyak
 
+import hashlib
+import inspect
+import os
 import sys
 import types
-import os
-import hashlib
 import dparser_swigc
 
 
@@ -212,11 +213,7 @@ class Parser:
         self.tables = Tables()
         self.actions = []
         if not modules:
-            try:
-                raise RuntimeError
-            except RuntimeError:
-                traceback = sys.exc_info()[2]
-                dicts = [traceback.tb_frame.f_back.f_globals]
+            dicts = [inspect.currentframe().f_back.f_globals]
         else:
             if isinstance(modules, list):
                 dicts = [module.__dict__ for module in modules]
