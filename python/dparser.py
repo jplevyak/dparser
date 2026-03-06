@@ -213,7 +213,14 @@ class Parser:
         self.tables = Tables()
         self.actions = []
         if not modules:
-            dicts = [inspect.currentframe().f_back.f_globals]
+            frame = inspect.currentframe()
+            try:
+                if not frame or not frame.f_back:
+                    raise RuntimeError("dparser: Could not get caller's frame to load globals.")
+                dicts = [frame.f_back.f_globals]
+            finally:
+                if frame:
+                    del frame
         elif isinstance(modules, list):
             dicts = [module.__dict__ for module in modules]
         elif isinstance(modules, dict):
