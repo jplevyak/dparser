@@ -344,11 +344,23 @@ run_parser(D_Parser *dp, PyObject *string, int buf_idx) {
   D_ParseNode *pn = NULL;
   D_ParserPyInterface *ppi = d_interface(dp);
 
-  ppi->buf_start = PyString_AsString(string);
+  ppi->buf_start = PyBytes_AsString(string);
+  if (!ppi->buf_start)
+    return NULL;
+  Py_ssize_t size = PyBytes_Size(string);
+  if (buf_idx < 0 || buf_idx > size) {
+    PyErr_SetString(PyExc_IndexError, "buf_idx out of range");
+    return NULL;
+  }
+  Py_ssize_t len = size - buf_idx;
+  if (len > INT_MAX) {
+    PyErr_SetString(PyExc_OverflowError, "input is too large");
+    return NULL;
+  }
   ppi->py_buf_start = string;
   Py_INCREF(string);
   ppi->parsing = 1;
-  pn = dparse(dp, ppi->buf_start+buf_idx, PyString_Size(string)-buf_idx);
+  pn = dparse(dp, ppi->buf_start+buf_idx, (int)len);
   ppi->parsing = 0;
   ppi->top_node = pn;
 
@@ -465,9 +477,12 @@ print_debug_info(D_ParseNode *dd, PyObject *tuple, int speculative, int pdi) {
   buf[len] = 0;
   action = PyTuple_GetItem(tuple, 0);
   string = PyObject_GetAttrString(action, "__name__");
-  if (!speculative || pdi != 2)
-    printf("%30s%s:\t%s\n", PyString_AsString(string), speculative ? " ???" : "    ", buf);
-  Py_DECREF(string);
+  if (string) {
+    const char *name = PyUnicode_AsUTF8(string);
+    if (name && (!speculative || pdi != 2))
+      printf("%30s%s:\t%s\n", name, speculative ? " ???" : "    ", buf);
+    Py_DECREF(string);
+  }
 }
 
 static PyObject*
@@ -486,7 +501,11 @@ take_action(PyObject *arg_types, PyObject *children_list, int speculative,
   PyTuple_SetItem(arglist, 0, children_list);
   for (i=1; i<arg_count; i++) {
     PyObject *item = PyList_GetItem(arg_types, i);
-    int type = PyInt_AsLong(item);
+    int type = (int)PyLong_AsLong(item);
+    if (type == -1 && PyErr_Occurred()) {
+      Py_DECREF(arglist);
+      return NULL;
+    }
     if (type == 1) {
       PyTuple_SetItem(arglist, i, Py_BuildValue("i", speculative));
     }
