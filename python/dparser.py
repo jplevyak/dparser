@@ -214,13 +214,12 @@ class Parser:
         self.actions = []
         if not modules:
             dicts = [inspect.currentframe().f_back.f_globals]
+        elif isinstance(modules, list):
+            dicts = [module.__dict__ for module in modules]
+        elif isinstance(modules, dict):
+            dicts = [modules]
         else:
-            if isinstance(modules, list):
-                dicts = [module.__dict__ for module in modules]
-            elif isinstance(modules, dict):
-                dicts = [modules]
-            else:
-                dicts = [modules.__dict__]
+            dicts = [modules.__dict__]
 
         functions = []
         for dictionary in dicts:
