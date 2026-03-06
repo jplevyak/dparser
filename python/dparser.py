@@ -226,7 +226,7 @@ class Parser:
         for dictionary in dicts:
             f = [val for name, val in dictionary.items()
                  if (isinstance(val, types.FunctionType)) and
-                 name[0:2] == 'd_']
+                 name.startswith("d_")]
             f = sorted(f, key=lambda x: (x.__code__.co_filename,
                                          x.__code__.co_firstlineno))
             functions.extend(f)
