@@ -2,10 +2,11 @@
 # contributions by Milosz Krajewski
 # contributions by John Plevyak
 
+import hashlib
+import inspect
+import os
 import sys
 import types
-import os
-import hashlib
 import dparser_swigc
 
 
@@ -212,31 +213,33 @@ class Parser:
         self.tables = Tables()
         self.actions = []
         if not modules:
+            frame = inspect.currentframe()
             try:
-                raise RuntimeError
-            except RuntimeError:
-                traceback = sys.exc_info()[2]
-                dicts = [traceback.tb_frame.f_back.f_globals]
+                if not frame or not frame.f_back:
+                    raise RuntimeError("dparser: Could not get caller's frame to load globals.")
+                dicts = [frame.f_back.f_globals]
+            finally:
+                if frame:
+                    del frame
+        elif isinstance(modules, list):
+            dicts = [module.__dict__ for module in modules]
+        elif isinstance(modules, dict):
+            dicts = [modules]
         else:
-            if isinstance(modules, list):
-                dicts = [module.__dict__ for module in modules]
-            elif isinstance(modules, dict):
-                dicts = [modules]
-            else:
-                dicts = [modules.__dict__]
+            dicts = [modules.__dict__]
 
         functions = []
         for dictionary in dicts:
             f = [val for name, val in dictionary.items()
                  if (isinstance(val, types.FunctionType)) and
-                 name[0:2] == 'd_']
+                 name.startswith("d_")]
             f = sorted(f, key=lambda x: (x.__code__.co_filename,
                                          x.__code__.co_firstlineno))
             functions.extend(f)
-        if len(functions) == 0:
+        if not functions:
             raise NoActionsFound("\nno actions found.  Action names must start with 'd_'")
 
-        if parser_folder is None:
+        if not parser_folder:
             parser_folder = os.path.dirname(sys.argv[0])
             if len(parser_folder) == 0:
                 parser_folder = os.getcwd()
