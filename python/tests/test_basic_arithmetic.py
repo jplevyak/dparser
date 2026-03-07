@@ -16,9 +16,8 @@ def d_number(t):
 
 
 def _skip_hello(loc):
-    while (loc.s < len(loc.buf) and
-           loc.buf[loc.s:loc.s + len('hello')] == b'hello'):
-        loc.s = loc.s + len('hello')
+    while loc.buf.startswith(b'hello', loc.s):
+        loc.s += len(b'hello')
 
 
 @pytest.fixture
