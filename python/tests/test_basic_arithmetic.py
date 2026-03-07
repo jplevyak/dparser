@@ -33,7 +33,7 @@ def test_addition(parser):
 
 
 def test_addition_with_skip_space(parser):
-    result = parser.parse('87+5', initial_skip_space_fn=_skip_hello)
+    result = parser.parse('87hello+5', initial_skip_space_fn=_skip_hello)
     assert result.getStructure() == 92
 
 
