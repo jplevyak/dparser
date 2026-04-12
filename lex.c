@@ -173,11 +173,13 @@ static void nfa_to_scanner(NFAState *n, Scanner *s) {
 /* build a NFA for the regular expression */
 static int build_regex_nfa(LexState *ls, uint8 **areg, NFAState *pp, NFAState *nn, Action *trailing) {
   uint8 c, pc, *reg = *areg;
-  NFAState *p = pp, *s, *x, *n = nn;
+  NFAState *p, *s, *x, *n = nn;
   int reversed, i, has_trailing = 0;
   uint8 mark[256];
 
-  s = p;
+  s = x = new_NFAState(ls);
+  vec_add(&pp->epsilon, x);
+  p = x;
   while ((c = *reg++)) {
     switch (c) {
       case '(':
@@ -189,7 +191,9 @@ static int build_regex_nfa(LexState *ls, uint8 **areg, NFAState *pp, NFAState *n
         goto Lreturn;
       case '|':
         vec_add(&s->epsilon, nn);
-        vec_add(&pp->epsilon, (s = new_NFAState(ls)));
+        s = x = new_NFAState(ls);
+        vec_add(&pp->epsilon, x);
+        p = x;
         break;
       case '[':
         if (*reg == '^') {
@@ -208,7 +212,10 @@ static int build_regex_nfa(LexState *ls, uint8 **areg, NFAState *pp, NFAState *n
               if (!c) goto Lerror;
               if (c == '\\') c = *reg++;
               if (!c) goto Lerror;
-              for (; pc <= c; pc++) mark[pc] = 1;
+              {
+                int u_pc = pc, u_c = c;
+                for (; u_pc <= u_c; u_pc++) mark[u_pc] = 1;
+              }
               break;
             case '\\':
               c = *reg++;
@@ -220,6 +227,13 @@ static int build_regex_nfa(LexState *ls, uint8 **areg, NFAState *pp, NFAState *n
           }
         }
       Lsetdone:
+        if (ls->ignore_case) {
+          for (i = 1; i < 256; i++) {
+            if (mark[i] && isalpha(i)) {
+              mark[islower(i) ? toupper(i) : tolower(i)] = 1;
+            }
+          }
+        }
         x = new_NFAState(ls);
         for (i = 1; i < 256; i++)
           if ((!reversed && mark[i]) || (reversed && !mark[i])) vec_add(&s->chars[i], x);
