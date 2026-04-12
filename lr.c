@@ -36,17 +36,21 @@ static void free_state(State *s) {
   FREE(s);
 }
 
-static State *maybe_add_state(Grammar *g, State *s) {
-  uint i, j;
+static uint32 state_hash_fn(State *s, hash_fns_t *fns) { return s->hash; }
+static int state_cmp_fn(State *a, State *b, hash_fns_t *fns) {
+  uint j;
+  if (a->items.n != b->items.n) return 1;
+  for (j = 0; j < a->items.n; j++)
+    if (a->items.v[j] != b->items.v[j]) return 1;
+  return 0;
+}
+static hash_fns_t state_hash_fns = {(hash_fn_t)state_hash_fn, (cmp_fn_t)state_cmp_fn, {0, 0}};
 
-  for (i = 0; i < g->states.n; i++) {
-    if (s->hash == g->states.v[i]->hash && s->items.n == g->states.v[i]->items.n) {
-      for (j = 0; j < s->items.n; j++)
-        if (s->items.v[j] != g->states.v[i]->items.v[j]) goto Lcont;
-      free_state(s);
-      return g->states.v[i];
-    Lcont:;
-    }
+static State *maybe_add_state(Grammar *g, void *states_hash, State *s) {
+  State *ss = set_add_fn(states_hash, s, &state_hash_fns);
+  if (ss != s) {
+    free_state(s);
+    return ss;
   }
   s->index = g->states.n;
   vec_add(&g->states, s);
@@ -60,7 +64,7 @@ static Elem *next_elem(Item *i) {
     return i->rule->elems.v[i->index + 1];
 }
 
-static State *build_closure(Grammar *g, State *s) {
+static State *build_closure(Grammar *g, void *states_hash, State *s) {
   uint j, k;
 
   for (j = 0; j < s->items.n; j++) {
@@ -75,7 +79,7 @@ static State *build_closure(Grammar *g, State *s) {
   if (s->items.v != NULL) qsort(s->items.v, s->items.n, sizeof(Item *), itemcmp);
   s->hash = 0;
   for (j = 0; j < s->items.n; j++) s->hash += item_hash(s->items.v[j]);
-  return maybe_add_state(g, s);
+  return maybe_add_state(g, states_hash, s);
 }
 
 static Elem *clone_elem(Elem *e) {
@@ -91,7 +95,7 @@ static void add_goto(State *s, State *ss, Elem *e) {
   vec_add(&s->gotos, g);
 }
 
-static void build_state_for(Grammar *g, State *s, Elem *e) {
+static void build_state_for(Grammar *g, void *states_hash, State *s, Elem *e) {
   uint j;
   Item *i;
   State *ss = NULL;
@@ -103,36 +107,39 @@ static void build_state_for(Grammar *g, State *s, Elem *e) {
       insert_item(ss, next_elem(i));
     }
   }
-  if (ss) add_goto(s, build_closure(g, ss), e);
+  if (ss) add_goto(s, build_closure(g, states_hash, ss), e);
 }
 
-static void build_new_states(Grammar *g) {
-  uint i, j;
+static void build_new_states(Grammar *g, void *states_hash) {
+  uint i, j, k;
   State *s;
-  Elem e;
+  Elem *next;
 
   for (i = 0; i < g->states.n; i++) {
     s = g->states.v[i];
-    for (j = 0; j < g->terminals.n; j++) {
-      e.kind = ELEM_TERM;
-      e.e.term = g->terminals.v[j];
-      build_state_for(g, s, &e);
-    }
-    for (j = 0; j < g->productions.n; j++) {
-      e.kind = ELEM_NTERM;
-      e.e.nterm = g->productions.v[j];
-      build_state_for(g, s, &e);
+    for (j = 0; j < s->items.n; j++) {
+      if (s->items.v[j]->kind != ELEM_END) {
+        next = s->items.v[j];
+        for (k = 0; k < j; k++) {
+          Item *prev = s->items.v[k];
+          if (prev->kind != ELEM_END && prev->kind == next->kind && prev->e.term_or_nterm == next->e.term_or_nterm)
+            break;
+        }
+        if (k == j) {
+          build_state_for(g, states_hash, s, next);
+        }
+      }
     }
   }
 }
 
-static void build_states_for_each_production(Grammar *g) {
+static void build_states_for_each_production(Grammar *g, void *states_hash) {
   uint i;
   for (i = 0; i < g->productions.n; i++)
     if (!g->productions.v[i]->internal && g->productions.v[i]->elem) {
       State *s = new_state();
       insert_item(s, g->productions.v[i]->elem);
-      g->productions.v[i]->state = build_closure(g, s);
+      g->productions.v[i]->state = build_closure(g, states_hash, s);
     }
 }
 
@@ -159,12 +166,22 @@ static void sort_Gotos(Grammar *g) {
 }
 
 static void build_LR_sets(Grammar *g) {
+  struct {
+    uint n;
+    uint i;
+    State **v;
+    State *e[INTEGRAL_VEC_SIZE];
+  } states_hash;
+  memset(&states_hash, 0, sizeof(states_hash));
+
   State *s = new_state();
   insert_item(s, g->productions.v[0]->rules.v[0]->elems.v[0]);
-  build_closure(g, s);
-  build_states_for_each_production(g);
-  build_new_states(g);
+  build_closure(g, &states_hash, s);
+  build_states_for_each_production(g, &states_hash);
+  build_new_states(g, &states_hash);
   sort_Gotos(g);
+
+  if (states_hash.v && states_hash.v != states_hash.e) FREE(states_hash.v);
 }
 
 static Action *new_Action(Grammar *g, int akind, Term *aterm, Rule *arule, State *astate) {
