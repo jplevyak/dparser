@@ -19,7 +19,7 @@ typedef struct BinaryTables {
 
 BinaryTables *read_binary_tables(char *file_name, D_ReductionCode spec_code, D_ReductionCode final_code);
 BinaryTables *read_binary_tables_from_file(FILE *fp, D_ReductionCode spec_code, D_ReductionCode final_code);
-BinaryTables *read_binary_tables_from_string(unsigned char *buf, D_ReductionCode spec_code, D_ReductionCode final_code);
+BinaryTables *read_binary_tables_from_string(unsigned char *buf, size_t len, D_ReductionCode spec_code, D_ReductionCode final_code);
 void free_BinaryTables(BinaryTables *binary_tables);
 
 #endif
