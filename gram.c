@@ -1064,22 +1064,44 @@ typedef struct {
   struct State *diff_state;
 } EqState;
 
+#define BUCKET_HASH_SIZE 4096
+
 void build_eq(Grammar *g) {
   uint i, j, k, changed = 1, x, xx;
   State *s, *ss;
   EqState *eq, *e, *ee;
+  uint *head, *tail, *next;
 
   eq = (EqState *)MALLOC(sizeof(EqState) * g->states.n);
   memset(eq, 0, sizeof(EqState) * g->states.n);
+
+  head = (uint *)MALLOC(sizeof(uint) * BUCKET_HASH_SIZE);
+  tail = (uint *)MALLOC(sizeof(uint) * BUCKET_HASH_SIZE);
+  next = (uint *)MALLOC(sizeof(uint) * g->states.n);
+  memset(head, 0xFF, sizeof(uint) * BUCKET_HASH_SIZE);
+
+  for (i = 0; i < g->states.n; i++) {
+    uint h = g->states.v[i]->gotos.n % BUCKET_HASH_SIZE;
+    if (head[h] == 0xFFFFFFFF) {
+      head[h] = i;
+      tail[h] = i;
+    } else {
+      next[tail[h]] = i;
+      tail[h] = i;
+    }
+    next[i] = 0xFFFFFFFF;
+  }
+
   while (changed) {
     changed = 0;
     for (i = 0; i < g->states.n; i++) {
       s = g->states.v[i];
       e = &eq[s->index];
-      for (j = i + 1; j < g->states.n; j++) {
+      if (e->eq) continue;
+      for (j = next[i]; j != 0xFFFFFFFF; j = next[j]) {
         ss = g->states.v[j];
         ee = &eq[ss->index];
-        if (e->eq || ee->eq) continue;
+        if (ee->eq) continue;
         if (s->same_shifts != ss->same_shifts && ss->same_shifts != s) continue;
         /* check gotos */
         if (s->gotos.n != ss->gotos.n) continue;
@@ -1117,6 +1139,9 @@ void build_eq(Grammar *g) {
       }
     }
   }
+  FREE(head);
+  FREE(tail);
+  FREE(next);
   for (i = 0; i < g->states.n; i++) {
     s = g->states.v[i];
     e = &eq[s->index];
