@@ -27,6 +27,11 @@ cdef extern from *:
 cdef extern from "../d.h":
     pass
 
+cdef extern from "../util.h":
+    int d_debug_level
+
+d_debug_level = 0
+
 cdef extern from "../dparse_tables.h":
     ctypedef struct d_loc_t:
         char *s

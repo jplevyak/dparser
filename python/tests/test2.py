@@ -50,8 +50,6 @@ def d_whitespace(t, spec):
     del t, spec
 
 
-res = Parser(make_grammar_file=True).parse('1  +2* (3+ 4+5)', ambiguity_fn=ambiguity_func, print_debug_info=1).getStructure()
+res = Parser(make_grammar_file=True).parse('1  +2* (3+ 4+5)', ambiguity_fn=ambiguity_func).getStructure()
 if res != 25:
     print('fail!', res)
-else:
-    print("SUCCESS! res=", res)

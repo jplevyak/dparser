@@ -3,7 +3,6 @@ from dparser import Parser
 
 def d_S(t):
     '''S : d '+' d'''
-    print('d_S called with', t)
     return t[0] + t[2]
 
 
