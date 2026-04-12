@@ -65,6 +65,11 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           }
         }
         prev = state;
+        if (c == '\n') {
+          line++;
+          col = 0;
+        } else
+          col++;
         loc.s = s;
         loc.line = line;
         loc.col = col;
@@ -72,11 +77,6 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           last = state;
           last_loc = loc;
         }
-        if (c == '\n') {
-          line++;
-          col = 0;
-        } else
-          col++;
         c = (uint8)*s++;
       }
       shift = st[last].shift;
@@ -100,6 +100,11 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           }
         }
         prev = state;
+        if (c == '\n') {
+          line++;
+          col = 0;
+        } else
+          col++;
         loc.s = s;
         loc.line = line;
         loc.col = col;
@@ -107,11 +112,6 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           last = state;
           last_loc = loc;
         }
-        if (c == '\n') {
-          line++;
-          col = 0;
-        } else
-          col++;
         c = (uint8)*s++;
       }
       shift = st[last].shift;
