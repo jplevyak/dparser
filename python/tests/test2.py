@@ -46,10 +46,12 @@ def ambiguity_func(v):
 
 
 def d_whitespace(t, spec):
-    "whitespace : ' '*"
+    "whitespace : ( ' ' | '\\t' )*"
     del t, spec
 
 
-if Parser().parse('1  +2* (3+ 4+5)', ambiguity_fn=ambiguity_func,
-                  print_debug_info=0).getStructure() != 25:
-    print('fail')
+res = Parser(make_grammar_file=True).parse('1  +2* (3+ 4+5)', ambiguity_fn=ambiguity_func, print_debug_info=1).getStructure()
+if res != 25:
+    print('fail!', res)
+else:
+    print("SUCCESS! res=", res)

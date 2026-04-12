@@ -1149,15 +1149,20 @@ void parse_whitespace(D_Parser *ap, d_loc_t *loc, void **p_globals) {
   Parser *pp = ((Parser *)ap)->whitespace_parser;
   (void)p_globals;
   pp->start = loc->s;
+  printf("DEBUG: parse_whitespace starting on '%s' (end='%s') with state=%d\n", loc->s, pp->end, ((Parser *)ap)->t->whitespace_state);
   if (!exhaustive_parse(pp, ((Parser *)ap)->t->whitespace_state)) {
+    printf("DEBUG: exhaustive_parse returned 0, pp->accept=%p\n", (void*)pp->accept);
     if (pp->accept) {
       uint old_col = loc->col, old_line = loc->line;
       *loc = pp->accept->loc;
       if (loc->line == 1) loc->col = old_col + loc->col;
       loc->line = old_line + (pp->accept->loc.line - 1);
+      printf("DEBUG: parsed whitespace, new loc='%s'\n", loc->s);
       unref_sn(pp, pp->accept);
       pp->accept = NULL;
     }
+  } else {
+    printf("DEBUG: exhaustive_parse returned non-zero!\n");
   }
 }
 

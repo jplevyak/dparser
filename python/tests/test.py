@@ -3,6 +3,7 @@ from dparser import Parser
 
 def d_S(t):
     '''S : d '+' d'''
+    print('d_S called with', t)
     return t[0] + t[2]
 
 
@@ -21,10 +22,11 @@ parser = Parser(make_grammar_file=1)
 
 buf = 'hi10hello+3hellohi'
 
-if parser.parse(buf, buf_offset=2, partial_parses=1,
-                initial_skip_space_fn=skip_space).getStructure() != 13:
-    print('fail')
+res1 = parser.parse(buf, buf_offset=2, partial_parses=1, initial_skip_space_fn=skip_space).getStructure()
+if res1 != 13:
+    print('fail 1:', res1)
 
 buf = '87+5'
-if parser.parse(buf, initial_skip_space_fn=skip_space).getStructure() != 92:
-    print('fail')
+res2 = parser.parse(buf, initial_skip_space_fn=skip_space).getStructure()
+if res2 != 92:
+    print('fail 2:', res2)

@@ -3,19 +3,26 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 
-module_swigc = Extension(
-        '_dparser_swigc',
-        sources=['dparser_wrap.c', 'pydparser.c', 'make_tables.c'],
-        define_macros=[('SWIG_GLOBAL', None), ('SWIG_PYTHON_STRICT_BYTE_CHAR', None)],
-        libraries=['mkdparse', 'dparse'],
-        library_dirs=['../'],
-        extra_compile_args=['-Wall', '-ggdb3'])
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    import sys
+    print("Error: Cython is required to build dparser python bindings.")
+    print("Please install it using: python3 -m pip install cython")
+    sys.exit(1)
+
+module_cython = Extension(
+    'dparser',
+    sources=['dparser.pyx'],
+    libraries=['mkdparse', 'dparse'],
+    library_dirs=['../'],
+    extra_compile_args=['-Wall', '-O3', '-g']
+)
 
 setup(
-        name="dparser",
-        version="1.31",
-        description='DParser for Python',
-        py_modules=["dparser", "dparser_swigc"],
-        url='https://github.com/jplevyak/dparser',
-        ext_modules=[module_swigc],
+    name="dparser",
+    version="1.31",
+    description='DParser for Python',
+    url='https://github.com/jplevyak/dparser',
+    ext_modules=cythonize(module_cython, language_level="3")
 )
