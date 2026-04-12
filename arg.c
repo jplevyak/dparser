@@ -9,7 +9,7 @@ static char *arg_types_desc[] = {(char *)"int     ", (char *)"string  ", (char *
                                  (char *)"set off ", (char *)"set on  ", (char *)"incr    ",
                                  (char *)"toggle  ", (char *)"int64   ", (char *)"        "};
 
-void process_arg(ArgumentState *arg_state, int i, char ***argv) {
+static void process_arg(ArgumentState *arg_state, int i, char **arg_val, char ***argv) {
   char *arg = NULL;
   ArgumentDescription *desc = arg_state->desc;
   if (desc[i].type) {
@@ -21,27 +21,34 @@ void process_arg(ArgumentState *arg_state, int i, char ***argv) {
     else if (type == '+')
       (*(int *)desc[i].location)++;
     else {
-      arg = *++(**argv) ? **argv : *++(*argv);
-      if (!arg) usage(arg_state, NULL);
+      arg = *arg_val;
+      if (!arg) {
+        *argv = *argv + 1;
+        arg = **argv;
+        if (!arg) usage(arg_state, NULL);
+      }
       switch (type) {
         case 'I':
-          *(int *)desc[i].location = atoi(arg);
+          *(int *)desc[i].location = strtol(arg, NULL, 0);
           break;
         case 'D':
-          *(double *)desc[i].location = atof(arg);
+          *(double *)desc[i].location = strtod(arg, NULL);
           break;
         case 'L':
-          *(int64 *)desc[i].location = atoll(arg);
+          *(int64 *)desc[i].location = strtoll(arg, NULL, 0);
           break;
-        case 'S':
-          strncpy((char *)desc[i].location, arg, atoi(desc[i].type + 1));
+        case 'S': {
+          int limit = atoi(desc[i].type + 1);
+          strncpy((char *)desc[i].location, arg, limit);
+          if (limit > 0) ((char *)desc[i].location)[limit - 1] = 0;
           break;
+        }
         default:
           fprintf(stderr, "%s:bad argument description\n", arg_state->program_name);
           exit(1);
           break;
       }
-      **argv += strlen(**argv) - 1;
+      *arg_val = NULL; /* mark consumed */
     }
   }
   if (desc[i].pfn) desc[i].pfn(arg_state, arg);
@@ -49,7 +56,6 @@ void process_arg(ArgumentState *arg_state, int i, char ***argv) {
 
 void process_args(ArgumentState *arg_state, char **argv) {
   int i = 0, len;
-  char *end;
   ArgumentDescription *desc = arg_state->desc;
   /* Grab Environment Variables */
   for (i = 0;; i++) {
@@ -72,9 +78,12 @@ void process_args(ArgumentState *arg_state, char **argv) {
         case 'L':
           *(int64 *)desc[i].location = strtoll(env, NULL, 0);
           break;
-        case 'S':
-          strncpy((char *)desc[i].location, env, strtol(desc[i].type + 1, NULL, 0));
+        case 'S': {
+          int limit = strtol(desc[i].type + 1, NULL, 0);
+          strncpy((char *)desc[i].location, env, limit);
+          if (limit > 0) ((char *)desc[i].location)[limit - 1] = 0;
           break;
+        }
       }
       if (desc[i].pfn) desc[i].pfn(arg_state, env);
     }
@@ -84,39 +93,67 @@ void process_args(ArgumentState *arg_state, char **argv) {
     Grab Command Line Arguments
   */
   arg_state->program_name = argv[0];
-  while (*++argv) {
-    if (**argv == '-') {
-      if ((*argv)[1] == '-') {
+  if (!*argv) return;
+  argv++;
+  while (*argv) {
+    char *arg = *argv;
+    if (!strcmp(arg, "--")) {
+      argv++;
+      while (*argv) {
+        arg_state->file_argument =
+            (char **)REALLOC(arg_state->file_argument, sizeof(char **) * (arg_state->nfile_arguments + 2));
+        arg_state->file_argument[arg_state->nfile_arguments++] = *argv;
+        arg_state->file_argument[arg_state->nfile_arguments] = NULL;
+        argv++;
+      }
+      break;
+    } else if (arg[0] == '-' && arg[1] == '-') {
+      char *key = arg + 2;
+      char *val = strchr(key, '=');
+      if (val) {
+        len = val - key;
+        val++;
+      } else {
+        len = strlen(key);
+      }
+      int matched = 0;
+      for (i = 0;; i++) {
+        if (!desc[i].name) break;
+        if (len == (int)strlen(desc[i].name) && !strncmp(desc[i].name, key, len)) {
+          matched = 1;
+          char *pass_val = val;
+          process_arg(arg_state, i, &pass_val, &argv);
+          break;
+        }
+      }
+      if (!matched) usage(arg_state, NULL);
+      if (*argv) argv++;
+    } else if (arg[0] == '-' && arg[1] != '\0') {
+      char *p = arg + 1;
+      while (*p) {
+        int matched = 0;
         for (i = 0;; i++) {
-          if (!desc[i].name) usage(arg_state, NULL);
-          if ((end = strchr((*argv) + 2, '=')))
-            len = end - ((*argv) + 2);
-          else
-            len = strlen((*argv) + 2);
-          if (len == (int)strlen(desc[i].name) && !strncmp(desc[i].name, (*argv) + 2, len)) {
-            if (!end)
-              *argv += strlen(*argv) - 1;
-            else
-              *argv = end;
-            process_arg(arg_state, i, &argv);
+          if (!desc[i].name) break;
+          if (desc[i].key == *p) {
+            matched = 1;
+            p++;
+            char *pass_val = *p ? p : NULL;
+            process_arg(arg_state, i, &pass_val, &argv);
+            if (pass_val == NULL) {
+              p = ""; /* value consumed, break inner loop */
+            }
             break;
           }
         }
-      } else {
-        while (*++(*argv))
-          for (i = 0;; i++) {
-            if (!desc[i].name) usage(arg_state, NULL);
-            if (desc[i].key == **argv) {
-              process_arg(arg_state, i, &argv);
-              break;
-            }
-          }
+        if (!matched) usage(arg_state, NULL);
       }
+      if (*argv) argv++;
     } else {
       arg_state->file_argument =
           (char **)REALLOC(arg_state->file_argument, sizeof(char **) * (arg_state->nfile_arguments + 2));
-      arg_state->file_argument[arg_state->nfile_arguments++] = *argv;
+      arg_state->file_argument[arg_state->nfile_arguments++] = arg;
       arg_state->file_argument[arg_state->nfile_arguments] = NULL;
+      argv++;
     }
   }
 }
@@ -130,10 +167,14 @@ void usage(ArgumentState *arg_state, char *arg_unused) {
   for (i = 0;; i++) {
     if (!desc[i].name) break;
     if (!desc[i].description) continue;
+    int type_idx = strlen(arg_types_keys);
+    if (desc[i].type) {
+      char *p = strchr(arg_types_keys, desc[i].type[0]);
+      if (p) type_idx = p - arg_types_keys;
+    }
     fprintf(stderr, "  %c%c%c --%s%s%s", desc[i].key != ' ' ? '-' : ' ', desc[i].key, desc[i].key != ' ' ? ',' : ' ',
             desc[i].name, (strlen(desc[i].name) + 61 < 81) ? &SPACES[strlen(desc[i].name) + 61] : "",
-            arg_types_desc[desc[i].type ? strchr(arg_types_keys, desc[i].type[0]) - arg_types_keys
-                                        : strlen(arg_types_keys)]);
+            arg_types_desc[type_idx]);
     switch (desc[i].type ? desc[i].type[0] : 0) {
       case 0:
         fprintf(stderr, "          ");
@@ -156,8 +197,10 @@ void usage(ArgumentState *arg_state, char *arg_unused) {
           if (strlen((char *)desc[i].location) < 10)
             fprintf(stderr, " %-9s", (char *)desc[i].location);
           else {
-            ((char *)desc[i].location)[7] = 0;
-            fprintf(stderr, " %-7s..", (char *)desc[i].location);
+            char temp[8];
+            strncpy(temp, (char *)desc[i].location, 7);
+            temp[7] = 0;
+            fprintf(stderr, " %-7s..", temp);
           }
         } else
           fprintf(stderr, " (null)   ");

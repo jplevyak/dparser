@@ -8,9 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef __alpha
-#define atoll atol
-#endif
+
 
 /* Argument Handling
  */
