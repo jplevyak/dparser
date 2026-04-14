@@ -13,7 +13,11 @@
 struct D_Parser;
 struct D_ShiftTable;
 
-#define D_PN(_x, _o) ((D_ParseNode *)(_x == NULL ? NULL : (char *)(_x) + _o))
+#ifdef __cplusplus
+#define D_PN(_x, _o) ((_x) == NULL ? NULL : reinterpret_cast<D_ParseNode *>(static_cast<char *>(_x) + (_o)))
+#else
+#define D_PN(_x, _o) ((D_ParseNode *)((_x) == NULL ? NULL : (char *)(_x) + (_o)))
+#endif
 
 typedef struct d_loc_t {
   char *s, *pathname, *ws;

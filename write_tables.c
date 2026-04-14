@@ -1123,6 +1123,15 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
           while (isdigit_(*c)) c++;
         } else
           fprintf(fp, "(*(D_PN(_ps, _offset)))");
+      } else if (*c == 'c' || *c == 'C') {
+        ++c;
+        if (isdigit_(*c)) {
+          int n = atoi(c);
+          fprintf(fp, "(dparser::ParseNode(D_PN(_children[%d], _offset)))", n);
+          if (n > (int)r->elems.n - 1) d_fail("$cXXXX greater than number of children at line %d", line);
+          while (isdigit_(*c)) c++;
+        } else
+          fprintf(fp, "(dparser::ParseNode(D_PN(_ps, _offset)))");
       } else if (*c == '$') {
         fprintf(fp, "(D_PN(_ps, _offset)->user)");
         c++;

@@ -59,6 +59,7 @@ CFLAGS += -DUSE_FREELISTS
 endif
 
 CFLAGS += -Wall
+CXXFLAGS += -Wall -std=c++17
 
 ifeq ($(D_DEBUG),1)
 CFLAGS += -g -DD_DEBUG=1
@@ -81,6 +82,7 @@ ifeq ($(OS_TYPE),Darwin)
 CFLAGS += -I/opt/homebrew/include
 endif
 CFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
+CXXFLAGS += -DD_MAJOR_VERSION=$(MAJOR) -DD_MINOR_VERSION=$(MINOR)
 
 AUX_FILES = dparser/Makefile dparser/LICENSE.txt dparser/README.md dparser/CHANGES dparser/4calc.g dparser/4calc.in dparser/my.g dparser/my.c dparser/make_dparser.1 dparser/make_dparser.cat
 TESTS = $(shell ls tests/*g tests/*[0-9] tests/*.check tests/*.flags)
@@ -127,7 +129,7 @@ INSTALL_LIBRARIES = $(LIBDPARSE)
 INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h
 MANPAGES = make_dparser.1
 
-EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab
+EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions
 ifeq ($(OS_TYPE),CYGWIN)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
@@ -147,8 +149,10 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test:
+test: test_cpp test_cpp_actions
 	(MAKE=$(MAKE) ./parser_tests)
+	./test_cpp
+	./test_cpp_actions
 
 test-dsymtab: test_dsymtab
 	./test_dsymtab
@@ -192,6 +196,18 @@ sample_parser: $(SAMPLE_PARSER_OBJS) $(INSTALL_LIBRARIES)
 
 test_parser: $(TEST_PARSER_OBJS) $(LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ version.c $(LIBS)
+
+TEST_CPP_OBJS = test_cpp.o sample.g.d_parser.o
+test_cpp: $(TEST_CPP_OBJS) version.o $(INSTALL_LIBRARIES)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -std=c++17 -I. -o $@ $^ $(LIBS)
+
+TEST_CPP_ACTIONS_OBJS = test_cpp_actions.o test_cpp_actions.g.d_parser.o
+
+test_cpp_actions.g.d_parser.o: test_cpp_actions.g.d_parser.c
+	$(CXX) $(CXXFLAGS) -I. -x c++ -c -o $@ $<
+
+test_cpp_actions: $(TEST_CPP_ACTIONS_OBJS) version.o $(INSTALL_LIBRARIES)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -std=c++17 -I. -o $@ $^ $(LIBS)
 
 test_dsymtab: test_dsymtab.o $(INSTALL_LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
