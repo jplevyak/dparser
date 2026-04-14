@@ -578,6 +578,7 @@ static int child_table[4][3][6] = {{
 
 /* returns 1 if legal for child reduction and illegal for child shift */
 static int check_child(int ppri, AssocKind passoc, int cpri, AssocKind cassoc, int left, int right) {
+  if ((passoc & ASSOC_NO) && (cassoc & ASSOC_NO) && ppri == cpri) return 0;
   if (IS_NARY_ASSOC(cassoc) || IS_NARY_ASSOC(passoc)) return 1;
   uint p = IS_BINARY_NARY_ASSOC(passoc) ? (right ? 1 : 0) : (IS_LEFT_ASSOC(passoc) ? 2 : 3);
   uint c = IS_BINARY_NARY_ASSOC(cassoc) ? 0 : (IS_LEFT_ASSOC(cassoc) ? 1 : 2);
@@ -838,6 +839,9 @@ static int prioritycmp(const void *ax, const void *ay) {
   /* by earliest start */
   if (x->parse_node.start_loc.s < y->parse_node.start_loc.s) return -1;
   if (x->parse_node.start_loc.s > y->parse_node.start_loc.s) return 1;
+  /* by longest extent */
+  if (x->parse_node.end > y->parse_node.end) return -1;
+  if (x->parse_node.end < y->parse_node.end) return 1;
   return 0;
 }
 

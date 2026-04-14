@@ -99,6 +99,7 @@ typedef enum AssocKind {
 #define IS_UNARY_ASSOC(_x) ((_x)&ASSOC_UNARY)
 #define IS_UNARY_BINARY_ASSOC(_x) (IS_BINARY_ASSOC(_x) || IS_UNARY_ASSOC(_x))
 #define IS_BINARY_NARY_ASSOC(_x) (IS_BINARY_ASSOC(_x) || IS_NARY_ASSOC(_x))
+#define IS_NO_ASSOC(_x) ((_x)&ASSOC_NO)
 /* not valid for NARY */
 #define IS_EXPECT_RIGHT_ASSOC(_x) ((_x) && (_x) != ASSOC_UNARY_LEFT)
 #define IS_EXPECT_LEFT_ASSOC(_x) ((_x) && _x != ASSOC_UNARY_RIGHT)
