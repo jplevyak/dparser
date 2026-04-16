@@ -663,6 +663,7 @@ class Parser:
                  if isinstance(val, types.FunctionType) and name.startswith("d_")]
             f = sorted(f, key=lambda x: (x.__code__.co_filename, x.__code__.co_firstlineno))
             functions.extend(f)
+
         if not functions:
             raise NoActionsFound("\nno actions found.  Action names must start with 'd_'")
 
@@ -680,9 +681,18 @@ class Parser:
         for f in functions:
             if not f.__doc__:
                 raise RuntimeError("\naction missing doc string:\n\t" + f.__name__)
-            grammar_str.append(f.__doc__)
+            
+            # Split by '|' and add ${action} to each rule
+            doc = f.__doc__.split('|')
             self.tables.update(f.__doc__)
-            grammar_str.append(" ${action};\n")
+            grammar_str.append(doc[0])
+            grammar_str.append(" ${action}")
+            for i in range(1, len(doc)):
+                grammar_str.append(" | ")
+                grammar_str.append(doc[i])
+                grammar_str.append(" ${action}")
+            grammar_str.append(";\n")
+
             if f.__code__.co_argcount == 0:
                 raise RuntimeError("\naction " + f.__name__ +
                                    " must take at least one argument\n")
@@ -712,7 +722,8 @@ class Parser:
                     raise RuntimeError("\nunknown action argument " + var)
             if not speculative:
                 speculative = -1
-            self.actions.append((f, arg_types, speculative))
+            for i in range(len(doc)):
+                self.actions.append((f, arg_types, speculative))
 
         grammar_str = ''.join(grammar_str).encode()
         self.tables.load_tables(grammar_str, self.filename, make_grammar_file)

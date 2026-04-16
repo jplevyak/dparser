@@ -8,7 +8,11 @@ all:
 	$(PYTHON) setup.py build_ext --inplace
 
 install:
-	$(PYTHON) setup.py install --root=${DESTDIR} --install-layout=deb
+	@INSTALL_FLAGS="--root=${DESTDIR}"; \
+	if $(PYTHON) setup.py install --help 2>/dev/null | grep -q "install-layout"; then \
+		INSTALL_FLAGS="$$INSTALL_FLAGS --install-layout=deb"; \
+	fi; \
+	$(PYTHON) setup.py install $$INSTALL_FLAGS
 
 clean:
 	rm -rf build dparser.pyc dparser_swigc.* dparser_wrap.c swigpyrun.h \

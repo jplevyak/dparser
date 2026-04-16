@@ -23,12 +23,12 @@ def syntax_error(loc):
     if len(after) > (contextwidth_right - len(ellipsis)):
         after = locbuf_flattened[loc.s:(mx - len(ellipsis))] + ellipsis
 
-    print "-"*79
-    print "File %s:\n" % inputfilename
-    print before +\
-          " ____________\n" +\
-          " "*contextwidth_left +\
-          "/syntax error at line " + str(loc.line) +\
-          " (buffer pos. " + str(loc.s) + ")"
-    print " "*contextwidth_left + after
-    print "-"*79
+    print("-" * 79)
+    print("File %s:\n" % inputfilename)
+    print(before +
+          " ____________\n" +
+          " " * contextwidth_left +
+          "/syntax error at line " + str(loc.line) +
+          " (buffer pos. " + str(loc.s) + ")")
+    print(" " * contextwidth_left + after)
+    print("-" * 79)
