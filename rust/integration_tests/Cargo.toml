@@ -1,0 +1,10 @@
+[package]
+name = "integration_tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dparser_lib = { path = "../dparser_lib" }
+
+[build-dependencies]
+dparser_lib = { path = "../dparser_lib" }

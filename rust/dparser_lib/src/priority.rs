@@ -52,13 +52,13 @@ pub fn cmp_priorities(arena: &Arena<PNode>, pn0_id: NodeId, pn1_id: NodeId) -> i
         } // higher priority first
 
         // by earliest start
-        let s_cmp = x.parse_node.start_loc.s.cmp(&y.parse_node.start_loc.s);
+        let s_cmp = x.start_loc.s.cmp(&y.start_loc.s);
         if s_cmp != std::cmp::Ordering::Equal {
             return s_cmp;
         }
 
         // by longest length
-        let l_cmp = x.parse_node.end.cmp(&y.parse_node.end);
+        let l_cmp = x.end_loc_s.cmp(&y.end_loc_s);
         if l_cmp != std::cmp::Ordering::Equal {
             return l_cmp.reverse();
         }
@@ -205,20 +205,20 @@ pub fn cmp_greediness(arena: &Arena<PNode>, pn0_id: NodeId, pn1_id: NodeId) -> i
         let y = arena.get(b.0).unwrap();
 
         // first by earliest start
-        let cmp1 = x.parse_node.start_loc.s.cmp(&y.parse_node.start_loc.s);
+        let cmp1 = x.start_loc.s.cmp(&y.start_loc.s);
         if cmp1 != std::cmp::Ordering::Equal {
             return cmp1;
         }
 
         // second by symbol
-        let cmp2 = x.parse_node.symbol.cmp(&y.parse_node.symbol);
+        let cmp2 = x.symbol.cmp(&y.symbol);
         if cmp2 != std::cmp::Ordering::Equal {
             return cmp2;
         }
 
         // third by length
-        let x_len = x.parse_node.end;
-        let y_len = y.parse_node.end;
+        let x_len = x.end_loc_s;
+        let y_len = y.end_loc_s;
 
         let cmp3 = x_len.cmp(&y_len);
         if cmp3 != std::cmp::Ordering::Equal {
@@ -251,17 +251,17 @@ pub fn cmp_greediness(arena: &Arena<PNode>, pn0_id: NodeId, pn1_id: NodeId) -> i
         let x = arena.get(x_id.0).unwrap();
         let y = arena.get(y_id.0).unwrap();
 
-        if x.parse_node.start_loc.s < y.parse_node.start_loc.s {
+        if x.start_loc.s < y.start_loc.s {
             ix += 1;
-        } else if x.parse_node.start_loc.s > y.parse_node.start_loc.s {
+        } else if x.start_loc.s > y.start_loc.s {
             iy += 1;
-        } else if x.parse_node.symbol < y.parse_node.symbol {
+        } else if x.symbol < y.symbol {
             ix += 1;
-        } else if x.parse_node.symbol > y.parse_node.symbol {
+        } else if x.symbol > y.symbol {
             iy += 1;
-        } else if x.parse_node.end > y.parse_node.end {
+        } else if x.end_loc_s > y.end_loc_s {
             return -1;
-        } else if x.parse_node.end < y.parse_node.end {
+        } else if x.end_loc_s < y.end_loc_s {
             return 1;
         } else if x.children.len() < y.children.len() {
             return -1;
@@ -277,15 +277,15 @@ pub fn cmp_greediness(arena: &Arena<PNode>, pn0_id: NodeId, pn1_id: NodeId) -> i
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arena::Arena;
-    use crate::types::{DParseNode, Loc, PNode};
+    use crate::arena::{Arena, NodeId};
+    use crate::types::{Loc, PNode};
 
     #[test]
     fn test_cmp_greediness_bounds() {
         let mut pnodes = Arena::new();
 
         // Setup mock trees structurally overlapping matching identical offsets precisely
-        let mut pn0 = PNode {
+        let pn0 = PNode {
             hash: 0,
             assoc: 1, // IS_LEFT_ASSOC mock
             priority: 2,
@@ -299,25 +299,20 @@ mod tests {
             latest: None,
             shift: None,
             reduction: None,
-            parse_node: crate::bindings::D_ParseNode {
-                symbol: 0,
-                start_loc: crate::bindings::d_loc_t {
-                    s: std::ptr::null_mut(),
-                    ws: std::ptr::null_mut(),
-                    line: 0,
-                    col: 0,
-                    pathname: std::ptr::null_mut(),
-                },
-                end: 5 as *mut _,
-                end_skip: 5 as *mut _,
-                scope: std::ptr::null_mut(),
-                user: std::ptr::null_mut(),
+            symbol: 10,
+            start_loc: Loc {
+                s: 0,
+                ws: 0,
+                line: 1,
+                col: 1,
             },
+            end_loc_s: 5,
+            end_skip_loc_s: 5,
         };
 
-        let mut pn1 = pn0.clone();
+        let pn1 = pn0.clone();
         let mut pn2 = pn1.clone();
-        pn2.parse_node.end = 4 as *mut _; // Shorter sequence inherently!
+        pn2.end_loc_s = 4; // Shorter sequence inherently!
         let pn1_id = NodeId(pnodes.alloc(pn1));
         let pn2_id = NodeId(pnodes.alloc(pn2));
 

@@ -15,7 +15,6 @@ pub struct Loc {
 }
 
 // DParseNode replaced directly with bindings::D_ParseNode to safely map C memory mappings exactly!
-pub type DParseNode = crate::bindings::D_ParseNode;
 
 /// The internal structural Parse Node (PNode)
 #[derive(Clone, Debug)]
@@ -33,10 +32,24 @@ pub struct PNode {
     pub ambiguities: Option<NodeId>,
     pub latest: Option<NodeId>,
 
-    pub shift: Option<*mut crate::bindings::D_Shift>,
-    pub reduction: Option<*mut crate::bindings::D_Reduction>,
+    pub shift: Option<crate::grammar::GrammarShift>,
+    pub reduction: Option<crate::grammar::GrammarReduction>,
 
-    pub parse_node: crate::bindings::D_ParseNode,
+    pub symbol: i32,
+    pub start_loc: Loc,
+    pub end_loc_s: usize,
+    pub end_skip_loc_s: usize,
+}
+
+/// Natively managed acyclic AST Graph representation completely securely structurally dynamically dynamically cleanly evaluated!
+#[derive(Clone, Debug)]
+pub struct ParseNode<'a, N> {
+    pub symbol: i32,
+    pub string: &'a str,
+    pub end_skip_string: &'a str,
+    pub start_loc: Loc,
+    pub children: Vec<ParseNode<'a, N>>,
+    pub user: N,
 }
 
 /// State Node tracking parser iterations iteratively tracking Graph Stacks
@@ -71,5 +84,5 @@ pub struct Reduction {
     pub snode: SNodeId,
     pub new_snode: Option<SNodeId>,
     pub new_depth: i32,
-    pub reduction_id: usize, // Target reduction instruction ID from Tables
+    pub reduction: crate::grammar::GrammarReduction,
 }

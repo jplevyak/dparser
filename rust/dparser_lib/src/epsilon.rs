@@ -27,36 +27,10 @@ pub fn process_epsilon_reduction(ctx: &mut ParserContext, reduction: &Reduction)
         latest: None,
         shift: None,
         reduction: None,
-        parse_node: crate::bindings::D_ParseNode {
-            symbol: 0,
-            start_loc: crate::bindings::d_loc_t {
-                s: if ctx.input_base_ptr.is_null() {
-                    snode.loc.s as *mut _
-                } else {
-                    unsafe { ctx.input_base_ptr.add(snode.loc.s) as *mut _ }
-                },
-                ws: if ctx.input_base_ptr.is_null() {
-                    snode.loc.ws as *mut _
-                } else {
-                    unsafe { ctx.input_base_ptr.add(snode.loc.ws) as *mut _ }
-                },
-                line: snode.loc.line as i32,
-                col: snode.loc.col as i32,
-                pathname: std::ptr::null_mut(),
-            },
-            end: if ctx.input_base_ptr.is_null() {
-                snode.loc.s as *mut _
-            } else {
-                unsafe { ctx.input_base_ptr.add(snode.loc.s) as *mut _ }
-            },
-            end_skip: if ctx.input_base_ptr.is_null() {
-                snode.loc.s as *mut _
-            } else {
-                unsafe { ctx.input_base_ptr.add(snode.loc.s) as *mut _ }
-            },
-            scope: std::ptr::null_mut(),
-            user: std::ptr::null_mut(),
-        },
+        symbol: 0,
+        start_loc: snode.loc,
+        end_loc_s: snode.loc.s,
+        end_skip_loc_s: snode.loc.s,
     };
 
     let _pn_id = ctx.pnode_arena.alloc(pn);
@@ -68,11 +42,13 @@ pub fn process_epsilon_reduction(ctx: &mut ParserContext, reduction: &Reduction)
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arena::SNodeId;
     use crate::parser_ctx::ParserContext;
+    use crate::types::{Loc, SNode};
 
     #[test]
     fn test_epsilon_closure() {
-        let mut ctx = ParserContext::new(10, std::ptr::null(), std::ptr::null());
+        let mut ctx = ParserContext::new(&[]);
 
         let start_loc = Loc {
             s: 5,
@@ -95,10 +71,20 @@ mod tests {
             snode: snode_id,
             new_snode: None,
             new_depth: 0,
-            reduction_id: 0,
+            reduction: crate::grammar::GrammarReduction {
+                nelements: 0,
+                symbol: 0,
+                action_index: 0,
+                op_assoc: 0,
+                rule_assoc: 0,
+                op_priority: 0,
+                rule_priority: 0,
+                speculative_code: 0,
+                final_code: 0,
+            },
         };
 
-        let initial_pnodes = ctx.stats_pnodes;
+        let _initial_pnodes = ctx.stats_pnodes;
 
         process_epsilon_reduction(&mut ctx, &epsilon_red);
 

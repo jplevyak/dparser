@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn test_error_recovery_queue() {
-        let mut ctx = ParserContext::new(10, std::ptr::null(), std::ptr::null());
+        let mut ctx = ParserContext::new(&[]);
         let input = b"synthetic broken token input";
 
         // Mock root token natively structurally identical to parse.c

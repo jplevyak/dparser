@@ -10,7 +10,6 @@ fn process_body(
     user_replacement: &str,
     child_node_replacement_fmt: &str, // format string expecting index {}
     node_replacement: &str,
-    node_type: &str, // Added node_type for $X[Y] user data access
 ) -> String {
     let mut output = String::new();
     let mut chars = body.chars().peekable();
@@ -77,15 +76,15 @@ fn process_body(
                                         // First, get the replacement for $nX
                                         let node_replacement =
                                             child_node_replacement_fmt.replace("{}", &digits);
-                                        // Then wrap it with d_get_number_of_children
+                                        // Then wrap it with children.len()
                                         let final_replacement = format!(
-                                            "d_get_number_of_children({})",
+                                            "{}.children.len() as i32",
                                             node_replacement
                                         );
                                         output.push_str(&final_replacement);
                                     } else {
                                         // Handle $#
-                                        output.push_str("(_n_children)");
+                                        output.push_str("(_children.len() as i32)");
                                     }
                                 }
                                 '$' => {
@@ -114,7 +113,7 @@ fn process_body(
                                         if chars.peek() == Some(&'*') {
                                             chars.next(); // consume '*'
                                             let replacement = format!(
-                                                "d_children_nodes(_children, {}, _offset)",
+                                                "&mut _children[{}].children",
                                                 digits
                                             );
                                             output.push_str(&replacement);
@@ -142,8 +141,7 @@ fn process_body(
                                     if chars.peek() == Some(&'*') {
                                         chars.next(); // consume '*'
                                         let replacement = format!(
-                                            "d_children_user::<{}>(_children, {}, _offset)",
-                                            node_type, // Use the passed-in node_type
+                                            "&mut _children[{}].children", // User slices natively managed generically by Rust directly
                                             digits_x
                                         );
                                         output.push_str(&replacement);
@@ -257,34 +255,29 @@ pub fn build_actions(
     reader.read_to_string(&mut content)?;
 
     // Define base replacement strings and format templates
-    let globals_replacement = format!("d_globals::<{}>(_parser)", globals_type);
-    // Format string expecting index {}, with node_type already substituted
-    let child_user_replacement_fmt = format!(
-        "d_user::<{}>(d_pn_ptr(d_child_pn_ptr(_children, {{}}), _offset))",
-        node_type
-    );
-    let user_replacement = format!("d_user::<{}>(d_pn_ptr(_ps, _offset))", node_type);
-    // Format string expecting index {}
-    let child_node_replacement_fmt = "d_pn(d_child_pn_ptr(_children, {}), _offset)";
-    let node_replacement = "d_pn(_ps, _offset)";
+    let globals_replacement = "_g".to_string();
+    let child_user_replacement_fmt = "_children[{}].user".to_string();
+    let user_replacement = "_ps.user".to_string();
+    let child_node_replacement_fmt = "_children[{}]".to_string();
+    let node_replacement = "_ps".to_string();
 
     output.push_str(
         r#"
-use dparser_lib::bindings::*;
-#[allow(unused_imports)]
-use dparser_lib::{d_globals, d_child_pn_ptr, d_pn, d_pn_ptr, d_user, d_get_number_of_children, d_get_child, d_children_nodes, d_children_user}; // Added imports
-use std::os::raw::c_void;
+// Idiomatically bounded natively!
+// Imports deferred to encompassing scoped modules via include! cleanly!
         "#,
     );
 
     // Regex for parsing the input structure
-    let global_code_regex = regex::Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); 
-    let header_regex = regex::Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); 
-    let binary_header_regex = regex::Regex::new(r#"^int d_pass_code_action_(-?\d+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
+    let global_code_regex = regex::Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
+    let header_regex = regex::Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
+    let binary_header_regex =
+        regex::Regex::new(r#"^int d_pass_code_action_(-?\d+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#)
+            .unwrap();
 
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
-    
+
     let mut dispatch_arms = String::new();
 
     while i < lines.len() {
@@ -308,21 +301,22 @@ use std::os::raw::c_void;
         // Try to match the legacy C function header or the native binary header
         let mut matched = false;
 
-        let (action_idx, line_number, file_name, line_count, is_binary) = if let Some(captures) = binary_header_regex.captures(lines[i]) {
-            let action_index = captures[1].parse::<isize>().unwrap() as i32;
-            let file_name = captures[3].to_string();
-            let line_count = captures[4].parse::<usize>().unwrap_or(0);
-            matched = true;
-            (Some(action_index), 0, file_name, line_count, true)
-        } else if let Some(captures) = header_regex.captures(lines[i]) {
-            let line_number = captures[2].parse::<usize>().unwrap_or(0);
-            let file_name = captures[3].to_string();
-            let line_count = captures[4].parse::<usize>().unwrap_or(0);
-            matched = true;
-            (None, line_number, file_name, line_count, false)
-        } else {
-            (None, 0, String::new(), 0, false)
-        };
+        let (action_idx, line_number, file_name, line_count, is_binary) =
+            if let Some(captures) = binary_header_regex.captures(lines[i]) {
+                let action_index = captures[1].parse::<isize>().unwrap() as i32;
+                let file_name = captures[3].to_string();
+                let line_count = captures[4].parse::<usize>().unwrap_or(0);
+                matched = true;
+                (Some(action_index), 0, file_name, line_count, true)
+            } else if let Some(captures) = header_regex.captures(lines[i]) {
+                let line_number = captures[2].parse::<usize>().unwrap_or(0);
+                let file_name = captures[3].to_string();
+                let line_count = captures[4].parse::<usize>().unwrap_or(0);
+                matched = true;
+                (None, line_number, file_name, line_count, false)
+            } else {
+                (None, 0, String::new(), 0, false)
+            };
 
         if matched {
             i += 1; // Move to the next line (body starts here)
@@ -344,9 +338,8 @@ use std::os::raw::c_void;
                     &globals_replacement,
                     &child_user_replacement_fmt,
                     &user_replacement,
-                    child_node_replacement_fmt,
+                    &child_node_replacement_fmt,
                     &node_replacement,
-                    node_type, // Pass node_type here
                 );
 
                 if is_binary {
@@ -375,15 +368,16 @@ use std::os::raw::c_void;
 
     // Append unified binary dispatcher fallback mapping securely
     let dispatcher = format!(
-        "#[unsafe(no_mangle)]\npub extern \"C\" fn dispatch_action(action_idx: i32, _ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser) -> i32 {{\n\
+        "#[allow(unused_assignments)] // Inherently mapping natively!\npub fn dispatch_action(action_idx: i32, _ps: &mut ParseNode<'_, {}>, _children: &mut [ParseNode<'_, {}>], _parser: &mut Parser<{}, {}>) -> i32 {{\n\
+            let _g = _parser.globals();\n\
             match action_idx {{\n\
                 {}\n\
                 _ => 0,\n\
             }}\n\
         }}\n",
-        dispatch_arms
+        node_type, node_type, globals_type, node_type, dispatch_arms
     );
-    
+
     output.push_str(&dispatcher);
 
     // Write the output to a file

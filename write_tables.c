@@ -1177,11 +1177,12 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
               snprintf(x, 4095, "(D_PN(_children[%s], _offset))", n);
             else
               snprintf(x, 4095, "d_get_child(%s, %s)", y, n);
+            FREE(n);
             if (*e == ',') e++;
             if (isspace_(*e)) e++;
             i = !i;
           }
-          if (!xx[!i]) d_fail("empty ${child } at line %d", line);
+          if (!*xx[!i]) d_fail("empty ${child } at line %d", line);
           fprintf(fp, "%s", xx[!i]);
         } else if (STREQ(c, e - c, "reject")) {
           fprintf(fp, " return -1 ");

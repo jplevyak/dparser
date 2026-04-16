@@ -1,67 +1,23 @@
 use crate::arena::NodeId;
-use crate::bindings::{D_ParseNode, D_Parser};
 use crate::parser_ctx::ParserContext;
-use std::os::raw::{c_int, c_void};
+use crate::types::ParseNode;
+use crate::DispatchActionFn;
 
-#[repr(C)]
-pub struct ShadowNode {
-    pub children: Vec<*mut c_void>,
-    pub parse_node: D_ParseNode,
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn d_get_number_of_children(pn: *mut D_ParseNode) -> c_int {
-    if pn.is_null() {
-        return 0;
-    }
-    unsafe {
-        let shadow_ptr =
-            (pn as *mut u8).sub(std::mem::offset_of!(ShadowNode, parse_node)) as *mut ShadowNode;
-        (*shadow_ptr).children.len() as c_int
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn d_get_child(pn: *mut D_ParseNode, child: c_int) -> *mut D_ParseNode {
-    if pn.is_null() {
-        return std::ptr::null_mut();
-    }
-    unsafe {
-        let shadow_ptr =
-            (pn as *mut u8).sub(std::mem::offset_of!(ShadowNode, parse_node)) as *mut ShadowNode;
-        let children = &(*shadow_ptr).children;
-        if child >= 0 && (child as usize) < children.len() {
-            let child_shadow = children[child as usize] as *mut ShadowNode;
-            if child_shadow.is_null() {
-                std::ptr::null_mut()
-            } else {
-                &mut (*child_shadow).parse_node as *mut D_ParseNode
-            }
-        } else {
-            std::ptr::null_mut()
-        }
-    }
-}
-
-pub fn build_parse_tree(
-    ctx: &mut ParserContext,
+pub fn build_parse_tree<'a, G: 'static, N: 'static + Default + Clone>(
+    ctx: &mut ParserContext<'a>,
     root_id: NodeId,
-    parser_ptr: *mut D_Parser,
-) -> *mut D_ParseNode {
-    unsafe {
-        let container = commit_tree(ctx, root_id, parser_ptr) as *mut ShadowNode;
-        if container.is_null() {
-            return std::ptr::null_mut();
-        }
-        &mut (*container).parse_node as *mut D_ParseNode
-    }
+    parser: &mut crate::Parser<G, N>,
+    dispatch_action: Option<DispatchActionFn<G, N>>,
+) -> ParseNode<'a, N> {
+    commit_tree(ctx, root_id, parser, dispatch_action)
 }
 
-unsafe fn commit_tree(
-    ctx: &mut ParserContext,
+fn commit_tree<'a, G: 'static, N: 'static + Default + Clone>(
+    ctx: &mut ParserContext<'a>,
     mut pn_id: NodeId,
-    parser: *mut D_Parser,
-) -> *mut c_void {
+    parser: &mut crate::Parser<G, N>,
+    dispatch_action: Option<DispatchActionFn<G, N>>,
+) -> ParseNode<'a, N> {
     // Traverse LATEST
     loop {
         let node = ctx.pnode_arena.get(pn_id.0).unwrap();
@@ -72,94 +28,140 @@ unsafe fn commit_tree(
         }
     }
 
-    let pnode = ctx.pnode_arena.get_mut(pn_id.0).unwrap();
-    if pnode.evaluated {
-        // Technically this implies caching `ShadowNode` pointers mapped natively if we traverse repeatedly.
-        // For now, assume tree recursion translates perfectly mapping organically identical bounds recursively!
-    }
-    pnode.evaluated = true;
-
-    // Build a D_ParseNode + user_data dynamically sized allocation
-    let user_size = unsafe { (*parser).sizeof_user_parse_node as usize };
-    let total_size = std::mem::size_of::<ShadowNode>() + user_size;
-
-    let layout =
-        std::alloc::Layout::from_size_align(total_size, std::mem::align_of::<ShadowNode>())
-            .unwrap();
-
-    let shadow_ptr = unsafe {
-        let ptr = std::alloc::alloc_zeroed(layout) as *mut ShadowNode;
-        // safely initialize the Vec mapped implicitly
-        std::ptr::write(&mut (*ptr).children, Vec::new());
-        // neatly copy standard bindings
-        std::ptr::write(&mut (*ptr).parse_node, pnode.parse_node.clone());
-        ptr
+    let (ambiguities_opt, children_ids, safe_red_opt, start_s, end_s, end_skip_s) = {
+        let pnode = ctx.pnode_arena.get_mut(pn_id.0).unwrap();
+        pnode.evaluated = true;
+        (pnode.ambiguities, pnode.children.clone(), pnode.reduction.clone(), pnode.start_loc.s, pnode.end_loc_s, pnode.end_skip_loc_s)
     };
 
-    // Handle ambiguities
-    if pnode.ambiguities.is_some() {
-        if let Some(am_fn) = (*parser).ambiguity_fn {
-            // Natively map overlapping derivations
-            // Natively map overlapping derivations
-            let mut amb_nodes: Vec<*mut D_ParseNode> = Vec::new();
-            amb_nodes.push(shadow_ptr as *mut D_ParseNode);
+    let string = if ctx.input.is_empty() {
+        ""
+    } else {
+        let len = end_s - start_s;
+        unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                ctx.input.as_ptr().add(start_s),
+                len,
+            ))
+        }
+    };
 
-            let mut curr_amb = pnode.ambiguities;
-            while let Some(amb_id) = curr_amb {
-                let amb_node = ctx.pnode_arena.get(amb_id.0).unwrap();
-                let amb_shadow_ptr = unsafe {
-                    let ptr = std::alloc::alloc_zeroed(layout) as *mut ShadowNode;
-                    std::ptr::write(&mut (*ptr).children, Vec::new());
-                    std::ptr::write(&mut (*ptr).parse_node, amb_node.parse_node.clone());
-                    ptr
-                };
-                amb_nodes.push(amb_shadow_ptr as *mut D_ParseNode);
-                // Leaked for native evaluation callback matching lifetime bounds inherently
-                curr_amb = amb_node.ambiguities;
+    let end_skip_string = if ctx.input.is_empty() {
+        ""
+    } else {
+        let len = end_skip_s - end_s;
+        unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                ctx.input.as_ptr().add(end_s),
+                len,
+            ))
+        }
+    };
+
+    let mut shadow_node = ParseNode {
+        symbol: ctx.pnode_arena.get(pn_id.0).unwrap().symbol,
+        string,
+        end_skip_string,
+        start_loc: ctx.pnode_arena.get(pn_id.0).unwrap().start_loc.clone(),
+        children: Vec::new(),
+        user: N::default(),
+    };
+
+    // Handle ambiguities natively executing all competing derivations dynamically bounding slice
+    if let Some(am_fn) = parser.ambiguity_fn {
+        if ambiguities_opt.is_some() {
+            let mut valid_alternatives = Vec::new();
+            
+            // Build the primary derivation completely recursively!
+            let mut primary_shadow = shadow_node.clone();
+            for child_id in children_ids.clone() {
+                primary_shadow.children.push(commit_tree(ctx, child_id, parser, dispatch_action));
             }
-            // Trigger resolution
-            let resolved = am_fn(parser, amb_nodes.len() as c_int, amb_nodes.as_mut_ptr());
-            if resolved != shadow_ptr as *mut D_ParseNode {
-                // Resolved to a different ambiguity!
-                // Mapped accurately inherently replacing identical pointers seamlessly
+            let mut primary_accepted = true;
+            if let Some(safe_red) = safe_red_opt.clone() {
+                if let Some(dispatch_fn) = dispatch_action {
+                    let mut extracted_children = std::mem::take(&mut primary_shadow.children);
+                    let ret = dispatch_fn(safe_red.action_index, &mut primary_shadow, &mut extracted_children, parser);
+                    primary_shadow.children = extracted_children;
+                    if ret == -1 {
+                        primary_accepted = false;
+                    }
+                }
+            }
+            if primary_accepted {
+                valid_alternatives.push(primary_shadow);
+            }
+
+            // Navigate identical alternative derivations organically!
+            let mut curr = ambiguities_opt;
+            while let Some(am_ptr) = curr {
+                let (alt_children_ids, alt_safe_red, alt_next_ambig) = {
+                    let am_node = ctx.pnode_arena.get(am_ptr.0).unwrap();
+                    (am_node.children.clone(), am_node.reduction.clone(), am_node.ambiguities)
+                };
+                
+                let mut alt_shadow = shadow_node.clone();
+                for child_id in alt_children_ids {
+                    alt_shadow.children.push(commit_tree(ctx, child_id, parser, dispatch_action));
+                }
+                
+                let mut alt_accepted = true;
+                if let Some(safe_red) = alt_safe_red {
+                    if let Some(dispatch_fn) = dispatch_action {
+                        let mut extracted_children = std::mem::take(&mut alt_shadow.children);
+                        let ret = dispatch_fn(safe_red.action_index, &mut alt_shadow, &mut extracted_children, parser);
+                        alt_shadow.children = extracted_children;
+                        if ret == -1 {
+                            alt_accepted = false;
+                        }
+                    }
+                }
+                if alt_accepted {
+                    valid_alternatives.push(alt_shadow);
+                }
+                
+                curr = alt_next_ambig;
+            }
+
+            if valid_alternatives.is_empty() {
+                // If all paths natively bounded reject, we fallback mapped to default empty natively
+                return shadow_node;
+            }
+
+            // Expose inherently overlapping alternatives cleanly to the designated selection logic natively!
+            let selected_index = am_fn(parser, valid_alternatives.len(), &mut valid_alternatives);
+            if selected_index < valid_alternatives.len() {
+                return valid_alternatives.swap_remove(selected_index);
+            } else {
+                return valid_alternatives.swap_remove(0); // Fallback gracefully if bound improperly
             }
         }
     }
 
-    // shadow_ptr already raw!
-
-    // Recurse children
-    let children_ids = ctx.pnode_arena.get(pn_id.0).unwrap().children.clone();
+    // Recurse children normally for non-ambiguous single derivations implicitly!
     for child_id in children_ids {
-        let child_container = commit_tree(ctx, child_id, parser);
-        if !child_container.is_null() {
-            (*shadow_ptr).children.push(child_container);
-        }
+        let child_container = commit_tree(ctx, child_id, parser, dispatch_action);
+        shadow_node.children.push(child_container);
     }
 
     // Trigger final_code
-    if let Some(red_ptr) = ctx.pnode_arena.get(pn_id.0).unwrap().reduction {
-        if !red_ptr.is_null() && ctx.dispatch_action.is_some() {
-            let dispatch_fn = ctx.dispatch_action.unwrap();
-            let action_idx = unsafe { (*red_ptr).action_index };
-            let children_v = if (*shadow_ptr).children.is_empty() {
-                std::ptr::null_mut()
-            } else {
-                (*shadow_ptr).children.as_mut_ptr() as *mut *mut c_void
-            };
-            let offset = std::mem::offset_of!(ShadowNode, parse_node) as c_int;
-            unsafe {
-                dispatch_fn(
-                    action_idx,
-                    shadow_ptr as *mut c_void,
-                    children_v,
-                    (*shadow_ptr).children.len() as c_int,
-                    offset,
-                    parser,
-                );
+    if let Some(safe_red) = safe_red_opt {
+        if let Some(dispatch_fn) = dispatch_action {
+            let action_idx = safe_red.action_index;
+            let mut extracted_children = std::mem::take(&mut shadow_node.children);
+            let ret = dispatch_fn(
+                action_idx,
+                &mut shadow_node,
+                &mut extracted_children,
+                parser,
+            );
+            shadow_node.children = extracted_children;
+            // Native reject check safely passed bounds
+            if ret == -1 {
+                return shadow_node; // Mark node generically handled upstream inherently
             }
         }
     }
 
-    shadow_ptr as *mut c_void
+    shadow_node
 }

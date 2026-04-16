@@ -15,6 +15,7 @@ pub fn get_or_create_snode(
     active_hashes: &mut HashMap<usize, SNodeId>,
     state_id: usize,
     loc: Loc,
+    tables: Option<&crate::grammar::SafeGrammarTables>,
 ) -> SNodeId {
     // In DParser, `SNODE_HASH` typically hashes `(state, initial_scope)`.
     // Since scopes are stubbed here securely, we hash distinctly on `state_id` mapped per-pos.
@@ -42,23 +43,19 @@ pub fn get_or_create_snode(
     // passing the states explicitly based on pointer offsets dynamically.
 
     // Epsilon reductions directly insert themselves natively!
-    if !ctx.tables.is_null() {
-        let state_cfg = unsafe {
-            let offset = (*ctx.tables).state.add(state_id);
-            &*offset
-        };
-        unsafe {
-            for j in 0..state_cfg.reductions.n {
-                let r = *state_cfg.reductions.v.add(j as usize);
-                if (*r).nelements == 0 {
-                    let red = crate::types::Reduction {
+    if let Some(safe_tables) = tables {
+        if state_id < safe_tables.states.len() {
+            let state_cfg = &safe_tables.states[state_id];
+            for red in &state_cfg.reductions {
+                if red.nelements == 0 {
+                    let map_red = crate::types::Reduction {
                         znode: None,
                         snode: id,
                         new_snode: None,
                         new_depth: 0,
-                        reduction_id: r as usize,
+                        reduction: red.clone(),
                     };
-                    ctx.reductions_todo.push(red);
+                    ctx.reductions_todo.push(map_red);
                 }
             }
         }
@@ -90,7 +87,7 @@ mod tests {
     #[test]
     fn test_process_shifts() {
         // Setup mock environment completely natively safely!
-        let mut ctx = ParserContext::new(10, std::ptr::null(), std::ptr::null());
+        let mut ctx = ParserContext::new(&[]);
         let mut hashes = HashMap::new();
 
         let start_loc = Loc {
@@ -99,13 +96,14 @@ mod tests {
             line: 1,
             col: 0,
         };
-        let snode_1 = get_or_create_snode(&mut ctx, &mut hashes, 0, start_loc);
-        let snode_2 = get_or_create_snode(&mut ctx, &mut hashes, 1, start_loc);
+        let snode_1 = get_or_create_snode(&mut ctx, &mut hashes, 0, start_loc, None);
+        let snode_2 = get_or_create_snode(&mut ctx, &mut hashes, 1, start_loc, None);
 
         assert_eq!(ctx.stats_states, 2);
 
         // Assert identical state map bounds natively reuse elements (deduplication behavior mapping)
-        let snode_dup = get_or_create_snode(&mut ctx, &mut hashes, 0, start_loc);
+        let snode_dup = get_or_create_snode(&mut ctx, &mut hashes, 0, start_loc, None);
+
         assert_eq!(snode_1, snode_dup);
         assert_eq!(ctx.stats_states, 2); // No new structural nodes mapped!
 

@@ -19,13 +19,13 @@ pub const INDEX_OF_A:u32 = ${nterm A};
 
 start: S T {
   println!("start: S global a {} x {}", $g.a, $0.x);
-  *$$ = $0.clone();
+  $$ = $0.clone();
 };
 
 S: A S 'b' 
 {
   println!("reduce S: before A S 'b', A x {} y {} S x {} y {}", $0.x, $0.y, $1.x, $1.y);
-  *$$ = $1.clone();
+  $$ = $1.clone();
   $$.x = $0.x + $1.x;
   $$.y = $0.y + $1.y;
   $g.a += 10;
@@ -33,9 +33,9 @@ S: A S 'b'
 }
  | X
 {
-  println!("reduce S: X before column {} global a {} x {} x0 {}", $n0.start_loc.column(), $g.a, $$.x, $0.x);
-  *$$ = $0.clone();
-  println!("reduce S: X after column {} global a {} x {} x0 {}", $n.start_loc.column(), $g.a, $$.x, $0.x);
+  println!("reduce S: X before column {} global a {} x {} x0 {}", $n0.start_loc.col, $g.a, $$.x, $0.x);
+  $$ = $0.clone();
+  println!("reduce S: X after column {} global a {} x {} x0 {}", $n.start_loc.col, $g.a, $$.x, $0.x);
 };
 
 A: 'a' { 
@@ -43,7 +43,7 @@ A: 'a' {
   $$.y = 2;
   $g.a = 11;
   $g.b = 101;
-  println!("reduce A column {} global a {} x {}", $n0.start_loc.column(), $g.a, $$.x);
+  println!("reduce A column {} global a {} x {}", $n0.start_loc.col, $g.a, $$.x);
 };
 
 X: 'x' { 
@@ -51,13 +51,13 @@ X: 'x' {
   $$.y += 1;
   $g.a += 1;
   $g.b += 1;
-  println!("reduce X column {} global a {} x {}", $n0.start_loc.column(), $g.a, $$.x);
+  println!("reduce X column {} global a {} x {}", $n0.start_loc.col, $g.a, $$.x);
 };
 
 T: U* {
   print!("[");
   for n in $n0* {
-    print!("({})", n.str().unwrap());
+    print!("({})", n.string);
   }
   println!("]");
 };

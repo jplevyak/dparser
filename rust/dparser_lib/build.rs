@@ -47,6 +47,23 @@ fn main() {
 
     if src_path.exists() {
         fs::copy(&src_path, &dest_path).expect("Failed to copy make_dparser");
+
+        let test_grammar = project_root.join("tests/g29.test.g");
+        let test_bin = out_dir.join("test_grammar.bin");
+        println!("cargo:rerun-if-changed={}", test_grammar.display());
+        let gen_status = std::process::Command::new(&dest_path)
+            .args([
+                "-B",
+                "-o",
+                test_bin.to_str().unwrap(),
+                test_grammar.to_str().unwrap(),
+            ])
+            .status()
+            .expect("Failed to execute make_dparser for test tables");
+
+        if !gen_status.success() {
+            panic!("make_dparser failed to generate test binary tables");
+        }
     } else {
         panic!("make_dparser not found at {:?}", src_path);
     }

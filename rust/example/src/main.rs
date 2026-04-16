@@ -1,10 +1,9 @@
-use dparser_lib::{ParseNodeWrapper, Parser};
+use dparser_lib::{types::ParseNode, Parser};
 
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
-
 fn main() {
-    let input_string = "a x  b uvu";
+    let input_string = "a x  b uvu\0";
 
     println!("Parsing input: '{}'", input_string);
 
@@ -14,27 +13,18 @@ fn main() {
     let mut parser: Parser<GlobalsStruct, NodeStruct> =
         { Parser::new(tables_buf, Some(dispatch_action)).unwrap() };
     parser.set_save_parse_tree(true);
-    let mut initial_globals = GlobalsStruct { a: 0, b: 0 };
-    let result: Option<ParseNodeWrapper<'_, Parser<GlobalsStruct, NodeStruct>>> =
-        parser.parse(input_string, &mut initial_globals);
+    let initial_globals = GlobalsStruct { a: 0, b: 0 };
+    let result: Option<ParseNode<'_, NodeStruct>> =
+        parser.parse(input_string, Some(initial_globals));
 
     // Process the result
-    unsafe {
-        match result {
-            Some(root_node) => {
-                println!("Parsing successful!");
-                if root_node.node.is_null() {
-                    println!("Root node is null.");
-                } else {
-                    println!(
-                        "Root node x {}",
-                        d_user::<NodeStruct>(root_node.node.as_mut().unwrap()).x
-                    );
-                }
-            }
-            None => {
-                eprintln!("Parsing failed.");
-            }
+    match result {
+        Some(root_node) => {
+            println!("Parsing successful!");
+            println!("Root node x {}", root_node.user.x);
+        }
+        None => {
+            eprintln!("Parsing failed.");
         }
     }
 }

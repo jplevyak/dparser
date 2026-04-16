@@ -2,7 +2,7 @@
 //! Native Rust scanner loop. Reads memory byte-by-byte navigating the multi-dimensional
 //! deterministic finite automata embedded in the `D_State` table exactly replicating `scan.c`.
 
-use crate::bindings::{D_SCAN_LONGEST, D_SCAN_MIXED, D_Shift};
+use crate::binary_format::{D_SCAN_LONGEST, D_SCAN_MIXED, D_Shift};
 use crate::types::Loc;
 
 pub const SCANNER_BLOCKS: usize = 4;
@@ -91,16 +91,16 @@ struct SBTransUint32 {
     scanner_block: [*mut u32; SCANNER_BLOCKS],
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub struct ShiftResult {
     pub loc: Loc,
-    pub shift: *mut D_Shift,
+    pub shift: crate::grammar::GrammarShift,
 }
 
 pub fn scan_buffer(
     input: &[u8],
     starting_loc: Loc,
-    parse_state: &crate::bindings::D_State,
+    parse_state: &crate::grammar::GrammarState,
 ) -> Vec<ShiftResult> {
     let mut results = Vec::new();
     let mut loc = starting_loc;
@@ -108,7 +108,7 @@ pub fn scan_buffer(
 
     let mut shift_ptr: *mut *mut D_Shift = std::ptr::null_mut();
 
-    if parse_state.scanner_table.is_null() {
+    if parse_state.scanner_table == 0 {
         // Fallback for missing scanner table mappings explicitly native
     } else {
         let mut execute_scan =
@@ -132,13 +132,28 @@ pub fn scan_buffer(
                         state = next - 1;
 
                         // Process differential `accepts_diff` table branches if embedded natively inside state node
-                        if prev > 0 && !parse_state.accepts_diff.is_null() {
+                        if prev > 0 && parse_state.accepts_diff != 0 {
                             let trans_idx = get_trans(prev, sb, so);
-                            let mut diff_ptr = *parse_state.accepts_diff.add(trans_idx);
+                            let accepts_diff_raw = parse_state.accepts_diff as *mut *mut *mut D_Shift;
+                            let mut diff_ptr = *accepts_diff_raw.add(trans_idx);
                             while !diff_ptr.is_null() && !(*diff_ptr).is_null() {
+                                
+                                let c_diff = &**diff_ptr;
+                                let spec_raw: isize = std::mem::transmute(c_diff.speculative_code);
+
+                                let safe_shift = crate::grammar::GrammarShift {
+                                    symbol: c_diff.symbol,
+                                    shift_kind: c_diff.shift_kind,
+                                    op_assoc: c_diff.op_assoc,
+                                    op_priority: c_diff.op_priority,
+                                    term_priority: c_diff.term_priority,
+                                    action_index: c_diff.action_index,
+                                    speculative_code: spec_raw as i32,
+                                };
+
                                 results.push(ShiftResult {
                                     loc,
-                                    shift: *diff_ptr,
+                                    shift: safe_shift,
                                 });
                                 diff_ptr = diff_ptr.add(1);
                             }
@@ -216,9 +231,22 @@ pub fn scan_buffer(
         unsafe {
             let mut ptr = shift_ptr;
             while !(*ptr).is_null() {
+                let c_shift = &**ptr;
+                let spec_raw: isize = std::mem::transmute(c_shift.speculative_code);
+
+                let safe_shift = crate::grammar::GrammarShift {
+                    symbol: c_shift.symbol,
+                    shift_kind: c_shift.shift_kind,
+                    op_assoc: c_shift.op_assoc,
+                    op_priority: c_shift.op_priority,
+                    term_priority: c_shift.term_priority,
+                    action_index: c_shift.action_index,
+                    speculative_code: spec_raw as i32,
+                };
+
                 results.push(ShiftResult {
                     loc: last_loc,
-                    shift: *ptr,
+                    shift: safe_shift,
                 });
                 ptr = ptr.add(1);
             }
@@ -239,10 +267,8 @@ pub fn scan_buffer(
                 if res.loc.s < end_idx {
                     break;
                 }
-                unsafe {
-                    if (*res.shift).shift_kind == scan_kind_longest {
-                        longest = true;
-                    }
+                if res.shift.shift_kind == scan_kind_longest {
+                    longest = true;
                 }
             }
         }

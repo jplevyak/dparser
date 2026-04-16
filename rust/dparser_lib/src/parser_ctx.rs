@@ -4,12 +4,8 @@
 use crate::arena::{Arena, SNodeId};
 use crate::types::{PNode, Reduction, SNode, Shift, ZNode};
 
-pub struct ParserContext {
-    // String bounds
-    pub string_start: usize,
-    pub string_end: usize,
-    pub input_base_ptr: *const std::os::raw::c_char,
-    pub tables: *const crate::bindings::D_ParserTables,
+pub struct ParserContext<'a> {
+    pub input: &'a [u8],
 
     // Core Graph Allocated Pools replacing DParser `freelists` natively
     pub pnode_arena: Arena<PNode>,
@@ -33,21 +29,14 @@ pub struct ParserContext {
     pub stats_reductions: u32,
     pub stats_compares: u32,
     pub stats_ambiguities: u32,
-    pub dispatch_action: Option<crate::DispatchActionFn>,
 }
 
-impl ParserContext {
+impl<'a> ParserContext<'a> {
     pub fn new(
-        input_len: usize,
-        input_base: *const std::os::raw::c_char,
-        tables: *const crate::bindings::D_ParserTables,
-        dispatch_action: Option<crate::DispatchActionFn>,
+        input: &'a [u8],
     ) -> Self {
         Self {
-            string_start: 0,
-            string_end: input_len,
-            input_base_ptr: input_base,
-            tables,
+            input,
 
             pnode_arena: Arena::with_capacity(2048),
             snode_arena: Arena::with_capacity(1024),
@@ -67,7 +56,6 @@ impl ParserContext {
             stats_reductions: 0,
             stats_compares: 0,
             stats_ambiguities: 0,
-            dispatch_action,
         }
     }
 }

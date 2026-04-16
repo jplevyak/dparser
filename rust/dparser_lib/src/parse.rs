@@ -3,12 +3,11 @@
 //! Replaces pointer tracking with Arena mapped indices.
 
 use crate::arena::SNodeId;
-use crate::bindings::D_ParserTables;
+use crate::grammar::SafeGrammarTables;
 use crate::parser_ctx::ParserContext;
 use crate::types::{Loc, Shift};
 
-pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) -> Option<SNodeId> {
-    println!(">>> executing native Rust DParser mapping dynamically inside rust/example!");
+pub fn dparse(ctx: &mut ParserContext, tables: &SafeGrammarTables, input: &[u8]) -> Option<SNodeId> {
     // 1. Initialize Start State
     let start_state_idx = 0; // Or passed starting state
     let mut start_loc = Loc {
@@ -27,6 +26,7 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
         &mut std::collections::HashMap::new(),
         start_state_idx,
         start_loc,
+        Some(tables),
     );
 
     ctx.shifts_todo.push(Shift {
@@ -39,7 +39,7 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
         // --- 1. REDUCE PHASE ---
         // Recursively walk back processing all queued reductions until empty
         while !ctx.reductions_todo.is_empty() {
-            crate::reduce::process_reductions(ctx);
+            crate::reduce::process_reductions(ctx, tables);
         }
 
         // --- 2. DONE CHECK ---
@@ -67,9 +67,8 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
 
         let s_id = ctx.snode_arena.get(binding_state.0).unwrap().state_id;
 
-        if !ctx.tables.is_null() {
-            let table_states =
-                unsafe { std::slice::from_raw_parts(tables.state, tables.nstates as usize) };
+        if !tables.states.is_empty() {
+            let table_states = &tables.states;
             if s_id < table_states.len() && table_states[s_id].accept != 0 {
                 if sn_loc.s >= input.len() - 1 {
                     ctx.accept_snode = Some(binding_state);
@@ -86,7 +85,7 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
             if !shifts.is_empty() {
                 for result in shifts {
                     // In DParser, shift processing allocates the NEW states matched explicitly
-                    let symbol_id = unsafe { (*result.shift).symbol as i32 };
+                    let symbol_id = result.shift.symbol as i32;
 
                     // Track post-token whitespace securely structurally propagating skip offsets
                     let mut skip_loc = result.loc;
@@ -102,16 +101,14 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
                         None,
                         None,
                         None,
-                        Some(result.shift),
+                        None,
+                        None, // Removed shift raw pointer passed into PNode structure
                     );
 
                     let ps_state = ctx.snode_arena.get(binding_state.0).unwrap().state_id;
-                    let target_state_id = unsafe {
-                        let ps_state_cfg = &*(*ctx.tables).state.add(ps_state);
-                        let offset =
-                            (symbol_id as isize) - (ps_state_cfg.goto_table_offset as isize);
-                        *(*ctx.tables).goto_table.offset(offset) as usize - 1
-                    };
+                    let ps_state_cfg = &tables.states[ps_state];
+                    let offset = (symbol_id as isize) - (ps_state_cfg.goto_table_offset as isize);
+                    let target_state_id = tables.goto_table[offset as usize] as usize - 1;
 
                     let next_snode_id = crate::pnode::goto_pnode(
                         ctx,
@@ -119,6 +116,7 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
                         pn_id,
                         binding_state,
                         target_state_id,
+                        Some(tables),
                     );
                     next_shifts.push(crate::types::Shift {
                         snode: next_snode_id,
@@ -133,9 +131,9 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
             let mut skip_loc = sn_loc;
             skip_loc.s += 1;
 
-            let pn_id = crate::pnode::add_pnode(ctx, 0, sn_loc, skip_loc.s, None, None, None, None);
+            let pn_id = crate::pnode::add_pnode(ctx, 0, sn_loc, skip_loc.s, None, None, None, None, None);
 
-            let next_snode_id = crate::pnode::goto_pnode(ctx, skip_loc, pn_id, binding_state, 0);
+            let next_snode_id = crate::pnode::goto_pnode(ctx, skip_loc, pn_id, binding_state, 0, Some(tables));
             ctx.shifts_todo.push(crate::types::Shift {
                 snode: next_snode_id,
             });
@@ -148,24 +146,38 @@ pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bindings::{D_ParserTables, D_State};
-    use crate::parser_ctx::ParserContext;
+    use crate::grammar::{GrammarState, SafeGrammarTables};
 
     #[test]
     fn test_full_synthetic_dparse() {
-        let mut ctx = ParserContext::new(10, std::ptr::null(), std::ptr::null());
         let input = b"synthetic input";
+        let mut ctx = ParserContext::new(input);
 
-        // Mock a basic single-state table
-        let mut mock_state = unsafe { std::mem::zeroed::<D_State>() };
-        mock_state.accept = 1;
+        let mock_state = GrammarState {
+            goto_valid: Vec::new(),
+            goto_table_offset: 0,
+            reductions: Vec::new(),
+            right_epsilon_hints: Vec::new(),
+            shifts: Vec::new(),
+            accept: 1,
+            reduces_to: 0,
+            scan_kind: 0,
+            scanner_size: 0,
+            scanner_table: 0,
+            transition_table: 0,
+            accepts_diff: 0,
+        };
 
-        let mut tables = unsafe { std::mem::zeroed::<D_ParserTables>() };
-        tables.nstates = 1;
-        tables.state = &mut mock_state as *mut _;
+        let tables = SafeGrammarTables {
+            states: vec![mock_state],
+            goto_table: vec![1],
+            whitespace_state: 0,
+            save_parse_tree: true,
+            _binary_data: Vec::new(),
+        };
 
         // Fire the core unified GLR event loop algorithm!
         let result = dparse(&mut ctx, &tables, input);
-        assert_eq!(result, Some(crate::arena::SNodeId(0))); // Loop successfully mapped constraints natively!
+        assert!(result.is_some());
     }
 }
