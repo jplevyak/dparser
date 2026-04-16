@@ -53,6 +53,14 @@ The result is natural grammars and powerful parsing.
 * [Manual](docs/manual.md)
 * [FAQ](docs/faq.md)
 
+## Implementation Details
+For in-depth analysis of the parser architecture and specific features, see:
+* [Ambiguity Analysis](ANALYSIS_AMBIGUITY.md)
+* [Path Priorities Analysis](ANALYSIS_CHECK_PATH_PRIORTIES.md)
+* [Error Recovery and Epsilon Hints](RECOVERY_AND_EPSILON_HINTS.md)
+* [Speculative Parsing](SPECULATIVE_PARSING.md)
+* [Safe Rust Implementation](SAFE_RUST.md)
+* [DParser Agents](DPARSER_AGENTS.md) - documentation for using DParser with AI coding agents.
 
 ## Public Headers
 
@@ -63,12 +71,48 @@ The result is natural grammars and powerful parsing.
 
 ## Building
 
-* To build: `gmake` -- only available with source code package
-* To test: `gmake test` -- only available with source code package
+* To build all components (C, Python, Rust): `gmake`
+* To test all components: `gmake test`
+* To build C core only: `gmake make_dparser`
+* To build Python bridge: `gmake python`
+* To build Rust implementation: `gmake rust`
 * To install: `gmake install` -- binary or source code packages
 
-For python support: `cd python; gmake install`
+## Language Support
 
+### Python
+
+`DParser` includes a powerful Cython-based bridge that allows you to define grammars and actions directly in Python.
+
+* **Usage**: Define functions starting with `d_`. The function's docstring contains the grammar rule(s) associated with it.
+* **Installation**:
+  ```bash
+  cd python
+  gmake
+  gmake install
+  ```
+* **Examples**: See `python/tests/` for various examples, including arithmetic evaluation and complex grammar structures.
+
+### Rust
+
+`DParser` for Rust is a **100% pure, native Rust** implementation. It provides a scannerless GLR parser generator and runtime entirely decoupled from C dependencies, ensuring complete memory safety.
+
+* **Features**:
+  - Pure Rust Runtime (no FFI needed for core logic).
+  - Zero-copy scanning over `&str` and `&[u8]`.
+  - Arena-backed parse trees for high performance and safety.
+  - Type-safe action dispatching via macros.
+* **Building**:
+  ```bash
+  cd rust
+  cargo build --workspace
+  ```
+* **Testing**:
+  ```bash
+  cd rust
+  cargo test --workspace
+  ```
+* **Examples**: Check the `rust/example` and `rust/integration_tests` directories for usage patterns.
 
 ## Makefile Options
 

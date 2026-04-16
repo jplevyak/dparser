@@ -242,6 +242,14 @@ bintar:
 clean:
 	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
 	(cd python;make clean)
+	(cd rust;make clean)
+
+depend:
+	./mkdep $(CFLAGS) $(ALL_SRCS)
+
+-include .depend
+ *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
+	(cd python;make clean)
 
 depend:
 	./mkdep $(CFLAGS) $(ALL_SRCS)
