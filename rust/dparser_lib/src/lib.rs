@@ -1,5 +1,19 @@
 pub mod bindings;
 pub mod builder;
+pub mod arena;
+pub mod types;
+pub mod whitespace;
+pub mod pnode;
+pub mod parser_ctx;
+pub mod tables;
+pub mod scan;
+pub mod shift;
+pub mod reduce;
+pub mod priority;
+pub mod epsilon;
+pub mod error;
+pub mod parse;
+pub mod tree;
 pub use bindings::{
     d_get_child, d_get_number_of_children, d_loc_t, dparse, free_D_ParseNode, free_D_Parser,
     new_D_Parser, D_AmbiguityFn, D_ParseNode, D_Parser, D_ParserTables, D_SyntaxErrorFn,
@@ -188,6 +202,7 @@ impl D_ParseNode {
 
 pub struct Parser<G: 'static, N: 'static> {
     parser: *mut D_Parser,
+    tables: *mut D_ParserTables,
     _phantom_g: std::marker::PhantomData<G>,
     _phantom_n: std::marker::PhantomData<N>,
 }
@@ -202,6 +217,7 @@ impl<G: 'static, N: 'static> Parser<G, N> {
             (*parser).free_node_fn = Some(default_free_node_fn::<N>);
             Parser {
                 parser,
+                tables,
                 _phantom_g: std::marker::PhantomData,
                 _phantom_n: std::marker::PhantomData,
             }
@@ -219,7 +235,33 @@ impl<G: 'static, N: 'static> Parser<G, N> {
             input_bytes.push(0);
             let buf = input_bytes.as_mut_ptr() as *mut c_char;
             let buf_len = input_bytes.len() as c_int - 1;
-            let result = dparse(self.parser, buf, buf_len);
+            
+            // Bypass C runtime bounds completely! Route to Native Rust bounds mapping:
+            let mut ctx = crate::parser_ctx::ParserContext::new(buf_len as usize, buf, self.tables);
+            
+            let tables_ref = &*self.tables;
+            
+            let native_result = crate::parse::dparse(&mut ctx, tables_ref, input_bytes.as_slice());
+            
+            let result = if let Some(s_id) = native_result {
+                let snode = ctx.snode_arena.get(s_id.0).unwrap();
+                if let Some(z_id) = snode.zns.first() {
+                    let znode = ctx.znode_arena.get(z_id.0).unwrap();
+                    if let Some(pn_id) = znode.pn {
+                        crate::tree::build_parse_tree(&mut ctx, pn_id, self.parser)
+                    } else {
+                        println!("Root node znode.pn was None!");
+                        bindings::NO_DPN
+                    }
+                } else {
+                    println!("Root node snode.zns was empty!");
+                    bindings::NO_DPN
+                }
+            } else {
+                println!("native_result was None!");
+                bindings::NO_DPN // Failed to parse!
+            };
+            
             if result == bindings::NO_DPN {
                 Some(ParseNodeWrapper {
                     node: std::ptr::null_mut(),
