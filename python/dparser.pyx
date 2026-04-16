@@ -682,14 +682,36 @@ class Parser:
             if not f.__doc__:
                 raise RuntimeError("\naction missing doc string:\n\t" + f.__name__)
             
-            # Split by '|' and add ${action} to each rule
-            doc = f.__doc__.split('|')
-            self.tables.update(f.__doc__)
-            grammar_str.append(doc[0])
+            doc = f.__doc__
+            self.tables.update(doc)
+            
+            # Robust split by '|' that respects quoted strings and regexes
+            doc_rules = []
+            start = 0
+            i = 0
+            while i < len(doc):
+                c = doc[i]
+                if c == '"':  # regex
+                    i += 1
+                    while i < len(doc) and doc[i] != '"':
+                        if doc[i] == '\\': i += 1
+                        i += 1
+                elif c == "'":  # string
+                    i += 1
+                    while i < len(doc) and doc[i] != "'":
+                        if doc[i] == '\\': i += 1
+                        i += 1
+                elif c == '|':
+                    doc_rules.append(doc[start:i])
+                    start = i + 1
+                i += 1
+            doc_rules.append(doc[start:])
+
+            grammar_str.append(doc_rules[0].strip())
             grammar_str.append(" ${action}")
-            for i in range(1, len(doc)):
+            for i in range(1, len(doc_rules)):
                 grammar_str.append(" | ")
-                grammar_str.append(doc[i])
+                grammar_str.append(doc_rules[i].strip())
                 grammar_str.append(" ${action}")
             grammar_str.append(";\n")
 
@@ -722,7 +744,7 @@ class Parser:
                     raise RuntimeError("\nunknown action argument " + var)
             if not speculative:
                 speculative = -1
-            for i in range(len(doc)):
+            for i in range(len(doc_rules)):
                 self.actions.append((f, arg_types, speculative))
 
         grammar_str = ''.join(grammar_str).encode()
