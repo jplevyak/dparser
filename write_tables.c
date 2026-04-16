@@ -162,7 +162,18 @@ static void make_room_in_buf(Buf *buf, size_t size) {
 }
 
 static void new_offset(File *fp, char *name) {
-  OffsetEntry *entry = MALLOC(sizeof(OffsetEntry));
+  OffsetEntry *entry;
+  
+  if (fp->binary) {
+    uintptr_t align_diff = 8 - (((uintptr_t)fp->tables.cur - (uintptr_t)fp->tables.start) % 8);
+    if (align_diff != 8) {
+      make_room_in_buf(&fp->tables, align_diff);
+      memset(fp->tables.cur, 0, align_diff);
+      fp->tables.cur += align_diff;
+    }
+  }
+
+  entry = MALLOC(sizeof(OffsetEntry));
   memset(entry, 0, sizeof(OffsetEntry));
   entry->name = name;
   entry->offset = fp->tables.cur - fp->tables.start;
@@ -1055,13 +1066,17 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
   int in_string = 0;
   FILE *fp = file->fp;
 
-  if (!fp) {
-    d_warn("trying to write code to binary file");
+  if (file->actions_fp) {
+    if (fp) fprintf(fp, "%s;\n", fname);
+    if (r) {
+      fprintf(file->actions_fp, "int d_pass_code_action_%d %d \"%s\" %d\n%s\n", r->prod->internal ? -1 : (r->prod->index * 10000 + r->index), line, pathname, count_newlines(code) + 1, code);
+    } else {
+      fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, count_newlines(code) + 1, code);
+    }
     return;
   }
-  if (file->actions_fp) {
-    fprintf(fp, "%s;\n", fname);
-    fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, count_newlines(code) + 1, code);
+  
+  if (!fp) {
     return;
   }
   if (g->write_line_directives) {
@@ -1373,7 +1388,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       add_struct_member(file, D_Reduction, "%d", r->rule_assoc, rule_assoc);
       add_struct_member(file, D_Reduction, "%d", r->op_priority, op_priority);
       add_struct_member(file, D_Reduction, "%d", r->rule_priority, rule_priority);
-      add_struct_member(file, D_Reduction, "%d", r->prod->internal ? -1 : r->action_index, action_index);
+      add_struct_member(file, D_Reduction, "%d", r->prod->internal ? -1 : (r->prod->index * 10000 + r->index), action_index);
       add_struct_member(file, D_Reduction, "%d", pmax, npass_code);
       if (file->binary) {
         add_struct_ptr_member(file, D_Reduction, "", &null_entry, pass_code);
@@ -1751,7 +1766,9 @@ void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, in
     if (!actions_fp) d_fail("unable to open `%s` for write\n", g->actions_write_pathname);
   }
   file_init(&file, binary, fp, actions_fp, str, str_len);
-  if (!binary) {
+  if (binary && actions_fp) {
+    write_global_code(&file, g, tag);
+  } else if (!binary) {
     char ver[128];
     int header = write_header(g, base_pathname, tag);
     d_version(ver);

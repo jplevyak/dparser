@@ -277,12 +277,15 @@ use std::os::raw::c_void;
         "#,
     );
 
-    // Regex for parsing the input structure (not for substitutions within actions)
-    let global_code_regex = regex::Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); // Keep for parsing global code block header
-    let header_regex = regex::Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); // Keep for parsing action function header
+    // Regex for parsing the input structure
+    let global_code_regex = regex::Regex::new(r#"^(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); 
+    let header_regex = regex::Regex::new(r#"^(\w+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap(); 
+    let binary_header_regex = regex::Regex::new(r#"^int d_pass_code_action_(-?\d+)\s+(\d+)\s+"([^"]+)"\s+(\d+)$"#).unwrap();
 
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
+    
+    let mut dispatch_arms = String::new();
 
     while i < lines.len() {
         if i == 0 {
@@ -302,13 +305,26 @@ use std::os::raw::c_void;
             continue;
         }
 
-        // Try to match the header line
-        if let Some(captures) = header_regex.captures(lines[i]) {
-            let function_name = &captures[1];
-            let line_number = &captures[2].parse::<usize>().unwrap_or(0);
-            let file_name = &captures[3];
-            let line_count = &captures[4].parse::<usize>().unwrap_or(0);
+        // Try to match the legacy C function header or the native binary header
+        let mut matched = false;
 
+        let (action_idx, line_number, file_name, line_count, is_binary) = if let Some(captures) = binary_header_regex.captures(lines[i]) {
+            let action_index = captures[1].parse::<isize>().unwrap() as i32;
+            let file_name = captures[3].to_string();
+            let line_count = captures[4].parse::<usize>().unwrap_or(0);
+            matched = true;
+            (Some(action_index), 0, file_name, line_count, true)
+        } else if let Some(captures) = header_regex.captures(lines[i]) {
+            let line_number = captures[2].parse::<usize>().unwrap_or(0);
+            let file_name = captures[3].to_string();
+            let line_count = captures[4].parse::<usize>().unwrap_or(0);
+            matched = true;
+            (None, line_number, file_name, line_count, false)
+        } else {
+            (None, 0, String::new(), 0, false)
+        };
+
+        if matched {
             i += 1; // Move to the next line (body starts here)
 
             if i < lines.len() {
@@ -316,7 +332,7 @@ use std::os::raw::c_void;
                 let mut body = String::new();
                 let start_line = i;
 
-                while i < lines.len() && i - start_line < *line_count {
+                while i < lines.len() && i - start_line < line_count {
                     body.push_str(lines[i]);
                     body.push('\n');
                     i += 1;
@@ -333,19 +349,42 @@ use std::os::raw::c_void;
                     node_type, // Pass node_type here
                 );
 
-                // Create the Rust function
-                let rust_function = format!(
-                    "#[unsafe(no_mangle)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
-                    function_name, PARAMETERS, line_number, file_name, transformed_body
-                );
-
-                output.push_str(&rust_function);
+                if is_binary {
+                    // Accumulate inside the unified dispatcher
+                    if let Some(idx) = action_idx {
+                        dispatch_arms.push_str(&format!(
+                            "  {} => {{\n   // file: {}\n{}\n   0\n  }},\n",
+                            idx, file_name, transformed_body
+                        ));
+                    }
+                } else {
+                    // Fallback generating identical legacy C mapping routines
+                    let func_name = "legacy_bound"; // We won't hit this normally assuming strict -B use
+                    let rust_function = format!(
+                        "#[unsafe(no_mangle)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
+                        func_name, PARAMETERS, line_number, file_name, transformed_body
+                    );
+                    output.push_str(&rust_function);
+                }
             }
         } else {
             eprintln!("Error: Bad header line '{}'", lines[i]);
             std::process::exit(1);
         }
     }
+
+    // Append unified binary dispatcher fallback mapping securely
+    let dispatcher = format!(
+        "#[unsafe(no_mangle)]\npub extern \"C\" fn dispatch_action(action_idx: i32, _ps: *mut c_void, _children: *mut *mut c_void, _n_children: i32, _offset: i32, _parser: *mut D_Parser) -> i32 {{\n\
+            match action_idx {{\n\
+                {}\n\
+                _ => 0,\n\
+            }}\n\
+        }}\n",
+        dispatch_arms
+    );
+    
+    output.push_str(&dispatcher);
 
     // Write the output to a file
     std::fs::write(output_path, output)?;

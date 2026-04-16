@@ -33,6 +33,7 @@ pub struct ParserContext {
     pub stats_reductions: u32,
     pub stats_compares: u32,
     pub stats_ambiguities: u32,
+    pub dispatch_action: Option<crate::DispatchActionFn>,
 }
 
 impl ParserContext {
@@ -40,6 +41,7 @@ impl ParserContext {
         input_len: usize,
         input_base: *const std::os::raw::c_char,
         tables: *const crate::bindings::D_ParserTables,
+        dispatch_action: Option<crate::DispatchActionFn>,
     ) -> Self {
         Self {
             string_start: 0,
@@ -65,6 +67,7 @@ impl ParserContext {
             stats_reductions: 0,
             stats_compares: 0,
             stats_ambiguities: 0,
+            dispatch_action,
         }
     }
 }

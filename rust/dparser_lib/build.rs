@@ -26,7 +26,8 @@ fn main() {
         .unwrap()
         .to_path_buf();
     println!("cargo:rustc-link-search=native={}", project_root.display());
-    println!("cargo:rustc-link-lib=static=dparse");
+    // NO C RUNTIME LINKED IN NATIVELY!!!
+    // println!("cargo:rustc-link-lib=static=dparse");
     let output = std::process::Command::new("make")
         .current_dir("../..")
         .output()

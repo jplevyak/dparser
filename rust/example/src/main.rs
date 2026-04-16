@@ -1,10 +1,7 @@
-use dparser_lib::{D_ParserTables, ParseNodeWrapper, Parser};
+use dparser_lib::{ParseNodeWrapper, Parser};
 
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
-unsafe extern "C" {
-    unsafe static mut parser_tables_gram: D_ParserTables;
-}
 
 fn main() {
     let input_string = "a x  b uvu";
@@ -12,8 +9,10 @@ fn main() {
     println!("Parsing input: '{}'", input_string);
 
     // Instantiate the parser
+    let tables_buf = include_bytes!(concat!(env!("OUT_DIR"), "/my_grammar.g.d_parser.bin"));
+
     let mut parser: Parser<GlobalsStruct, NodeStruct> =
-        { Parser::new(&raw mut parser_tables_gram) };
+        { Parser::new(tables_buf, Some(dispatch_action)).unwrap() };
     parser.set_save_parse_tree(true);
     let mut initial_globals = GlobalsStruct { a: 0, b: 0 };
     let result: Option<ParseNodeWrapper<'_, Parser<GlobalsStruct, NodeStruct>>> =

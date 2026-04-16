@@ -139,15 +139,18 @@ unsafe fn commit_tree(
 
     // Trigger final_code
     if let Some(red_ptr) = ctx.pnode_arena.get(pn_id.0).unwrap().reduction {
-        if !red_ptr.is_null() {
-            if let Some(f_code) = (*red_ptr).final_code {
-                let children_v = if (*shadow_ptr).children.is_empty() {
-                    std::ptr::null_mut()
-                } else {
-                    (*shadow_ptr).children.as_mut_ptr() as *mut *mut c_void
-                };
-                let offset = std::mem::offset_of!(ShadowNode, parse_node) as c_int;
-                f_code(
+        if !red_ptr.is_null() && ctx.dispatch_action.is_some() {
+            let dispatch_fn = ctx.dispatch_action.unwrap();
+            let action_idx = unsafe { (*red_ptr).action_index };
+            let children_v = if (*shadow_ptr).children.is_empty() {
+                std::ptr::null_mut()
+            } else {
+                (*shadow_ptr).children.as_mut_ptr() as *mut *mut c_void
+            };
+            let offset = std::mem::offset_of!(ShadowNode, parse_node) as c_int;
+            unsafe {
+                dispatch_fn(
+                    action_idx,
                     shadow_ptr as *mut c_void,
                     children_v,
                     (*shadow_ptr).children.len() as c_int,

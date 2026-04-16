@@ -23,6 +23,7 @@ static int token_type = 0;
 static char write_extension[256] = "c";
 static char output_file[1024] = "";
 static char actions_output_file[1024] = "";
+static int output_binary_tables = 0;
 
 static ArgumentDescription arg_desc[] = {
     {"output", 'o', "Output file name", "S1024", &output_file[0], "D_MAKE_PARSER_OUTPUT", NULL},
@@ -48,6 +49,7 @@ static ArgumentDescription arg_desc[] = {
     {"debug", 'd', "Debug", "+", &d_debug_level, "D_MAKE_PARSER_DEBUG", NULL},
     {"rdebug_grammar", 'R', "Replace actions with ones printing productions", "+", &d_rdebug_grammar_level,
      "D_MAKE_RDEBUG_GRAMMAR", NULL},
+    {"binary_tables", 'B', "Output binary tables", "T", &output_binary_tables, "D_MAKE_BINARY_TABLES", NULL},
     {"help", 'h', "Help", NULL, NULL, NULL, help},
     {0}};
 
@@ -110,7 +112,11 @@ int main(int argc, char *argv[]) {
   mkdparse(g, grammar_pathname);
 
   if (d_rdebug_grammar_level == 0) {
-    if (write_c_tables(g) < 0) d_fail("unable to write C tables '%s'", grammar_pathname);
+    if (output_binary_tables) {
+      if (write_binary_tables(g) < 0) d_fail("unable to write binary tables '%s'", grammar_pathname);
+    } else {
+      if (write_c_tables(g) < 0) d_fail("unable to write C tables '%s'", grammar_pathname);
+    }
   } else
     print_rdebug_grammar(g, grammar_pathname);
 
