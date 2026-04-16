@@ -607,6 +607,8 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     }
     if (t->regex_production) {
       action_index = t->regex_production->rules.v[0]->action_index;
+      if (action_index < 0)
+        action_index = t->regex_production->index * 10000 + 1000000;
     }
     start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
     add_struct_member(fp, D_Shift, "%d", g->terminals.v[i]->index + g->productions.n, symbol);
@@ -1067,9 +1069,10 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
   FILE *fp = file->fp;
 
   if (file->actions_fp) {
-    if (fp) fprintf(fp, "%s;\n", fname);
     if (r) {
-      fprintf(file->actions_fp, "int d_pass_code_action_%d %d \"%s\" %d\n%s\n", r->prod->internal ? -1 : (r->prod->index * 10000 + r->index), line, pathname, count_newlines(code) + 1, code);
+      int idx = r->action_index;
+      if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * 10000 + r->index + 1000000);
+      fprintf(file->actions_fp, "int d_pass_code_action_%d %d \"%s\" %d\n%s\n", idx, line, pathname, count_newlines(code) + 1, code);
     } else {
       fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, count_newlines(code) + 1, code);
     }
@@ -1399,7 +1402,11 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       add_struct_member(file, D_Reduction, "%d", r->rule_assoc, rule_assoc);
       add_struct_member(file, D_Reduction, "%d", r->op_priority, op_priority);
       add_struct_member(file, D_Reduction, "%d", r->rule_priority, rule_priority);
-      add_struct_member(file, D_Reduction, "%d", r->prod->internal ? -1 : (r->prod->index * 10000 + r->index), action_index);
+      {
+        int idx = r->action_index;
+        if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * 10000 + r->index + 1000000);
+        add_struct_member(file, D_Reduction, "%d", idx, action_index);
+      }
       add_struct_member(file, D_Reduction, "%d", pmax, npass_code);
       if (file->binary) {
         add_struct_ptr_member(file, D_Reduction, "", &null_entry, pass_code);

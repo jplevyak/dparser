@@ -38,7 +38,7 @@ Rule *new_rule(Grammar *g, Production *p) {
   r->end = new_elem();
   r->end->kind = ELEM_END;
   r->end->rule = r;
-  r->action_index = g->action_index;
+  r->action_index = -1;
   return r;
 }
 
