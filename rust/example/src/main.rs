@@ -13,9 +13,9 @@ fn main() {
     let mut parser: Parser<GlobalsStruct, NodeStruct> =
         { Parser::new(tables_buf, Some(dispatch_action)).unwrap() };
     parser.set_save_parse_tree(true);
-    let initial_globals = GlobalsStruct { a: 0, b: 0 };
+    let mut initial_globals = GlobalsStruct { a: 0, b: 0 };
     let result: Option<ParseNode<'_, NodeStruct>> =
-        parser.parse(input_string, Some(initial_globals));
+        parser.parse(input_string, Some(&mut initial_globals));
 
     // Process the result
     match result {

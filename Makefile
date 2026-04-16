@@ -77,7 +77,8 @@ ifeq ($(D_PROFILE),1)
 CFLAGS += -pg
 endif
 
-CFLAGS += -std=c23 -pedantic 
+C_STD := $(shell $(CC) -std=c23 -x c -c /dev/null -o /dev/null 2>/dev/null && echo -std=c23 || echo -std=c2x)
+CFLAGS += $(C_STD) -pedantic
 ifeq ($(OS_TYPE),Darwin)
 CFLAGS += -I/opt/homebrew/include
 endif

@@ -1175,8 +1175,18 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
             n = dup_str(ss, e);
             if (!*y)
               snprintf(x, 4095, "(D_PN(_children[%s], _offset))", n);
-            else
+            else {
+              /* x and y point to different halves of xx[2][4096] and never
+                 overlap; GCC's -Wrestrict is a false positive here. */
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
               snprintf(x, 4095, "d_get_child(%s, %s)", y, n);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+            }
             FREE(n);
             if (*e == ',') e++;
             if (isspace_(*e)) e++;
