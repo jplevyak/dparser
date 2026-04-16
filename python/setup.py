@@ -9,4 +9,4 @@ module = Extension(
     extra_compile_args=['-Wall', '-O3', '-g']
 )
 
-setup(ext_modules=cythonize(module))
+setup(ext_modules=cythonize(module, language_level="3"))
