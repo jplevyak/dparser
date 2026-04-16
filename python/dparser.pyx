@@ -420,7 +420,7 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
         if action_tuple is not None:
             takes_speculative = action_tuple[2]
             # takes_speculative == -1 means "final actions only"; skip speculative pass
-            if takes_speculative == -1 and not speculative:
+            if takes_speculative == -1 and speculative:
                 return 0
 
     string_list = pylist_children(parser, dd, 1)
