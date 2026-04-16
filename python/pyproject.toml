@@ -2,3 +2,12 @@
 requires = ["setuptools", "wheel", "cython"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "dparser"
+version = "1.31"
+description = "DParser for Python"
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/jplevyak/dparser"
+
