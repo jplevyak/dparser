@@ -691,14 +691,10 @@ class Parser:
             i = 0
             while i < len(doc):
                 c = doc[i]
-                if c == '"':  # regex
+                if c in ('"', "'"):  # regex or string
+                    quote_char = c
                     i += 1
-                    while i < len(doc) and doc[i] != '"':
-                        if doc[i] == '\\': i += 1
-                        i += 1
-                elif c == "'":  # string
-                    i += 1
-                    while i < len(doc) and doc[i] != "'":
+                    while i < len(doc) and doc[i] != quote_char:
                         if doc[i] == '\\': i += 1
                         i += 1
                 elif c == '|':
