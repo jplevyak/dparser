@@ -2,7 +2,7 @@
 //! Native Rust scanner loop. Reads memory byte-by-byte navigating the multi-dimensional
 //! deterministic finite automata embedded in the `D_State` table exactly replicating `scan.c`.
 
-use crate::bindings::{D_SCAN_ALL, D_SCAN_LONGEST, D_SCAN_MIXED, D_Shift, D_State};
+use crate::bindings::{D_SCAN_LONGEST, D_SCAN_MIXED, D_Shift};
 use crate::types::Loc;
 
 pub const SCANNER_BLOCKS: usize = 4;

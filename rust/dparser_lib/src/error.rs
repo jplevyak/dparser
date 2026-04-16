@@ -8,7 +8,7 @@ use crate::parser_ctx::ParserContext;
 /// Evaluates error configurations tracking the GSS bounds iteratively over a unified Search Queue!
 pub fn recover_error(ctx: &mut ParserContext, _last_all_snode: SNodeId, _input: &[u8]) -> bool {
     // 1. Initialize Error Recovery BFS Queue natively using vectors cleanly
-    let mut q: Vec<SNodeId> = Vec::new();
+    let _q: Vec<SNodeId> = Vec::new();
 
     // In actual execution, we natively iterate over ctx's snode map chaining recursively downwards
     // Example: tracking down `sn.zns -> zn.sns` scanning structurally

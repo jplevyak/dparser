@@ -1,7 +1,7 @@
 //! `parser_ctx.rs`
 //! The GLR memory and state execution context wrapping safely allocated Arenas.
 
-use crate::arena::{Arena, NodeId, SNodeId, ZNodeId};
+use crate::arena::{Arena, SNodeId};
 use crate::types::{PNode, Reduction, SNode, Shift, ZNode};
 
 pub struct ParserContext {

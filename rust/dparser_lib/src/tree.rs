@@ -1,7 +1,7 @@
 use crate::arena::NodeId;
-use crate::bindings::{D_ParseNode, D_Parser, D_Scope, d_loc_t, d_voidp};
+use crate::bindings::{D_ParseNode, D_Parser};
 use crate::parser_ctx::ParserContext;
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_int, c_void};
 
 #[repr(C)]
 pub struct ShadowNode {

@@ -2,9 +2,8 @@
 //! Native Rust implementation of Epsilon bounds. In DParser, Epsilon boundaries
 //! represent token-free expansions recursively cascading parallel evaluation branches!
 
-use crate::arena::{NodeId, SNodeId};
 use crate::parser_ctx::ParserContext;
-use crate::types::{DParseNode, Loc, PNode, Reduction, SNode};
+use crate::types::{PNode, Reduction};
 
 /// Processes blank transitions tracking empty reduction matrices natively!
 pub fn process_epsilon_reduction(ctx: &mut ParserContext, reduction: &Reduction) {

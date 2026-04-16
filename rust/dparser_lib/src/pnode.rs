@@ -6,9 +6,8 @@ use crate::arena::NodeId;
 use crate::arena::SNodeId;
 use crate::bindings::{D_Reduction, D_Shift};
 use crate::parser_ctx::ParserContext;
-use crate::shift::get_or_create_snode;
-use crate::types::{DParseNode, Loc, PNode};
-use std::collections::HashMap; // Temporary SNode mappings
+use crate::types::{Loc, PNode};
+ // Temporary SNode mappings
 
 /// Emulates `insert_PNode` and `make_PNode`. Safely retrieves an existing identical
 /// `PNode` from the parallel evaluation branch mapping, building out ambiguity resolutions.

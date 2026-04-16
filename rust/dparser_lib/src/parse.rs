@@ -2,14 +2,10 @@
 //! Core GLR algorithmic engine port of `parse.c`.
 //! Replaces pointer tracking with Arena mapped indices.
 
-use crate::arena::{Arena, NodeId, SNodeId, ZNodeId};
-use crate::bindings::{D_ParserTables, D_ReductionCode, D_State};
+use crate::arena::SNodeId;
+use crate::bindings::D_ParserTables;
 use crate::parser_ctx::ParserContext;
-use crate::reduce::process_reductions;
-use crate::scan::{ShiftResult, scan_buffer};
-use crate::shift::{get_or_create_snode, process_shifts};
-use crate::types::{DParseNode, Loc, PNode, Reduction, SNode, Shift, ZNode};
-use std::collections::HashMap;
+use crate::types::{Loc, Shift};
 
 pub fn dparse(ctx: &mut ParserContext, tables: &D_ParserTables, input: &[u8]) -> Option<SNodeId> {
     println!(">>> executing native Rust DParser mapping dynamically inside rust/example!");

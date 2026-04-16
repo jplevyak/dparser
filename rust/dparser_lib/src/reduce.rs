@@ -2,9 +2,8 @@
 //! Handles the merging of Graph branches bottom-up matching structural Reductions
 //! into deterministic `PNode` Non-Terminals safely across memory pools.
 
-use crate::arena::{NodeId, SNodeId, ZNodeId};
+use crate::arena::ZNodeId;
 use crate::parser_ctx::ParserContext;
-use crate::types::{DParseNode, Loc, PNode, Reduction, SNode, ZNode};
 
 /// Traces the graph stack down `n_children_to_go` depths aggregating combinations into a path vector.
 /// Represents `build_paths_internal` and `build_paths` from parse.c seamlessly mapping Arena allocations natively!
@@ -95,7 +94,7 @@ pub fn process_reductions(ctx: &mut ParserContext) {
         };
 
         if let Some(target_znode) = reduction.znode {
-            let mut computed_paths = build_paths(ctx, target_znode, elements);
+            let computed_paths = build_paths(ctx, target_znode, elements);
 
             for path in computed_paths {
                 let first_znode_id = path.last().unwrap();

@@ -3,7 +3,6 @@
 //! transitions natively creating and validating identical `SNode` branch combinations!
 
 use crate::arena::SNodeId;
-use crate::bindings::D_State;
 use crate::parser_ctx::ParserContext;
 use crate::types::{Loc, SNode};
 use std::collections::HashMap;
