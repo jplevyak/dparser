@@ -1,22 +1,22 @@
+pub mod arena;
 pub mod bindings;
 pub mod builder;
-pub mod arena;
-pub mod types;
-pub mod whitespace;
-pub mod pnode;
-pub mod parser_ctx;
-pub mod tables;
-pub mod scan;
-pub mod shift;
-pub mod reduce;
-pub mod priority;
 pub mod epsilon;
 pub mod error;
 pub mod parse;
+pub mod parser_ctx;
+pub mod pnode;
+pub mod priority;
+pub mod reduce;
+pub mod scan;
+pub mod shift;
+pub mod tables;
 pub mod tree;
+pub mod types;
+pub mod whitespace;
 pub use bindings::{
-    d_get_child, d_get_number_of_children, d_loc_t, dparse, free_D_ParseNode, free_D_Parser,
-    new_D_Parser, D_AmbiguityFn, D_ParseNode, D_Parser, D_ParserTables, D_SyntaxErrorFn,
+    D_AmbiguityFn, D_ParseNode, D_Parser, D_ParserTables, D_SyntaxErrorFn, d_get_child,
+    d_get_number_of_children, d_loc_t, dparse, free_D_ParseNode, free_D_Parser, new_D_Parser,
 };
 pub use builder::build_actions;
 use std::os::raw::{c_char, c_int, c_void};
@@ -235,14 +235,14 @@ impl<G: 'static, N: 'static> Parser<G, N> {
             input_bytes.push(0);
             let buf = input_bytes.as_mut_ptr() as *mut c_char;
             let buf_len = input_bytes.len() as c_int - 1;
-            
+
             // Bypass C runtime bounds completely! Route to Native Rust bounds mapping:
             let mut ctx = crate::parser_ctx::ParserContext::new(buf_len as usize, buf, self.tables);
-            
+
             let tables_ref = &*self.tables;
-            
+
             let native_result = crate::parse::dparse(&mut ctx, tables_ref, input_bytes.as_slice());
-            
+
             let result = if let Some(s_id) = native_result {
                 let snode = ctx.snode_arena.get(s_id.0).unwrap();
                 if let Some(z_id) = snode.zns.first() {
@@ -261,7 +261,7 @@ impl<G: 'static, N: 'static> Parser<G, N> {
                 println!("native_result was None!");
                 bindings::NO_DPN // Failed to parse!
             };
-            
+
             if result == bindings::NO_DPN {
                 Some(ParseNodeWrapper {
                     node: std::ptr::null_mut(),

@@ -8,8 +8,8 @@ pub type AssocKind = u32;
 /// A locational trace tied to a byte array offset
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Loc {
-    pub s: usize,   // string pointer or offset
-    pub ws: usize,  // whitespace mapped offset
+    pub s: usize,  // string pointer or offset
+    pub ws: usize, // whitespace mapped offset
     pub line: u32,
     pub col: u32,
 }
@@ -28,14 +28,14 @@ pub struct PNode {
     pub height: u32,
     pub evaluated: bool,
     pub error_recovery: bool,
-    
+
     pub children: Vec<NodeId>,
     pub ambiguities: Option<NodeId>,
     pub latest: Option<NodeId>,
-    
+
     pub shift: Option<*mut crate::bindings::D_Shift>,
     pub reduction: Option<*mut crate::bindings::D_Reduction>,
-    
+
     pub parse_node: crate::bindings::D_ParseNode,
 }
 
@@ -46,7 +46,7 @@ pub struct SNode {
     pub depth: u32,
     pub in_error_recovery_queue: bool,
     pub state_id: usize, // Identifier mapped to D_State equivalent index
-    
+
     pub last_pn: Option<NodeId>,
     pub zns: Vec<ZNodeId>,
 }

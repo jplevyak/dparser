@@ -1,27 +1,22 @@
 //! `reduce.rs`
-//! Handles the merging of Graph branches bottom-up matching structural Reductions 
+//! Handles the merging of Graph branches bottom-up matching structural Reductions
 //! into deterministic `PNode` Non-Terminals safely across memory pools.
 
+use crate::arena::{NodeId, SNodeId, ZNodeId};
 use crate::parser_ctx::ParserContext;
-use crate::arena::{NodeId, ZNodeId, SNodeId};
-use crate::types::{PNode, SNode, ZNode, Reduction, Loc, DParseNode};
+use crate::types::{DParseNode, Loc, PNode, Reduction, SNode, ZNode};
 
 /// Traces the graph stack down `n_children_to_go` depths aggregating combinations into a path vector.
 /// Represents `build_paths_internal` and `build_paths` from parse.c seamlessly mapping Arena allocations natively!
-pub fn build_paths(
-    ctx: &ParserContext, 
-    start_znode: ZNodeId, 
-    depth: usize
-) -> Vec<Vec<ZNodeId>> {
-    
+pub fn build_paths(ctx: &ParserContext, start_znode: ZNodeId, depth: usize) -> Vec<Vec<ZNodeId>> {
     if depth == 0 {
         return Vec::new();
     }
-    
+
     let mut paths: Vec<Vec<ZNodeId>> = vec![Vec::new()];
-    
+
     build_paths_internal(ctx, start_znode, &mut paths, 0, depth, depth);
-    
+
     paths
 }
 
@@ -31,21 +26,26 @@ fn build_paths_internal(
     paths: &mut Vec<Vec<ZNodeId>>,
     mut parent_path_idx: usize,
     _total_depth: usize,
-    depth_remaining: usize
+    depth_remaining: usize,
 ) {
     paths[parent_path_idx].push(z_id);
-    
-    if depth_remaining <= 1 { return; }
-    
-    let znode = ctx.znode_arena.get(z_id.0).expect("Invalid ZNode mapping inside path collapse bounds");
-    
+
+    if depth_remaining <= 1 {
+        return;
+    }
+
+    let znode = ctx
+        .znode_arena
+        .get(z_id.0)
+        .expect("Invalid ZNode mapping inside path collapse bounds");
+
     let mut branching_count = 0;
-    
+
     for snode_id in &znode.sns {
         let snode = ctx.snode_arena.get(snode_id.0).expect("SNode invalidated");
-        
+
         for z_child_id in &snode.zns {
-            // Fork paths if mapping out alternative sub-cycles 
+            // Fork paths if mapping out alternative sub-cycles
             // natively matching Tomita subset configurations mapping!
             if branching_count > 0 {
                 // Duplicate standard graph vector mapping bounding
@@ -53,12 +53,19 @@ fn build_paths_internal(
                 // Pop the duplicated element (Wait... in parse.c new_VecZNode clones n - (depth_remaining - 1))
                 let prune_offset = cloned_path.len() - 1; // Basic path splitting mapped loosely
                 let new_path = cloned_path[..prune_offset].to_vec();
-                
+
                 paths.push(new_path);
                 parent_path_idx = paths.len() - 1;
             }
-            
-            build_paths_internal(ctx, *z_child_id, paths, parent_path_idx, _total_depth, depth_remaining - 1);
+
+            build_paths_internal(
+                ctx,
+                *z_child_id,
+                paths,
+                parent_path_idx,
+                _total_depth,
+                depth_remaining - 1,
+            );
             branching_count += 1;
         }
     }
@@ -66,61 +73,70 @@ fn build_paths_internal(
 
 /// Dispatches all pending reduction validations mapped across parallel branches natively
 pub fn process_reductions(ctx: &mut ParserContext) {
-    
     while let Some(reduction) = ctx.reductions_todo.pop() {
         ctx.stats_reductions += 1;
-        
-        
+
         // Scope the lookup cleanly retrieving required scalar properties immediately structurally mapping bounds!
         let (snode_loc, loc_s) = {
             let sn = ctx.snode_arena.get(reduction.snode.0).unwrap();
             (sn.loc, sn.loc.s)
         };
-        
+
         let red_ptr = reduction.reduction_id as *mut crate::bindings::D_Reduction;
-        let elements = if red_ptr.is_null() { 0 } else { unsafe { (*red_ptr).nelements as usize } };
-        let symbol_id = if red_ptr.is_null() { 0 } else { unsafe { (*red_ptr).symbol as i32 } };
-        
+        let elements = if red_ptr.is_null() {
+            0
+        } else {
+            unsafe { (*red_ptr).nelements as usize }
+        };
+        let symbol_id = if red_ptr.is_null() {
+            0
+        } else {
+            unsafe { (*red_ptr).symbol as i32 }
+        };
+
         if let Some(target_znode) = reduction.znode {
             let mut computed_paths = build_paths(ctx, target_znode, elements);
-            
+
             for path in computed_paths {
                 let first_znode_id = path.last().unwrap();
                 let first_snode_id = ctx.znode_arena.get(first_znode_id.0).unwrap().sns[0];
                 let start_loc = ctx.snode_arena.get(first_snode_id.0).unwrap().loc;
-                
+
                 let pn_id = crate::pnode::add_pnode(
                     ctx,
                     symbol_id,
                     start_loc,
                     loc_s,
                     None,
-                    Some(red_ptr), // Pass correct D_Reduction natively mapping 
+                    Some(red_ptr), // Pass correct D_Reduction natively mapping
                     Some(path),
-                    None
+                    None,
                 );
-                
+
                 let ps_state = ctx.snode_arena.get(first_snode_id.0).unwrap().state_id;
                 let target_state_id = if !ctx.tables.is_null() {
                     unsafe {
                         let ps_state_cfg = &*(*ctx.tables).state.add(ps_state);
-                        let offset = (symbol_id as isize) - (ps_state_cfg.goto_table_offset as isize);
+                        let offset =
+                            (symbol_id as isize) - (ps_state_cfg.goto_table_offset as isize);
                         *(*ctx.tables).goto_table.offset(offset) as usize - 1
                     }
                 } else {
                     2 // Fallback mock natively testing
                 };
-                
+
                 // Trigger transition boundaries allocating the tracking connections correctly seamlessly!
                 let next_snode_id = crate::pnode::goto_pnode(
                     ctx,
                     snode_loc, // reductions do not consume whitespace intrinsically natively!
-                    pn_id, 
-                    first_snode_id, 
-                    target_state_id
+                    pn_id,
+                    first_snode_id,
+                    target_state_id,
                 );
                 // Note: The new SNode must be evaluated against further contiguous boundaries seamlessly!
-                ctx.shifts_todo.push(crate::types::Shift { snode: next_snode_id });
+                ctx.shifts_todo.push(crate::types::Shift {
+                    snode: next_snode_id,
+                });
             }
         } else {
             // Epsilon reductions directly insert blank terminal nodes seamlessly mapped.
@@ -128,10 +144,14 @@ pub fn process_reductions(ctx: &mut ParserContext) {
             let pn_id = crate::pnode::add_pnode(
                 ctx,
                 symbol_id,
-                sn_loc, sn_loc.s, // 0-width mapping
-                None, Some(reduction.reduction_id as *mut crate::bindings::D_Reduction), None, None
+                sn_loc,
+                sn_loc.s, // 0-width mapping
+                None,
+                Some(reduction.reduction_id as *mut crate::bindings::D_Reduction),
+                None,
+                None,
             );
-            
+
             let ps_state = ctx.snode_arena.get(reduction.snode.0).unwrap().state_id;
             let target_state_id = if !ctx.tables.is_null() {
                 unsafe {
@@ -140,18 +160,20 @@ pub fn process_reductions(ctx: &mut ParserContext) {
                     *(*ctx.tables).goto_table.offset(offset) as usize - 1
                 }
             } else {
-                2 
+                2
             };
-            
+
             let next_snode_id = crate::pnode::goto_pnode(
                 ctx,
                 sn_loc, // passing down mapped boundaries natively avoiding overlaps!
                 pn_id,
                 reduction.snode,
-                target_state_id
+                target_state_id,
             );
-            
-            ctx.shifts_todo.push(crate::types::Shift { snode: next_snode_id });
+
+            ctx.shifts_todo.push(crate::types::Shift {
+                snode: next_snode_id,
+            });
         }
     }
 }
@@ -160,13 +182,18 @@ pub fn process_reductions(ctx: &mut ParserContext) {
 mod tests {
     use super::*;
     use crate::parser_ctx::ParserContext;
-    use crate::types::{ZNode, Reduction};
-    
+    use crate::types::{Reduction, ZNode};
+
     #[test]
     fn test_flat_reduction() {
         let mut ctx = ParserContext::new(10, std::ptr::null(), std::ptr::null());
-        
-        let start_loc = Loc { s: 0, ws: 0, line: 1, col: 0 };
+
+        let start_loc = Loc {
+            s: 0,
+            ws: 0,
+            line: 1,
+            col: 0,
+        };
         let sn = SNode {
             loc: start_loc,
             depth: 0,
@@ -176,29 +203,29 @@ mod tests {
             zns: Vec::new(),
         };
         let sn_id = SNodeId(ctx.snode_arena.alloc(sn));
-        
+
         let znode = ZNode {
             pn: None,
-            sns: vec![sn_id]
+            sns: vec![sn_id],
         };
         let znode_id = ZNodeId(ctx.znode_arena.alloc(znode));
-        
+
         ctx.snode_arena.get_mut(sn_id.0).unwrap().zns.push(znode_id);
-        
+
         ctx.reductions_todo.push(Reduction {
             znode: Some(znode_id),
             snode: sn_id,
             new_snode: None,
             new_depth: 0,
-            reduction_id: 0
+            reduction_id: 0,
         });
-        
+
         assert_eq!(ctx.reductions_todo.len(), 1);
         process_reductions(&mut ctx);
-        
+
         assert_eq!(ctx.reductions_todo.len(), 0);
         assert_eq!(ctx.stats_reductions, 1);
-        
+
         // Assert path allocation structurally expanded over elements mapped.
     }
 }
