@@ -85,20 +85,18 @@ def test_syntax_error_fn_loc_points_to_error_position(parser):
     assert loc.col == 2
 
 
-def test_syntax_error_fn_exception_does_not_propagate(parser):
+def test_syntax_error_fn_exception_does_not_propagate(parser, monkeypatch):
     # my_syntax_error_fn is declared `noexcept` in dparser.pyx, so any exception
     # raised from the callback is reported via sys.unraisablehook instead of
     # propagating.  SyntaxErr still raises from the native parse failure.
     unraised = []
-    original_hook = sys.unraisablehook
-    sys.unraisablehook = unraised.append
-    try:
-        def cb(loc):
-            raise RuntimeError('should not propagate')
-        with pytest.raises(dparser.SyntaxErr):
-            parser.parse('5+x', syntax_error_fn=cb, error_recovery=True)
-    finally:
-        sys.unraisablehook = original_hook
+    monkeypatch.setattr(sys, 'unraisablehook', unraised.append)
+
+    def cb(loc):
+        raise RuntimeError('should not propagate')
+
+    with pytest.raises(dparser.SyntaxErr):
+        parser.parse('5+x', syntax_error_fn=cb, error_recovery=True)
 
     assert unraised, "expected callback exception to reach sys.unraisablehook"
     assert isinstance(unraised[0].exc_value, RuntimeError)
