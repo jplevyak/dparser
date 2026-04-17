@@ -1,3 +1,5 @@
+1.37    Native Rust runtime. Cython instead of swig.
+
 1.36    Alpha Rust support.
 
 1.35    Fix $left and $right.  Make priority independent of associativity.
