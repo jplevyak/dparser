@@ -34,7 +34,19 @@ def test_addition_with_skip_space(parser):
     assert result.getStructure() == 92
 
 
+def test_buf_offset_skips_prefix_bytes(parser):
+    # buf_offset skips arbitrary bytes, not just whitespace
+    assert parser.parse('xx10+3', buf_offset=2).getStructure() == 13
+
+
+def test_partial_parses_stops_at_first_complete_parse(parser):
+    # trailing content that the grammar can't consume is silently ignored
+    assert parser.parse('10+3junk', partial_parses=1).getStructure() == 13
+
+
 def test_partial_parse_with_offset_and_skip(parser):
+    # combined: buf_offset skips prefix, initial_skip_space_fn treats 'hello'
+    # as inter-token whitespace, partial_parses=1 tolerates the trailing 'hi'
     result = parser.parse(
         'hi10hello+3hellohi',
         buf_offset=2,
