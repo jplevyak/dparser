@@ -14,7 +14,6 @@ runs in.
 
 import sys
 import pytest
-from dparser import Parser
 
 
 _calls = []
@@ -33,12 +32,9 @@ def d_number(t, spec_only):
 
 
 @pytest.fixture
-def parser(tmp_path):
+def parser(make_parser):
     _calls.clear()
-    return Parser(
-        modules=sys.modules[__name__],
-        parser_folder=str(tmp_path),
-    )
+    return make_parser(sys.modules[__name__])
 
 
 def test_default_actions_run_in_final_pass_only(parser):

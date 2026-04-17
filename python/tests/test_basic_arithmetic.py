@@ -2,7 +2,6 @@
 
 import sys
 import pytest
-from dparser import Parser
 
 
 def d_S(t):
@@ -22,11 +21,8 @@ def _skip_hello(loc):
 
 
 @pytest.fixture
-def parser(tmp_path):
-    return Parser(
-        modules=sys.modules[__name__],
-        parser_folder=str(tmp_path),
-    )
+def parser(make_parser):
+    return make_parser(sys.modules[__name__])
 
 
 def test_addition(parser):
