@@ -142,3 +142,30 @@ except dparser.SyntaxErr:
 
 `SyntaxErr` is still raised after the callback returns — the callback is for
 observation only, not suppression.
+
+---
+
+## Exceptions raised from `syntax_error_fn` are swallowed (unraisable)
+
+Unlike `ambiguity_fn` (which wraps the user callback in an explicit
+`try/except Exception` and falls back to `v[0]`), `syntax_error_fn`'s wrapper
+`my_syntax_error_fn` in `dparser.pyx` is declared `cdef void … noexcept with
+gil` and has no try/except.  Cython's `noexcept` contract means any Python
+exception raised from inside is routed through `sys.unraisablehook` — by
+default printing `Exception ignored in: 'dparser.my_syntax_error_fn'` to
+stderr — and the C caller continues as if the callback had returned
+normally.  The exception does **not** surface as the exception raised by
+`parse()`; `SyntaxErr` still raises from the native parse failure.
+
+```python
+def cb(loc):
+    raise RuntimeError('boom')   # never propagates to the parse() caller
+
+try:
+    parser.parse('5+x', syntax_error_fn=cb, error_recovery=True)
+except dparser.SyntaxErr:
+    pass    # this is the exception that surfaces; RuntimeError is lost
+```
+
+Use list-capture or flag-setting patterns to signal from these callbacks,
+not raised exceptions.

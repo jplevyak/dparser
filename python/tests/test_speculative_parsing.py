@@ -35,11 +35,6 @@ def _t4_x2(t, spec):
         return dparser.Reject
 
 
-def _syntax_error(t):
-    del t
-    raise AssertionError("unexpected syntax error")
-
-
 @pytest.fixture
 def parser_reject(make_parser):
     mod = types.ModuleType('_t4_grammar')
@@ -52,7 +47,9 @@ def parser_reject(make_parser):
 
 
 def test_spec_reject_resolves_ambiguity(parser_reject):
-    result = parser_reject.parse('xxy', syntax_error_fn=_syntax_error)
+    # If x2's speculative Reject doesn't resolve the a/b ambiguity, parse()
+    # raises SyntaxErr and the test fails naturally.
+    result = parser_reject.parse('xxy')
     assert result.getStructure() == 'S'
 
 

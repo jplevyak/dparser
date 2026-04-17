@@ -1,42 +1,42 @@
 """Tests for nodes/this argument access and parse node attributes, converted from test7.py."""
 
-import sys
+import types
 import pytest
 
 
-_captured = {}
-
-
-def d_start(t, nodes, this):
-    'start : noun verb'
-    del t
-    _captured['noun'] = nodes[0]
-    _captured['this'] = this
-
-
-def d_noun(t, this):
-    "noun : 'cat'"
-    del this
-    return t[0]
-
-
-def d_verb(t, this):
-    "verb : 'flies'"
-    del this
-    return t[0]
-
-
 @pytest.fixture
-def parser(make_parser):
-    _captured.clear()
-    return make_parser(sys.modules[__name__])
+def parser_with_captures(make_parser):
+    captured = {}
+
+    def d_start(t, nodes, this):
+        'start : noun verb'
+        del t
+        captured['noun'] = nodes[0]
+        captured['this'] = this
+
+    def d_noun(t, this):
+        "noun : 'cat'"
+        del this
+        return t[0]
+
+    def d_verb(t, this):
+        "verb : 'flies'"
+        del this
+        return t[0]
+
+    mod = types.ModuleType('_parse_nodes_grammar')
+    mod.d_start = d_start
+    mod.d_noun = d_noun
+    mod.d_verb = d_verb
+    return make_parser(mod), captured
 
 
-def test_parse_node_buf_slices(parser):
+def test_parse_node_buf_slices(parser_with_captures):
+    parser, captured = parser_with_captures
     parser.parse('cat flies')
 
-    noun = _captured['noun']
-    this = _captured['this']
+    noun = captured['noun']
+    this = captured['this']
     buf = noun.buf
 
     assert buf[noun.start_loc.s:noun.end] == b'cat'
@@ -45,17 +45,19 @@ def test_parse_node_buf_slices(parser):
     assert buf[this.start_loc.s:this.end] == b'cat flies'
 
 
-def test_parse_node_location(parser):
+def test_parse_node_location(parser_with_captures):
+    parser, captured = parser_with_captures
     parser.parse('cat flies')
 
-    noun = _captured['noun']
+    noun = captured['noun']
     assert isinstance(noun.start_loc.line, int)
     assert isinstance(noun.start_loc.col, int)
 
 
-def test_this_node_spans_full_input(parser):
+def test_this_node_spans_full_input(parser_with_captures):
+    parser, captured = parser_with_captures
     parser.parse('cat flies')
 
-    this = _captured['this']
+    this = captured['this']
     buf = this.buf
     assert buf[this.start_loc.s:this.end] == b'cat flies'
