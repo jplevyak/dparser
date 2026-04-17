@@ -84,6 +84,7 @@ typedef struct Parser {
 #ifdef TRACK_PNODES
   struct PNode *xall;
 #endif
+  uint32 pnode_serial_counter;
 } Parser;
 
 /*
@@ -95,6 +96,7 @@ typedef struct PNode {
   int priority;
   AssocKind op_assoc;
   int op_priority;
+  uint32 serial;
 #ifndef USE_GC
   uint32 refcount;
 #endif
