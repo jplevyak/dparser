@@ -1,6 +1,5 @@
 import sys
 import pytest
-from dparser import Parser
 
 def d_add(t):
     '''add : add '+' mul
@@ -32,12 +31,8 @@ def d_whitespace(t):
     pass
 
 @pytest.fixture
-def parser(tmp_path):
-    return Parser(
-        modules=sys.modules[__name__],
-        parser_folder=str(tmp_path),
-        make_grammar_file=True
-    )
+def parser(make_parser):
+    return make_parser(sys.modules[__name__], make_grammar_file=True)
 
 def test_multi_alternative_arithmetic(parser):
     # Test cases that exercise both alternatives of add and mul
