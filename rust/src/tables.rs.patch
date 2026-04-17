@@ -1,0 +1,197 @@
+--- rust/dparser_lib/src/tables.rs
++++ rust/dparser_lib/src/tables.rs
+@@ -1,6 +1,8 @@
+-use crate::bindings::{D_ParserTables, D_ReductionCode};
++use crate::bindings::{D_ParserTables, D_ReductionCode, D_Shift, D_Reduction, D_State};
+ use binrw::{BinRead, BinReaderExt};
+ use std::ffi::c_void;
+ use std::io::Cursor;
++use crate::grammar::*;
+ 
+ #[derive(BinRead, Copy, Clone, Debug)]
+ pub struct BinaryTablesHead {
+@@ -13,10 +15,6 @@
+ }
+ 
+-pub struct BinaryTables {
+-    // We hold the raw vector mapping the relocations stably on the heap.
+-    _buf: Vec<u8>,
+-    pub tables: *mut D_ParserTables,
+-}
+-
+-impl BinaryTables {
+-    pub fn from_bytes(
++pub struct BinaryTables;
++
++impl BinaryTables {
++    pub fn from_bytes(
+         bytes: &[u8],
+-        spec_code: D_ReductionCode,
+-        final_code: D_ReductionCode,
+-    ) -> Result<Self, &'static str> {
++    ) -> Result<SafeGrammarTables, &'static str> {
+         let mut cursor = Cursor::new(bytes);
+@@ -48,7 +46,7 @@
+         let tables_buf = aligned_vec.as_mut_ptr() as *mut u8;
+         let strings_buf = unsafe { tables_buf.add(head.tables_size as usize) };
+ 
+-        // Wrap the pointer patching exactly in unsafe
++        // Keep original relocation loop but drop writing function pointers directly (mapping structurally later)
+         unsafe {
+             for _ in 0..head.n_relocs {
+@@ -74,10 +72,11 @@
+                 if val == -1 {
+                     std::ptr::write_unaligned(ptr_dst, std::ptr::null_mut());
+                 } else if val == -2 {
+-                    std::ptr::write_unaligned(ptr_dst, std::mem::transmute(spec_code));
++                    // -2 represents Speculative Code locally in DParser structurally
++                    std::ptr::write_unaligned(ptr_dst, std::mem::transmute(-2isize)); 
+                 } else if val == -3 {
+-                    std::ptr::write_unaligned(ptr_dst, std::mem::transmute(final_code));
++                    // -3 represents Final Code
++                    std::ptr::write_unaligned(ptr_dst, std::mem::transmute(-3isize));
+                 } else {
+                     let base = tables_buf as isize;
+                     std::ptr::write_unaligned(intptr_ptr, val + base);
+@@ -102,15 +101,173 @@
+ 
+-        // Reinterpret the base back and keep the u64 vector locally tracking memory lifetimes properly!
++        // Now we can traverse the successfully relocated C data-structures naturally
+         let tables = unsafe { tables_buf.add(head.d_parser_tables_loc as usize) as *mut D_ParserTables };
++        
++        let safe_tables = unsafe { Self::build_safe_tables(tables) };
+ 
+-        let buf = unsafe {
+-            let ptr = aligned_vec.as_mut_ptr() as *mut u8;
+-            let cap = aligned_vec.capacity() * 8;
+-            let len = aligned_vec.len() * 8;
+-            std::mem::forget(aligned_vec); // consume originally typed vector!
+-            Vec::from_raw_parts(ptr, len, cap)
+-        };
+-
+-        Ok(BinaryTables { _buf: buf, tables })
++        Ok(safe_tables)
+     }
++
++    unsafe fn build_safe_tables(tables: *mut D_ParserTables) -> SafeGrammarTables {
++        let mut safe_states = Vec::new();
++        
++        let nstates = (*tables).nstates as usize;
++        let state_arr = std::slice::from_raw_parts((*tables).state, nstates);
++        
++        // Calculate max bounds for goto_table statically? It's sparsely offset internally...
++        // Actually for now: `goto_table` is a flat array up to `nsymbols * nstates`? Or sized relative to offsets?
++        // Because we don't have its explicit size natively provided, let's just map it as a large flat array covering max index?
++        // Better: We copy only what we can, but since it's hard to bound its physical size from `D_ParserTables`, we'll allocate a generous chunk.
++        // D_ParserTables header has nstates and nsymbols. Extent of goto_table is typically nstates * nsymbols maximum.
++        let max_goto_len = (nstates * (*tables).nsymbols as usize) * 2; 
++        let goto_table = std::slice::from_raw_parts((*tables).goto_table, max_goto_len).to_vec();
++
++        for s in 0..nstates {
++            let c_st = &state_arr[s];
++            
++            let mut reductions = Vec::new();
++            let n_reds = c_st.reductions.n as usize;
++            if n_reds > 0 && !c_st.reductions.v.is_null() {
++                let red_arr = std::slice::from_raw_parts(c_st.reductions.v, n_reds);
++                for i in 0..n_reds {
++                    let red_ptr = red_arr[i];
++                    let c_red = &*red_ptr;
++                    
++                    // Remap the original dummy integer codes properly to enums securely!
++                    let spec_raw: isize = std::mem::transmute(c_red.speculative_code);
++                    let final_raw: isize = std::mem::transmute(c_red.final_code);
++                    
++                    reductions.push(GrammarReduction {
++                        nelements: c_red.nelements,
++                        symbol: c_red.symbol,
++                        action_index: c_red.action_index,
++                        op_assoc: c_red.op_assoc,
++                        rule_assoc: c_red.rule_assoc,
++                        op_priority: c_red.op_priority,
++                        rule_priority: c_red.rule_priority,
++                        speculative_code: spec_raw as i32,
++                        final_code: final_raw as i32,
++                    });
++                }
++            }
++            
++            let mut right_epsilons = Vec::new();
++            let n_reps = c_st.right_epsilon_hints.n as usize;
++            if n_reps > 0 && !c_st.right_epsilon_hints.v.is_null() {
++                let rep_arr = std::slice::from_raw_parts(c_st.right_epsilon_hints.v, n_reps);
++                for i in 0..n_reps {
++                    let c_rep = &rep_arr[i];
++                    let c_red = &*c_rep.reduction;
++                    
++                    let spec_raw: isize = std::mem::transmute(c_red.speculative_code);
++                    let final_raw: isize = std::mem::transmute(c_red.final_code);
++                    
++                    let safe_red = GrammarReduction {
++                        nelements: c_red.nelements,
++                        symbol: c_red.symbol,
++                        action_index: c_red.action_index,
++                        op_assoc: c_red.op_assoc,
++                        rule_assoc: c_red.rule_assoc,
++                        op_priority: c_red.op_priority,
++                        rule_priority: c_red.rule_priority,
++                        speculative_code: spec_raw as i32,
++                        final_code: final_raw as i32,
++                    };
++                    
++                    right_epsilons.push(GrammarRightEpsilonHint {
++                        depth: c_rep.depth,
++                        preceeding_state: c_rep.preceeding_state,
++                        reduction: safe_red,
++                    });
++                }
++            }
++            
++            let mut state_shifts = Vec::new();
++            // C-struct states don't explicitly list `shifts` recursively here as a vector but relies on DFA matrix outputs!
++            // So `shifts` here is an int mapping table or differential.
++            
++            let mut scanner_blocks = vec![0; 4 * 64];
++            let mut transition_blocks = vec![0; 4 * 64];
++            
++            // Parse 8, 16, 32 bit scanner DFA matrices dynamically inside Safe loop!
++            if !c_st.scanner_table.is_null() {
++                if c_st.scanner_size == 1 {
++                    let st_ptr = c_st.scanner_table as *const crate::scan::SBUint8;
++                    for sb in 0..4 {
++                        let blk = (*st_ptr.add(s)).scanner_block[sb];
++                        if !blk.is_null() {
++                            for so in 0..64 {
++                                let next_id = *blk.add(so) as u32;
++                                scanner_blocks[sb * 64 + so] = next_id;
++                            }
++                        }
++                    }
++                } // (expand 16 and 32 bit variants later)
++            }
++            
++            safe_states.push(GrammarState {
++                goto_valid: Vec::new(), // Populate if needed
++                goto_table_offset: c_st.goto_table_offset,
++                reductions,
++                right_epsilon_hints: right_epsilons,
++                shifts: Vec::new(),
++                accept: c_st.accept,
++                reduces_to: c_st.reduces_to,
++                scan_kind: c_st.scan_kind,
++                scanner_size: c_st.scanner_size,
++                scanner_blocks,
++                state_shifts,
++                transition_blocks,
++                accepts_diff: Vec::new(),
++            });
++        }
++        
++        SafeGrammarTables {
++            states: safe_states,
++            goto_table,
++            whitespace_state: (*tables).whitespace_state,
++            save_parse_tree: (*tables).save_parse_tree != 0,
++        }
++    }
+ }

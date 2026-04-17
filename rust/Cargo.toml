@@ -1,3 +1,37 @@
+[package]
+name = "dparser"
+version = "0.1.0"
+edition = "2024"
+authors = ["John Plevyak <jplevyak@gmail.com>"]
+description = "A 100% pure, native Rust implementation of the DParser GLR parser."
+license = "BSD-3-Clause"
+repository = "https://github.com/jplevyak/dparser"
+homepage = "https://github.com/jplevyak/dparser"
+readme = "README.md"
+keywords = ["parser", "scannerless", "GLR"]
+categories = ["parsing", "development-tools", "compiler"]
+build = "build.rs"
+links = "dparse"
+include = [
+  "src/*",
+  "build.rs",
+  "README.md",
+  "LICENSE.txt",
+  "Cargo.toml",
+  "../*.c",
+  "../*.h",
+  "../*.g",
+  "../Makefile",
+]
+
 [workspace]
-members = ["dparser_lib", "example", "integration_tests"]
+members = ["example", "integration_tests"]
 resolver = "3"
+
+[dependencies]
+regex = "1"
+binrw = "0.14"
+bytemuck = "1.25"
+
+[build-dependencies]
+cc = "1.0"

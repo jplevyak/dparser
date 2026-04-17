@@ -41,7 +41,7 @@ fn main() {
 
             // Map macros cleanly via builder.rs dynamically using the explicit actions output
             let action_path = out_dir.join(format!("{}_actions.rs", base_name));
-            dparser_lib::builder::build_actions(
+            dparser::builder::build_actions(
                 &actions_output,
                 &action_path,
                 "GlobalsStruct",

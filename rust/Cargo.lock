@@ -57,7 +57,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dparser_lib"
+name = "dparser"
 version = "0.1.0"
 dependencies = [
  "binrw",
@@ -77,14 +77,14 @@ name = "example"
 version = "0.1.0"
 dependencies = [
  "cc",
- "dparser_lib",
+ "dparser",
 ]
 
 [[package]]
 name = "integration_tests"
 version = "0.1.0"
 dependencies = [
- "dparser_lib",
+ "dparser",
 ]
 
 [[package]]

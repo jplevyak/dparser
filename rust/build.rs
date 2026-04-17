@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let dparser_c_include_path = manifest_dir.join("../..");
+    let dparser_c_include_path = manifest_dir.join("..");
 
     if !dparser_c_include_path.is_dir() {
         panic!(
@@ -22,14 +22,12 @@ fn main() {
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
-        .parent()
-        .unwrap()
         .to_path_buf();
     println!("cargo:rustc-link-search=native={}", project_root.display());
     // NO C RUNTIME LINKED IN NATIVELY!!!
     // println!("cargo:rustc-link-lib=static=dparse");
     let output = std::process::Command::new("make")
-        .current_dir("../..")
+        .current_dir("..")
         .output()
         .expect("Failed to execute make");
 

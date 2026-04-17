@@ -1,5 +1,5 @@
 {
-use dparser_lib;
+use dparser;
 
 #[derive(Debug, Default)]
 pub struct GlobalsStruct {

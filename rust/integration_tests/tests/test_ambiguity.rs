@@ -1,4 +1,4 @@
-use dparser_lib::{Parser, types::ParseNode};
+use dparser::{Parser, types::ParseNode};
 
 include!(concat!(env!("OUT_DIR"), "/test_ambiguity_actions.rs"));
 

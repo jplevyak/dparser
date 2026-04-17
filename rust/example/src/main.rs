@@ -1,4 +1,4 @@
-use dparser_lib::{types::ParseNode, Parser};
+use dparser::{types::ParseNode, Parser};
 
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 

@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let make_dparser_path = env::var("DEP_DPARSE_BINARY_PATH")
         .map(PathBuf::from)
-        .expect("DEP_DPARSE_BINARY_PATH not set by dparser_lib build script. Make sure dparser_lib is a dependency.");
+        .expect("DEP_DPARSE_BINARY_PATH not set by dparser build script. Make sure dparser is a dependency.");
 
     let make_dparser_status = Command::new(&make_dparser_path)
         .arg(&grammar_file)
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         intermediate_output, rust_output
     );
 
-    dparser_lib::build_actions(
+    dparser::build_actions(
         &intermediate_output,
         &rust_output,
         "GlobalsStruct",
