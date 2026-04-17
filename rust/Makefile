@@ -20,5 +20,15 @@ prep-publish:
 	cp ../Makefile DParser.Makefile
 	cp -R ../ansic ../verilog ../tests .
 
+publish:
+	$(MAKE) prep-publish
+	cargo publish --allow-dirty
+	$(MAKE) clean-stray
+
+publish-dry-run:
+	$(MAKE) prep-publish
+	cargo publish --dry-run --allow-dirty
+	$(MAKE) clean-stray
+
 bindgen:
 	bindgen ../dparse.h -o src/binary_format.rs
