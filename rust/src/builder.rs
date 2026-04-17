@@ -346,7 +346,7 @@ pub fn build_actions(
                     // Accumulate inside the unified dispatcher
                     if let Some(idx) = action_idx {
                         dispatch_arms.push_str(&format!(
-                            "  {} => {{\n   // file: {}\n{}\n   0\n  }},\n",
+                            "  {} => {{ #[allow(unreachable_code)] {{ // file: {}\n{} \n    0 }} }},\n",
                             idx, file_name, transformed_body
                         ));
                     }
@@ -354,7 +354,7 @@ pub fn build_actions(
                     // Fallback generating identical legacy C mapping routines
                     let func_name = "legacy_bound"; // We won't hit this normally assuming strict -B use
                     let rust_function = format!(
-                        "#[unsafe(no_mangle)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
+                        "#[unsafe(no_mangle)]\n#[allow(unreachable_code)]\npub extern \"C\" fn {}{} {{\n  // line!({}, \"{}\")\n{} 0 }}\n\n",
                         func_name, PARAMETERS, line_number, file_name, transformed_body
                     );
                     output.push_str(&rust_function);

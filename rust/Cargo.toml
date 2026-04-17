@@ -18,10 +18,12 @@ include = [
   "README.md",
   "LICENSE.txt",
   "Cargo.toml",
-  "../*.c",
-  "../*.h",
-  "../*.g",
-  "../Makefile",
+  "*.c",
+  "*.h",
+  "*.g",
+  "tests/*.g",
+  "Makefile",
+  "DParser.Makefile",
 ]
 
 [workspace]
