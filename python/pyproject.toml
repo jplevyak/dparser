@@ -25,3 +25,8 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/jplevyak/dparser"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
