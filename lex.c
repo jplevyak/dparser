@@ -208,8 +208,17 @@ static int build_regex_nfa(LexState *ls, uint8 **areg, NFAState *pp, NFAState *n
             case ']':
               goto Lsetdone;
             case '-':
+              if (pc == UCHAR_MAX) {
+                pc = '-';
+                mark['-'] = 1;
+                break;
+              }
               c = *reg++;
               if (!c) goto Lerror;
+              if (c == ']') {
+                mark['-'] = 1;
+                goto Lsetdone;
+              }
               if (c == '\\') c = *reg++;
               if (!c) goto Lerror;
               {
