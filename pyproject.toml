@@ -52,5 +52,5 @@ cache-keys = [
     { file = "*.h" },
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 testpaths = ["python/tests"]
