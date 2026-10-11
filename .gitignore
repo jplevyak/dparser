@@ -15,3 +15,11 @@ sample_parser
 /Cargo.lock
 /target
 /.vscode
+# Python binding build (pyproject.toml lives at the root, sources in python/)
+/build/
+/dist/
+/*.egg-info
+/.venv
+python/dparser.c
+python/dparser.h
+python/dparser*.so

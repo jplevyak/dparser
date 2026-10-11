@@ -30,3 +30,11 @@ dev = [
     "pytest>=9.0.3",
 ]
 
+
+[tool.setuptools]
+# Only the Cython extension (see setup.py); don't auto-discover stray .py files.
+packages = []
+py-modules = []
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]

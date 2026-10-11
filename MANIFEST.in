@@ -1,4 +1,9 @@
+# sdist for the Python binding: python/dparser.pyx plus the dparser C library
+# sources it is compiled against. Keep the .c list in sync with setup.py and
+# LIB_SRCS/MK_LIB_SRCS in the Makefile.
 exclude *
-exclude python/*
-include *.h *.c *.py README.md
-include python/dparser.i python/dparser.py python/make_tables.c python/pydparser.h python/pydparser.c python/swigpyrun.h
+include setup.py pyproject.toml LICENSE.txt
+include python/dparser.pyx
+include *.h
+include arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c
+include mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c
