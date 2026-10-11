@@ -36,5 +36,16 @@ dev = [
 packages = []
 py-modules = []
 
+[tool.uv]
+# Rebuild the editable extension when the Cython or C sources change, not just
+# when pyproject.toml/setup.py do.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "python/dparser.pyx" },
+    { file = "*.c" },
+    { file = "*.h" },
+]
+
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
