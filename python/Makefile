@@ -5,14 +5,10 @@ endif
 CFLAGS += -fPIC
 
 all:
-	$(PYTHON) setup.py build_ext --inplace
+	cd .. && $(PYTHON) setup.py build_ext --inplace
 
 install:
-	@INSTALL_FLAGS="--root=${DESTDIR}"; \
-	if $(PYTHON) setup.py install --help 2>/dev/null | grep -q "install-layout"; then \
-		INSTALL_FLAGS="$$INSTALL_FLAGS --install-layout=deb"; \
-	fi; \
-	$(PYTHON) setup.py install $$INSTALL_FLAGS
+	cd .. && $(PYTHON) -m pip install --no-deps $(if $(DESTDIR),--root=$(DESTDIR)) .
 
 clean:
 	rm -rf build dparser.pyc dparser_swigc.* dparser_wrap.c swigpyrun.h \

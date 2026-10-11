@@ -6,16 +6,20 @@ build-backend = "setuptools.build_meta"
 name = "dparser"
 version = "1.37"
 description = "DParser for Python"
+authors = [{ name = "John Plevyak", email = "jplevyak@gmail.com" }]
 requires-python = ">=3.10"
-license = "BSD-3-Clause"
-license-files = ["LICENSE.txt"]
+license = { text = "BSD-3-Clause" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: C",
+    "Programming Language :: Cython",
     "Topic :: Software Development :: Compilers",
     "Topic :: Text Processing :: General",
     "Intended Audience :: Developers",
@@ -30,3 +34,22 @@ dev = [
     "pytest>=9.0.3",
 ]
 
+
+[tool.setuptools]
+# Only the Cython extension (see setup.py); don't auto-discover stray .py files.
+packages = []
+py-modules = []
+
+[tool.uv]
+# Rebuild the editable extension when the Cython or C sources change, not just
+# when pyproject.toml/setup.py do.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "python/dparser.pyx" },
+    { file = "*.c" },
+    { file = "*.h" },
+]
+
+[tool.pytest]
+testpaths = ["python/tests"]

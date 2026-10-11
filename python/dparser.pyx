@@ -24,15 +24,15 @@ cdef extern from *:
 
 # d.h is a kitchen-sink include for all dparser headers.  It must come AFTER
 # the macro block above so that dparse.h sees our D_ParseNode_User define.
-cdef extern from "../d.h":
+cdef extern from "d.h":
     pass
 
-cdef extern from "../util.h":
+cdef extern from "util.h":
     int d_debug_level
 
 d_debug_level = 0
 
-cdef extern from "../dparse_tables.h":
+cdef extern from "dparse_tables.h":
     ctypedef struct d_loc_t:
         char *s
         char *pathname
@@ -57,7 +57,7 @@ cdef extern from "../dparse_tables.h":
         D_SYMBOL_CODE = 6
         D_SYMBOL_TOKEN = 7
 
-cdef extern from "../dparse.h":
+cdef extern from "dparse.h":
     ctypedef struct D_ParserTables:
         unsigned int nsymbols
         D_Symbol *symbols
@@ -130,7 +130,7 @@ cdef extern from "../dparse.h":
     D_ParseNode *d_get_child(D_ParseNode *pn, int child)
     char *d_ws_after(D_Parser *p, D_ParseNode *pn)
 
-cdef extern from "../gram.h":
+cdef extern from "gram.h":
     cdef struct Grammar:
         int set_op_priority_from_rule
         int right_recursive_BNF
@@ -150,13 +150,13 @@ cdef extern from "../gram.h":
     Grammar *new_D_Grammar(char *pathname)
     void free_D_Grammar(Grammar *g)
 
-cdef extern from "../mkdparse.h":
+cdef extern from "mkdparse.h":
     void mkdparse_from_string(Grammar *g, char *str)
 
-cdef extern from "../write_tables.h":
+cdef extern from "write_tables.h":
     int write_binary_tables(Grammar *g)
 
-cdef extern from "../read_binary.h":
+cdef extern from "read_binary.h":
     cdef struct BinaryTables:
         D_ParserTables *parser_tables_gram
         char *tables

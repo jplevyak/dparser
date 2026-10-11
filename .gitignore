@@ -3,11 +3,17 @@ D_BUILD_VERSION
 *.a
 *.swp
 *.d_parser.c
+*.d_parser.dat
+*.g.md5
+d_parser_mach_gen.g
 tests/*.out
 tests/*.d_parser.c
 make_dparser
 test_parser
 sample_parser
+test_dsymtab
+test_cpp
+test_cpp_actions
 /.aider*
 /.build
 /.vs
@@ -15,3 +21,11 @@ sample_parser
 /Cargo.lock
 /target
 /.vscode
+# Python binding build (pyproject.toml lives at the root, sources in python/)
+/build/
+/dist/
+/*.egg-info
+/.venv
+python/dparser.c
+python/dparser.h
+python/dparser*.so
