@@ -11,8 +11,8 @@ install:
 	cd .. && $(PYTHON) -m pip install --no-deps $(if $(DESTDIR),--root=$(DESTDIR)) .
 
 clean:
-	rm -rf build dparser.pyc dparser_swigc.* dparser_wrap.c swigpyrun.h \
-		tests/d_parser_mach_gen.*
+	rm -rf dparser.c dparser.h dparser*.so dparser.egg-info \
+		d_parser_mach_gen.g*
 
 TEST_SCRIPTS = $(shell ls tests/test*.py)
 test:

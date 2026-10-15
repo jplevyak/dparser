@@ -302,7 +302,8 @@ bintar:
 
 clean:
 	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
-	(cd python;make clean)
+	\rm -rf build
+	$(MAKE) -C python clean
 	(cd rust;make clean)
 
 depend:
