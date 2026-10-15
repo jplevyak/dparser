@@ -14,12 +14,7 @@ clean:
 	rm -rf dparser.c dparser.h dparser*.so dparser.egg-info \
 		d_parser_mach_gen.g*
 
-TEST_SCRIPTS = $(shell ls tests/test*.py)
-test:
-	@$(foreach test, $(TEST_SCRIPTS), \
-		echo "    running test $(test)" && \
-		PYTHONPATH="." $(PYTHON) $(test) && \
-	) echo "All unit tests passed." || \
-	( echo "At least one unit test failed."; exit 2 )
+test: all
+	PYTHONPATH=. $(PYTHON) -m pytest tests
 
 .PHONY: all test install clean
