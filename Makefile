@@ -302,9 +302,9 @@ bintar:
 
 clean:
 	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
-	\rm -rf build
+	\rm -rf build *.egg-info .pytest_cache
 	$(MAKE) -C python clean
-	(cd rust;make clean)
+	$(MAKE) -C rust clean
 
 depend:
 	./mkdep $(CFLAGS) $(ALL_SRCS)
