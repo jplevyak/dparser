@@ -146,6 +146,7 @@ typedef enum DeclarationKind {
   DECLARE_STATE_FOR,
   DECLARE_WHITESPACE,
   DECLARE_SAVE_PARSE_TREE,
+  DECLARE_MUTABLE_SPECULATIVE_GLOBALS,
   DECLARE_NUM
 } DeclarationKind;
 typedef struct Declaration {
@@ -218,6 +219,7 @@ typedef struct Grammar {
   int tokenizer;
   int longest_match;
   int save_parse_tree;
+  int mutable_speculative_globals;
   /* grammar writing options */
   char grammar_ident[256];
   int scanner_blocks;

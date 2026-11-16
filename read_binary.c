@@ -50,6 +50,8 @@ BinaryTables *read_binary_tables_internal(FILE *fp, unsigned char *str, size_t s
       *ptr = *(void **)&p_spec_code;
     } else if (*intptr == -3) {
       *ptr = *(void **)&p_final_code;
+    } else if (*intptr == -4) {
+      d_fail("the binary tables need external scanner or whitespace functions; use C tables (without -B)\n");
     } else {
       *((char **)ptr) += (intptr_t)tables_buf;
     }

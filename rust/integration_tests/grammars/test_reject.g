@@ -10,15 +10,15 @@ pub struct NodeStruct {
 }
 }
 
-start: Rule 
+start: Rule
 {
     $$ = $0.clone();
 };
 
-Rule: 'a' 'b' 'c' 
+// Two identical derivations: the first is rejected by its speculative action.
+Rule: 'a' 'b' 'c' [ ${reject}; ]
 {
     $$.valid_match = false;
-    return -1;
 }
  | 'a' 'b' 'c'
 {

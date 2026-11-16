@@ -64,6 +64,7 @@ declarationtype
   | 'all_subparsers' { $$.kind = DECLARE_STATES_FOR_ALL_NTERMS; }
   | 'subparser' { $$.kind = DECLARE_STATE_FOR; }
   | 'save_parse_tree' { $$.kind = DECLARE_SAVE_PARSE_TREE; }
+  | 'mutable_speculative_globals' { $$.kind = DECLARE_MUTABLE_SPECULATIVE_GLOBALS; }
   ;
 
 token_identifier: identifier { new_token($g, $n0.start_loc.s, $n0.end); };

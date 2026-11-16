@@ -19,12 +19,38 @@ ${declare kind nonterminal nonterminal ...}
 | `subparser` | | Build start states for these nonterminals, so parsing can start from them. See [Start states](grammar.md#start-states). |
 | `all_subparsers` | Build start states for every nonterminal (same as `make_dparser -A`). | |
 | `save_parse_tree` | Make `save_parse_tree` default to on for parsers using these tables. | |
+| `mutable_speculative_globals` | Let speculative actions write to `$g`, as they could before 1.39. See [below](#mutable-speculative-globals). | |
 | `set_op_priority_from_rule` | Give the last terminal of each rule with a rule priority the same priority and associativity, as an operator priority (same as `make_dparser -p`). | |
 
 Tokenizers and longest match are explained in
 [Terminals and Scanning](terminals.md#tokenizers). When they are declared
 for particular nonterminals, the sets of states involved must not overlap,
 because parse states are not split between declarations.
+
+## Mutable speculative globals
+
+Since 1.39, `$g` is read-only in speculative actions (`[ ]`). In C and
+C++ it is a `const D_ParseNode_Globals *` there, and in Rust a `&G`, so a
+write is a compile error.
+
+A speculative action can run on a parse path that is later abandoned, and
+nothing undoes what it wrote to `$g`. State that depends on the parse
+path belongs in the node's own data (`$$`) or in the symbol table
+(`${scope}`).
+
+`${declare mutable_speculative_globals}` restores the old behavior for
+grammars that relied on it:
+
+- In C and C++, speculative actions get a writable `$g` again.
+- In Rust, speculative actions get `&mut G`.
+
+```c
+${declare mutable_speculative_globals}
+LP ::= '(' [ $g->implicit_line_joining++; ];
+```
+
+Only use it when writes to `$g` are correct whichever paths survive, or
+when the grammar never keeps competing paths alive across them.
 
 ## `${pass ...}`
 

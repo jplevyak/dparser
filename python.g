@@ -21,6 +21,7 @@
 }
 
 ${declare longest_match}
+${declare mutable_speculative_globals}
 ${declare whitespace python_whitespace}
 
 file_input: (NL | stmt)*;

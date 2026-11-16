@@ -59,9 +59,11 @@ A rule can have both kinds: `rule: elements [ speculative ] { final };`
     A speculative action may run for a parse that is later abandoned, and
     may run a different number of times than the rule appears in the final
     parse. Only write to `$$` (the node's own data), to `${scope}` (the
-    symbol table, below), or to nothing at all. Printing, allocating global
-    resources or writing to `$g` from a speculative action will see the
-    effects of parses that never happen.
+    symbol table, below), or to nothing at all. Printing or allocating
+    global resources from a speculative action will see the effects of
+    parses that never happen. For the same reason, `$g` is read-only in
+    speculative actions; see
+    [mutable speculative globals](../reference/declarations.md#mutable-speculative-globals).
 
 Values a speculative action stores in `$$` stay with the node. Later
 speculative actions higher in the tree can read them, and so can final

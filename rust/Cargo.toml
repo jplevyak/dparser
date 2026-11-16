@@ -27,13 +27,14 @@ include = [
 ]
 
 [workspace]
-members = ["example", "integration_tests"]
+members = ["example", "integration_tests", "conformance"]
 resolver = "3"
 
 [dependencies]
 regex = "1"
 binrw = "0.14"
 bytemuck = "1.25"
+smallvec = "1.15"
 
 [build-dependencies]
 cc = "1.0"

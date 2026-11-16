@@ -1,88 +1,61 @@
 //! `types.rs`
-//! Primary internal graph node types mapped to native safe Rust structures via Arena IDs.
+//! Public node and location types.
 
-use crate::arena::{NodeId, SNodeId, ZNodeId};
+use crate::symtab::ScopeId;
 
-pub type AssocKind = u32;
-
-/// A locational trace tied to a byte array offset
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// A location in the input: a byte offset, the offset of the whitespace
+/// before it, and its line and column (counted in bytes).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Loc {
-    pub s: usize,  // string pointer or offset
-    pub ws: usize, // whitespace mapped offset
+    pub s: usize,
+    pub ws: usize,
     pub line: u32,
     pub col: u32,
 }
 
-// DParseNode replaced directly with bindings::D_ParseNode to safely map C memory mappings exactly!
-
-/// The internal structural Parse Node (PNode)
-#[derive(Clone, Debug)]
-pub struct PNode {
-    pub hash: u32,
-    pub assoc: AssocKind,
-    pub priority: i32,
-    pub op_assoc: AssocKind,
-    pub op_priority: i32,
-    pub height: u32,
-    pub evaluated: bool,
-    pub error_recovery: bool,
-
-    pub children: Vec<NodeId>,
-    pub ambiguities: Option<NodeId>,
-    pub latest: Option<NodeId>,
-
-    pub shift: Option<crate::grammar::GrammarShift>,
-    pub reduction: Option<crate::grammar::GrammarReduction>,
-
-    pub symbol: i32,
-    pub start_loc: Loc,
-    pub end_loc_s: usize,
-    pub end_skip_loc_s: usize,
-}
-
-/// Natively managed acyclic AST Graph representation completely securely structurally dynamically dynamically cleanly evaluated!
+/// A node of the parse tree, as seen by actions and returned by
+/// [`Parser::parse`](crate::Parser::parse).
 #[derive(Clone, Debug)]
 pub struct ParseNode<'a, N> {
     pub symbol: i32,
+    /// The text of the node, without trailing whitespace.  Empty if the node
+    /// does not start and end on UTF-8 character boundaries.
     pub string: &'a str,
+    /// The whitespace following the node, up to where the parse continued.
     pub end_skip_string: &'a str,
     pub start_loc: Loc,
+    /// Byte offset of the end of `string`.
+    pub end: usize,
     pub children: Vec<ParseNode<'a, N>>,
+    /// Your data for the node (`$$`, `$0`, ...).
     pub user: N,
+    /// The symbol table scope after this node (`${scope}`).
+    pub scope: ScopeId,
+    /// The action index of the rule that built this node, or `i32::MIN` for
+    /// terminals and other nodes without a rule.
+    pub action_index: i32,
+    /// The node was created by error recovery.
+    pub error_recovery: bool,
+    /// The engine's node, while speculative actions run (u32::MAX otherwise).
+    pub(crate) node: u32,
 }
 
-/// State Node tracking parser iterations iteratively tracking Graph Stacks
-#[derive(Clone, Debug)]
-pub struct SNode {
-    pub loc: Loc,
-    pub depth: u32,
-    pub in_error_recovery_queue: bool,
-    pub state_id: usize, // Identifier mapped to D_State equivalent index
+impl<'a, N> ParseNode<'a, N> {
+    /// The text from byte offset `start` to `end` of the input, which must lie
+    /// within this node and its trailing whitespace.
+    pub(crate) fn sub_str(&self, start: usize, end: usize) -> &'a str {
+        let s0 = self.start_loc.s;
+        if start >= s0 && end <= self.end && start <= end {
+            self.string.get(start - s0..end - s0).unwrap_or("")
+        } else if start >= self.end && start <= end {
+            self.end_skip_string.get(start - self.end..end - self.end).unwrap_or("")
+        } else {
+            ""
+        }
+    }
 
-    pub last_pn: Option<NodeId>,
-    pub zns: Vec<ZNodeId>,
-}
-
-/// Graph Traversal / Link Nodes mapping parallel GSS evaluations
-#[derive(Clone, Debug)]
-pub struct ZNode {
-    pub pn: Option<NodeId>,
-    pub sns: Vec<SNodeId>,
-}
-
-/// Tracking Shift transitions in GSS
-#[derive(Clone, Debug)]
-pub struct Shift {
-    pub snode: SNodeId,
-}
-
-/// Tracking Reduction branches to trace down GSS paths dynamically
-#[derive(Clone, Debug)]
-pub struct Reduction {
-    pub znode: Option<ZNodeId>,
-    pub snode: SNodeId,
-    pub new_snode: Option<SNodeId>,
-    pub new_depth: i32,
-    pub reduction: crate::grammar::GrammarReduction,
+    /// The node's text including the trailing whitespace.
+    pub fn text_with_skip(&self) -> String {
+        format!("{}{}", self.string, self.end_skip_string)
+    }
 }

@@ -1,282 +1,195 @@
 //! `scan.rs`
-//! Native Rust scanner loop. Reads memory byte-by-byte navigating the multi-dimensional
-//! deterministic finite automata embedded in the `D_State` table exactly replicating `scan.c`.
+//! The scanner: runs a state's DFA over the input, as `scan.c` does.
 
-use crate::binary_format::{D_SCAN_LONGEST, D_SCAN_MIXED, D_Shift};
+use crate::binary_format::D_Shift;
+use crate::grammar::{D_SCAN_LONGEST, D_SCAN_MIXED, D_SCAN_TRAILING, GrammarShift, GrammarState};
 use crate::types::Loc;
 
 pub const SCANNER_BLOCKS: usize = 4;
 pub const SCANNER_BLOCK_SHIFT: u8 = 6;
 pub const SCANNER_BLOCK_MASK: u8 = 63;
 
-/// Trait to safely traverse generic scanner sizes (uint8, uint16, uint32)
-pub trait ScannerTable {
-    unsafe fn next_state(&self, state: usize, sb: usize, so: usize) -> usize;
-    unsafe fn shifts(&self, state: usize) -> *mut *mut D_Shift;
-}
-
-#[repr(C)]
-struct SBUint8 {
-    shift: *mut *mut D_Shift,
-    scanner_block: [*mut u8; SCANNER_BLOCKS],
-}
-
-impl ScannerTable for *const SBUint8 {
-    unsafe fn next_state(&self, state: usize, sb: usize, so: usize) -> usize {
-        let st = self.add(state);
-        let block_ptr = (*st).scanner_block[sb];
-        if block_ptr.is_null() {
-            0
-        } else {
-            *block_ptr.add(so) as usize
-        }
-    }
-    unsafe fn shifts(&self, state: usize) -> *mut *mut D_Shift {
-        (*self.add(state)).shift
-    }
-}
-
-#[repr(C)]
-struct SBUint16 {
-    shift: *mut *mut D_Shift,
-    scanner_block: [*mut u16; SCANNER_BLOCKS],
-}
-
-impl ScannerTable for *const SBUint16 {
-    unsafe fn next_state(&self, state: usize, sb: usize, so: usize) -> usize {
-        let st = self.add(state);
-        let block_ptr = (*st).scanner_block[sb];
-        if block_ptr.is_null() {
-            0
-        } else {
-            *block_ptr.add(so) as usize
-        }
-    }
-    unsafe fn shifts(&self, state: usize) -> *mut *mut D_Shift {
-        (*self.add(state)).shift
-    }
-}
-
-#[repr(C)]
-struct SBUint32 {
-    shift: *mut *mut D_Shift,
-    scanner_block: [*mut u32; SCANNER_BLOCKS],
-}
-
-impl ScannerTable for *const SBUint32 {
-    unsafe fn next_state(&self, state: usize, sb: usize, so: usize) -> usize {
-        let st = self.add(state);
-        let block_ptr = (*st).scanner_block[sb];
-        if block_ptr.is_null() {
-            0
-        } else {
-            *block_ptr.add(so) as usize
-        }
-    }
-    unsafe fn shifts(&self, state: usize) -> *mut *mut D_Shift {
-        (*self.add(state)).shift
-    }
-}
-
-#[repr(C)]
-struct SBTransUint8 {
-    scanner_block: [*mut u8; SCANNER_BLOCKS],
-}
-#[repr(C)]
-struct SBTransUint16 {
-    scanner_block: [*mut u16; SCANNER_BLOCKS],
-}
-#[repr(C)]
-struct SBTransUint32 {
-    scanner_block: [*mut u32; SCANNER_BLOCKS],
-}
-
-#[derive(Clone, Debug)]
+/// One terminal matched by the scanner: where it ends, and the `D_Shift`
+/// (identified by its address in the tables).
+#[derive(Clone, Copy, Debug)]
 pub struct ShiftResult {
     pub loc: Loc,
-    pub shift: crate::grammar::GrammarShift,
+    pub shift: usize,
 }
 
-pub fn scan_buffer(
+/// Read the shift at `addr` (a `D_Shift` in the tables).
+pub fn read_shift(addr: usize) -> GrammarShift {
+    let s = unsafe { &*(addr as *const D_Shift) };
+    GrammarShift {
+        symbol: s.symbol,
+        shift_kind: s.shift_kind,
+        op_assoc: s.op_assoc,
+        op_priority: s.op_priority,
+        term_priority: s.term_priority,
+        action_index: s.action_index,
+        has_speculative_code: !s.speculative_code.is_null(),
+    }
+}
+
+#[repr(C)]
+struct SB<T> {
+    shift: *mut *mut D_Shift,
+    scanner_block: [*mut T; SCANNER_BLOCKS],
+}
+
+#[repr(C)]
+struct SBTrans<T> {
+    scanner_block: [*mut T; SCANNER_BLOCKS],
+}
+
+trait Cell: Copy {
+    fn get(self) -> usize;
+}
+impl Cell for u8 {
+    fn get(self) -> usize {
+        self as usize
+    }
+}
+impl Cell for u16 {
+    fn get(self) -> usize {
+        self as usize
+    }
+}
+impl Cell for u32 {
+    fn get(self) -> usize {
+        self as usize
+    }
+}
+
+/// Run the DFA; returns the shift list of the last accepting state.
+unsafe fn run<T: Cell>(
     input: &[u8],
-    starting_loc: Loc,
-    parse_state: &crate::grammar::GrammarState,
-) -> Vec<ShiftResult> {
+    end: usize,
+    loc: &mut Loc,
+    last_loc: &mut Loc,
+    parse_state: &GrammarState,
+    results: &mut Vec<ShiftResult>,
+) -> *mut *mut D_Shift {
+    let st = parse_state.scanner_table as *const SB<T>;
+    let tst = parse_state.transition_table as *const SBTrans<T>;
+    let accepts_diff = parse_state.accepts_diff as *const *const *const D_Shift;
+    let (mut state, mut last, mut prev) = (0usize, 0usize, 0usize);
+    let mut s = loc.s;
+    let (mut line, mut col) = (loc.line, loc.col);
+    // Characters at or beyond 'end' read as '\0', which has no transitions.
+    let next_char = |s: &mut usize| -> u8 {
+        let c = if *s < end { input[*s] } else { 0 };
+        *s += 1;
+        c
+    };
+    let mut c = next_char(&mut s);
+    loop {
+        let sb = (c >> SCANNER_BLOCK_SHIFT) as usize;
+        let so = (c & SCANNER_BLOCK_MASK) as usize;
+        let block = unsafe { (*st.add(state)).scanner_block[sb] };
+        let next = if block.is_null() { 0 } else { unsafe { (*block.add(so)).get() } };
+        if next == 0 || s > end {
+            break;
+        }
+        state = next - 1;
+        if prev != 0 && !accepts_diff.is_null() {
+            let tblock = unsafe { (*tst.add(prev)).scanner_block[sb] };
+            let t = if tblock.is_null() { 0 } else { unsafe { (*tblock.add(so)).get() } };
+            let mut diff = unsafe { *accepts_diff.add(t) };
+            while !diff.is_null() && unsafe { !(*diff).is_null() } {
+                results.push(ShiftResult { loc: *loc, shift: unsafe { *diff } as usize });
+                diff = unsafe { diff.add(1) };
+            }
+        }
+        prev = state;
+        if c == b'\n' {
+            line += 1;
+            col = 0;
+        } else {
+            col += 1;
+        }
+        loc.s = s;
+        loc.line = line;
+        loc.col = col;
+        if unsafe { !(*st.add(state)).shift.is_null() } {
+            last = state;
+            *last_loc = *loc;
+        }
+        c = next_char(&mut s);
+    }
+    unsafe { (*st.add(last)).shift }
+}
+
+/// Scan from `starting_loc` in `parse_state`, as `scan_buffer` in scan.c.
+pub fn scan_buffer(input: &[u8], end: usize, starting_loc: Loc, parse_state: &GrammarState) -> Vec<ShiftResult> {
     let mut results = Vec::new();
+    scan_buffer_into(input, end, starting_loc, parse_state, &mut results);
+    results
+}
+
+/// As [`scan_buffer`], appending the results to `out`.
+pub fn scan_buffer_into(
+    input: &[u8],
+    end: usize,
+    starting_loc: Loc,
+    parse_state: &GrammarState,
+    out: &mut Vec<ShiftResult>,
+) {
+    if parse_state.scanner_table == 0 {
+        return;
+    }
+    let base = out.len();
     let mut loc = starting_loc;
     let mut last_loc = starting_loc;
-
-    let mut shift_ptr: *mut *mut D_Shift = std::ptr::null_mut();
-
-    if parse_state.scanner_table == 0 {
-        // Fallback for missing scanner table mappings explicitly native
-    } else {
-        let mut execute_scan =
-            |st: &dyn ScannerTable, get_trans: &dyn Fn(usize, usize, usize) -> usize| {
-                let mut state = 0;
-                let mut last_state = 0;
-                let mut prev = 0;
-
-                // Loop purely through characters matching the boundary of the `input` slice
-                // `loc.s` maps to actual parsed offset locally safely
-                while loc.s < input.len() {
-                    let c = input[loc.s];
-                    let sb = (c >> SCANNER_BLOCK_SHIFT) as usize;
-                    let so = (c & SCANNER_BLOCK_MASK) as usize;
-
-                    unsafe {
-                        let next = st.next_state(state, sb, so);
-                        if next == 0 {
-                            break;
-                        }
-                        state = next - 1;
-
-                        // Process differential `accepts_diff` table branches if embedded natively inside state node
-                        if prev > 0 && parse_state.accepts_diff != 0 {
-                            let trans_idx = get_trans(prev, sb, so);
-                            let accepts_diff_raw = parse_state.accepts_diff as *mut *mut *mut D_Shift;
-                            let mut diff_ptr = *accepts_diff_raw.add(trans_idx);
-                            while !diff_ptr.is_null() && !(*diff_ptr).is_null() {
-                                
-                                let c_diff = &**diff_ptr;
-                                let spec_raw: isize = std::mem::transmute(c_diff.speculative_code);
-
-                                let safe_shift = crate::grammar::GrammarShift {
-                                    symbol: c_diff.symbol,
-                                    shift_kind: c_diff.shift_kind,
-                                    op_assoc: c_diff.op_assoc,
-                                    op_priority: c_diff.op_priority,
-                                    term_priority: c_diff.term_priority,
-                                    action_index: c_diff.action_index,
-                                    speculative_code: spec_raw as i32,
-                                };
-
-                                results.push(ShiftResult {
-                                    loc,
-                                    shift: safe_shift,
-                                });
-                                diff_ptr = diff_ptr.add(1);
-                            }
-                        }
-
-                        prev = state;
-
-                        if c == b'\n' {
-                            loc.line += 1;
-                            loc.col = 0;
-                        } else {
-                            loc.col += 1;
-                        }
-                        loc.s += 1;
-
-                        let current_shift = st.shifts(state);
-                        if !current_shift.is_null() {
-                            last_state = state;
-                            last_loc = loc;
-                        }
-                    }
-                }
-
-                unsafe {
-                    shift_ptr = st.shifts(last_state);
-                }
-            };
-
+    let shift = unsafe {
+        match parse_state.scanner_size {
+            1 => run::<u8>(input, end, &mut loc, &mut last_loc, parse_state, out),
+            2 => run::<u16>(input, end, &mut loc, &mut last_loc, parse_state, out),
+            4 => run::<u32>(input, end, &mut loc, &mut last_loc, parse_state, out),
+            _ => std::ptr::null_mut(),
+        }
+    };
+    if !shift.is_null() {
+        let mut p = shift;
         unsafe {
-            match parse_state.scanner_size {
-                1 => {
-                    let st = parse_state.scanner_table as *const SBUint8;
-                    let tst = parse_state.transition_table as *const SBTransUint8;
-                    let trans_fn = |p: usize, sb: usize, so: usize| {
-                        if (*tst.add(p)).scanner_block[sb].is_null() {
-                            0
-                        } else {
-                            *(*tst.add(p)).scanner_block[sb].add(so) as usize
-                        }
-                    };
-                    execute_scan(&st, &trans_fn);
-                }
-                2 => {
-                    let st = parse_state.scanner_table as *const SBUint16;
-                    let tst = parse_state.transition_table as *const SBTransUint16;
-                    let trans_fn = |p: usize, sb: usize, so: usize| {
-                        if (*tst.add(p)).scanner_block[sb].is_null() {
-                            0
-                        } else {
-                            *(*tst.add(p)).scanner_block[sb].add(so) as usize
-                        }
-                    };
-                    execute_scan(&st, &trans_fn);
-                }
-                4 => {
-                    let st = parse_state.scanner_table as *const SBUint32;
-                    let tst = parse_state.transition_table as *const SBTransUint32;
-                    let trans_fn = |p: usize, sb: usize, so: usize| {
-                        if (*tst.add(p)).scanner_block[sb].is_null() {
-                            0
-                        } else {
-                            *(*tst.add(p)).scanner_block[sb].add(so) as usize
-                        }
-                    };
-                    execute_scan(&st, &trans_fn);
-                }
-                _ => {
-                    return Vec::new();
-                }
+            while !(*p).is_null() {
+                out.push(ShiftResult { loc: last_loc, shift: *p as usize });
+                p = p.add(1);
             }
         }
     }
-
-    if !shift_ptr.is_null() {
-        unsafe {
-            let mut ptr = shift_ptr;
-            while !(*ptr).is_null() {
-                let c_shift = &**ptr;
-                let spec_raw: isize = std::mem::transmute(c_shift.speculative_code);
-
-                let safe_shift = crate::grammar::GrammarShift {
-                    symbol: c_shift.symbol,
-                    shift_kind: c_shift.shift_kind,
-                    op_assoc: c_shift.op_assoc,
-                    op_priority: c_shift.op_priority,
-                    term_priority: c_shift.term_priority,
-                    action_index: c_shift.action_index,
-                    speculative_code: spec_raw as i32,
-                };
-
-                results.push(ShiftResult {
-                    loc: last_loc,
-                    shift: safe_shift,
-                });
-                ptr = ptr.add(1);
+    if out.len() == base {
+        return;
+    }
+    let kind = |r: &ShiftResult| read_shift(r.shift).shift_kind;
+    let end_s = out[out.len() - 1].loc.s;
+    let mut longest = parse_state.scan_kind == D_SCAN_LONGEST;
+    let mut i = out.len();
+    if parse_state.scan_kind == D_SCAN_MIXED {
+        // results[base..i] end before end_s
+        while i > base && out[i - 1].loc.s >= end_s {
+            if kind(&out[i - 1]) == D_SCAN_LONGEST {
+                longest = true;
             }
+            i -= 1;
         }
     }
-
-    // Filter Longest/Mixed natively
-    if !results.is_empty() {
-        let mut longest = false;
-        let scan_kind_longest = D_SCAN_LONGEST as u8;
-        let scan_kind_mixed = D_SCAN_MIXED as u8;
-
-        let end_idx = results.last().unwrap().loc.s;
-        if parse_state.scan_kind == scan_kind_longest {
-            longest = true;
-        } else if parse_state.scan_kind == scan_kind_mixed {
-            for res in results.iter().rev() {
-                if res.loc.s < end_idx {
-                    break;
-                }
-                if res.shift.shift_kind == scan_kind_longest {
-                    longest = true;
-                }
+    let keep = |out: &mut Vec<ShiftResult>, f: &dyn Fn(usize, &ShiftResult) -> bool| {
+        let mut w = base;
+        for r in base..out.len() {
+            if f(r, &out[r]) {
+                out[w] = out[r];
+                w += 1;
             }
         }
-
-        if longest {
-            results.retain(|r| r.loc.s == end_idx);
-        }
+        out.truncate(w);
+    };
+    if longest {
+        // keep only 'longest' (and trailing context)
+        keep(out, &|_, r| r.loc.s == end_s || kind(r) == D_SCAN_TRAILING);
+    } else if parse_state.scan_kind == D_SCAN_MIXED {
+        // only keep non-longest among the shorter matches; the matches ending
+        // at end_s (none of them longest) are all kept
+        keep(out, &|j, r| j >= i || kind(r) != D_SCAN_LONGEST);
     }
-
-    results
 }

@@ -8,13 +8,13 @@ D_LEAK_DETECT ?= 0
 D_USE_FREELISTS ?= 1
 
 MAJOR=1
-MINOR=38
+MINOR=39
 RELEASE=$(MAJOR).$(MINOR)
 
 CC ?= gcc
 PREFIX ?= /usr/local
 
-.PHONY: all gram test install myexample
+.PHONY: test_spec_globals all gram test install myexample
 
 OS_TYPE = $(shell uname -s | \
   awk '{ split($$1,a,"_"); printf("%s", a[1]);  }')
@@ -150,11 +150,25 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions test_bounds
+test: test_cpp test_cpp_actions test_bounds test_spec_globals
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
 	./test_bounds
+
+# $g is read-only in speculative actions unless the grammar declares
+# ${declare mutable_speculative_globals}: check that this is enforced in C and C++.
+SPEC_GLOBALS_DIR = tests/spec_globals
+test_spec_globals: make_dparser
+	@set -e; d=$(SPEC_GLOBALS_DIR); \
+	for g in read write mutable; do ./make_dparser -o $$d/$$g.g.d_parser.c $$d/$$g.g; done; \
+	for cc in "$(CC) $(CFLAGS) -x c" "$(CXX) $(CXXFLAGS) -x c++"; do \
+	  $$cc -I. -c -o /dev/null $$d/read.g.d_parser.c; \
+	  $$cc -I. -c -o /dev/null $$d/mutable.g.d_parser.c; \
+	  if $$cc -I. -c -o /dev/null $$d/write.g.d_parser.c 2>/dev/null; then \
+	    echo "FAILED: $$cc allowed a speculative action to write \$$g"; exit 1; fi; \
+	done; \
+	rm -f $$d/*.d_parser.c; echo "speculative globals tests passed"
 
 test-dsymtab: test_dsymtab
 	./test_dsymtab

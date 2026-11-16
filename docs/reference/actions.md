@@ -36,6 +36,7 @@ A speculative action can:
 - set values in `$$`, which stay with the node and are visible to later
   actions, speculative and final;
 - read and update the symbol table through `${scope}`;
+- read, but not write, the globals through `$g`;
 - reject the current parse path with `${reject}`.
 
 Avoid other side effects. See
@@ -131,7 +132,7 @@ embedded actions.
 | `$#` | `int` | The number of elements of the rule. |
 | `$#0`, `$#1`, ... | `int` | The number of children of element *N*; for `x*`, the number of repetitions. |
 | `${child 0, 2, 1}` | `D_ParseNode *` | A path into the tree: child 1 of child 2 of element 0. |
-| `$g` | `D_ParseNode_Globals *` | The parser's global state, `initial_globals`. |
+| `$g` | `D_ParseNode_Globals *` | The parser's global state, `initial_globals`. In speculative actions it is `const D_ParseNode_Globals *` unless the grammar has [`${declare mutable_speculative_globals}`](declarations.md#mutable-speculative-globals). |
 | `$c0`, `$c` | `dparser::ParseNode` | C++ wrappers around element *N* or the node being built. See [C++](cpp.md). |
 
 Your node type is `D_ParseNode_User`, defined with `#define` before

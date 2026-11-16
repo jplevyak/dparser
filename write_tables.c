@@ -55,6 +55,8 @@ static char *REDUCTION_ARGS = "(void *_ps, void **_children, int _n_children, in
 OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
 OffsetEntry spec_code_entry = {"#spec_code", sizeof("#spec_code") - 1, -2};
 OffsetEntry final_code_entry = {"#final_code", sizeof("#final_code") - 1, -3};
+/* external code (scanners, whitespace functions) in binary tables, provided by the runtime */
+OffsetEntry ext_code_entry = {"#ext_code", sizeof("#ext_code") - 1, -4};
 
 static int count_newlines(const char *str) {
   int count = 0;
@@ -599,16 +601,16 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
     int action_index = -1;
     t = g->terminals.v[i];
     if (t->regex_production && t->regex_production->rules.v[0]->speculative_code.code) {
-      assert(!fp->binary);
       snprintf(speculative_code, 255, "d_speculative_reduction_code_%d_%d_%s", t->regex_production->index,
               t->regex_production->rules.v[0]->index, tag);
     } else {
       strcpy(speculative_code, "NULL");
     }
     if (t->regex_production) {
-      action_index = t->regex_production->rules.v[0]->action_index;
-      if (action_index < 0)
-        action_index = t->regex_production->index * 10000 + 1000000;
+      Rule *r = t->regex_production->rules.v[0];
+      action_index = r->action_index;
+      /* the same index as the rule's code in the actions file (see write_code) */
+      if (action_index < 0) action_index = t->regex_production->index * 10000 + r->index + 1000000;
     }
     start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
     add_struct_member(fp, D_Shift, "%d", g->terminals.v[i]->index + g->productions.n, symbol);
@@ -1037,6 +1039,35 @@ static void write_scanner_code(File *file, Grammar *g, char *tag) {
   }
 }
 
+/* Binary tables can't contain C functions: mark the states with external
+   scanners and record, in the actions file, what the runtime must call:
+     scan <state> <symbol> <term_priority> <function or call>   ${scan ...}
+     scanner <function>                                         ${scanner ...}
+     whitespace <function>                                      ${declare whitespace ...}
+     token <name> <symbol>                                      ${token ...} */
+static void write_external_code(File *file, Grammar *g) {
+  FILE *afp = file->actions_fp;
+  uint i, j;
+  for (i = 0; i < g->states.n; i++) {
+    State *s = g->states.v[i];
+    for (j = 0; j < s->shift_actions.n; j++) {
+      Action *a = s->shift_actions.v[j];
+      if (a->kind == ACTION_SHIFT && a->term->kind == TERM_CODE) {
+        s->scanner_code = 1;
+        if (afp)
+          fprintf(afp, "scan %d %d %d %s\n", i, a->term->index + g->productions.n, a->term->term_priority,
+                  a->term->string);
+      }
+    }
+  }
+  if (!afp) return;
+  if (g->scanner.code) fprintf(afp, "scanner %s\n", g->scanner.code);
+  if (g->default_white_space) fprintf(afp, "whitespace %s\n", g->default_white_space);
+  for (i = 0; i < g->terminals.n; i++)
+    if (g->terminals.v[i]->kind == TERM_TOKEN)
+      fprintf(afp, "token %s %d\n", g->terminals.v[i]->string, g->terminals.v[i]->index + g->productions.n);
+}
+
 static int find_symbol(Grammar *g, char *s, char *e, int kind) {
   while (*s && isspace_(*s)) s++;
   if (e > s) {
@@ -1063,16 +1094,60 @@ static int find_symbol(Grammar *g, char *s, char *e, int kind) {
   return -1;
 }
 
-static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code, char *fname, int line, char *pathname) {
+/* Write action code to the actions file, expanding the specifiers which need
+   the grammar: ${nterm name}, ${string name} and ${pass name}.  Everything else
+   is left for the code generator of the target language. */
+static void write_actions_code(FILE *fp, Grammar *g, char *code, int line) {
+  char *c = code;
+  while (*c) {
+    if (c[0] == '$' && c[1] == '{') {
+      char *k = c + 2, *e = k, *a;
+      while (*e && *e != '}' && !isspace_(*e)) e++;
+      a = e;
+      while (*a && *a != '}') a++;
+      if (*a && (STREQ(k, e - k, "nterm") || STREQ(k, e - k, "string") || STREQ(k, e - k, "pass"))) {
+        if (STREQ(k, e - k, "nterm"))
+          fprintf(fp, "%d", find_symbol(g, e, a, D_SYMBOL_NTERM));
+        else if (STREQ(k, e - k, "string"))
+          fprintf(fp, "%d", find_symbol(g, e, a, D_SYMBOL_STRING));
+        else {
+          D_Pass *p = find_pass(g, e, a);
+          if (!p) d_fail("unknown pass '%s' line %d", dup_str(e, a), line);
+          fprintf(fp, "%d", p->index);
+        }
+        c = a + 1;
+        continue;
+      }
+    }
+    fputc(*c++, fp);
+  }
+}
+
+/* The kind of action code being written: final, speculative, or pass N (CODE_PASS + N). */
+#define CODE_FINAL 0
+#define CODE_SPECULATIVE 1
+#define CODE_PASS 2
+
+static void write_code(File *file, Grammar *g, Rule *r, int kind, char *fnname, char *code, char *fname, int line,
+                       char *pathname) {
   char *c;
   int in_string = 0;
   FILE *fp = file->fp;
 
   if (file->actions_fp) {
     if (r) {
+      /* Header: int d_{final,speculative,pass<N>}_code_action_<action index> <line> "<file>" <lines> */
       int idx = r->action_index;
       if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * 10000 + r->index + 1000000);
-      fprintf(file->actions_fp, "int d_pass_code_action_%d %d \"%s\" %d\n%s\n", idx, line, pathname, count_newlines(code) + 1, code);
+      if (kind == CODE_SPECULATIVE)
+        fprintf(file->actions_fp, "int d_speculative_code_action_%d", idx);
+      else if (kind == CODE_FINAL)
+        fprintf(file->actions_fp, "int d_final_code_action_%d", idx);
+      else
+        fprintf(file->actions_fp, "int d_pass%d_code_action_%d", kind - CODE_PASS, idx);
+      fprintf(file->actions_fp, " %d \"%s\" %d\n", line, pathname, count_newlines(code) + 1);
+      write_actions_code(file->actions_fp, g, code, line);
+      fprintf(file->actions_fp, "\n");
     } else {
       fprintf(file->actions_fp, "%s %d \"%s\" %d\n%s\n", fnname, line, pathname, count_newlines(code) + 1, code);
     }
@@ -1130,7 +1205,12 @@ static void write_code(File *file, Grammar *g, Rule *r, char *fnname, char *code
         } else
           fprintf(fp, "(_n_children)");
       } else if (*c == 'g') {
-        fprintf(fp, "(_parser->initial_globals)");
+        /* Speculative actions run on parse paths that may be discarded, so they
+           only get read access to the shared globals by default. */
+        if (kind == CODE_SPECULATIVE && !g->mutable_speculative_globals)
+          fprintf(fp, "((const D_ParseNode_Globals *)(_parser->initial_globals))");
+        else
+          fprintf(fp, "(_parser->initial_globals)");
         c++;
       } else if (*c == 'n') {
         ++c;
@@ -1293,8 +1373,8 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
   FILE *fp = file->fp;
 
   pdefault = lookup_production(g, "_", 1);
-  if (pdefault) {
-    rdefault = pdefault->rules.v[0];
+  if (pdefault) rdefault = pdefault->rules.v[0];
+  if (pdefault && fp) {
     fprintf(fp, "int d_speculative_reduction_code_%d_%d_%s%s;\n", rdefault->prod->index, rdefault->index, tag,
             REDUCTION_ARGS);
     g->write_line += 1;
@@ -1346,21 +1426,35 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       if (r->speculative_code.code) {
         char fname[256];
         snprintf(fname, 255, "int d_speculative_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, REDUCTION_ARGS);
-        write_code(file, g, r, speculative_code, r->speculative_code.code, fname, r->speculative_code.line, g->pathname);
+        write_code(file, g, r, CODE_SPECULATIVE, speculative_code, r->speculative_code.code, fname,
+                   r->speculative_code.line, g->pathname);
+      } else if (file->actions_fp && rdefault && rdefault->speculative_code.code && p != pdefault) {
+        /* the actions file is dispatched by this rule's action index: repeat the default code under it */
+        write_code(file, g, r, CODE_SPECULATIVE, speculative_code, rdefault->speculative_code.code, NULL,
+                   rdefault->speculative_code.line, g->pathname);
       }
       if (r->final_code.code) {
         char fname[256];
         snprintf(fname, 255, "int d_final_reduction_code_%d_%d_%s%s ", r->prod->index, r->index, tag, REDUCTION_ARGS);
-        write_code(file, g, r, final_code, r->final_code.code, fname, r->final_code.line, g->pathname);
+        write_code(file, g, r, CODE_FINAL, final_code, r->final_code.code, fname, r->final_code.line, g->pathname);
+      } else if (file->actions_fp && rdefault && rdefault->final_code.code && p != pdefault) {
+        write_code(file, g, r, CODE_FINAL, final_code, rdefault->final_code.code, NULL, rdefault->final_code.line,
+                   g->pathname);
       }
       for (k = 0; k < (int)r->pass_code.n; k++) {
         if (r->pass_code.v[k]) {
           char fname[256], code[256];
           snprintf(fname, 255, "int d_pass_code_%d_%d_%d_%s%s ", k, r->prod->index, r->index, tag, REDUCTION_ARGS);
           snprintf(code, 255, "int d_pass_code_%d_%d_%d_%s", k, r->prod->index, r->index, tag);
-          write_code(file, g, r, code, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line, g->pathname);
+          write_code(file, g, r, CODE_PASS + k, code, r->pass_code.v[k]->code, fname, r->pass_code.v[k]->line,
+                     g->pathname);
         }
       }
+      if (file->actions_fp && rdefault && p != pdefault)
+        for (k = 0; k < (int)rdefault->pass_code.n; k++)
+          if (rdefault->pass_code.v[k] && !((int)r->pass_code.n > k && r->pass_code.v[k]))
+            write_code(file, g, r, CODE_PASS + k, NULL, rdefault->pass_code.v[k]->code, NULL,
+                       rdefault->pass_code.v[k]->line, g->pathname);
       pmax = r->pass_code.n;
       if (r->pass_code.n || (rdefault && rdefault->pass_code.n)) {
         if (rdefault && (int)rdefault->pass_code.n > pmax) pmax = rdefault->pass_code.n;
@@ -1368,8 +1462,8 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
           snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", rdefault->prod->index, rdefault->index, tag);
         else {
           snprintf(pass_code, 255, "d_pass_code_%d_%d_%s", r->prod->index, r->index, tag);
-          fprintf(fp, "D_ReductionCode %s[] = {", pass_code);
-          for (k = 0; k < pmax; k++) {
+          if (fp) fprintf(fp, "D_ReductionCode %s[] = {", pass_code);
+          for (k = 0; fp && k < pmax; k++) {
             if ((int)r->pass_code.n > k && r->pass_code.v[k])
               fprintf(fp, "d_pass_code_%d_%d_%d_%s%s", k, r->prod->index, r->index, tag, k < pmax - 1 ? ", " : "");
             else if (rdefault && (int)rdefault->pass_code.n > k && rdefault->pass_code.v[k])
@@ -1378,7 +1472,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
             else
               fprintf(fp, "NULL%s", k < pmax - 1 ? ", " : "");
           }
-          fprintf(fp, "};\n\n");
+          if (fp) fprintf(fp, "};\n\n");
           g->write_line += 2;
         }
       } else
@@ -1541,13 +1635,19 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
         add_struct_member(fp, D_State, "%d", 0, shifts);
       if (g->scanner.code) {
         if (s->goto_on_token) {
-          assert(!fp->binary);
-          fprintf(fp->fp, ", %s", g->scanner.code);
+          if (fp->binary) {
+            add_struct_ptr_member(fp, D_State, "", &ext_code_entry, scanner_code);
+          } else
+            fprintf(fp->fp, ", %s", g->scanner.code);
         } else {
           add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
         }
       } else if (s->scanner_code) {
-        add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scan_code_%d_%s", i, tag), scanner_code);
+        if (fp->binary) {
+          add_struct_ptr_member(fp, D_State, "", &ext_code_entry, scanner_code);
+        } else {
+          add_struct_ptr_member(fp, D_State, "", get_offset(fp, "d_scan_code_%d_%s", i, tag), scanner_code);
+        }
       } else {
         add_struct_ptr_member(fp, D_State, "", &null_entry, scanner_code);
       }
@@ -1720,7 +1820,10 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
 
   write_reductions(file, g, tag);
   write_scanner_data(file, g, tag);
-  if (!file->binary) write_scanner_code(file, g, tag);
+  if (!file->binary)
+    write_scanner_code(file, g, tag);
+  else
+    write_external_code(file, g);
   write_goto_data(file, g, tag);
   write_error_data(file, g, &er_hash, tag);
   write_state_data(file, g, &er_hash, tag);
@@ -1742,8 +1845,10 @@ void write_parser_tables(Grammar *g, char *tag, File *file) {
   add_struct_member(file, D_ParserTables, "%d", g->productions.n + g->terminals.n, nsymbols);
   add_struct_ptr_member(file, D_ParserTables, "", get_offset(file, "d_symbols_%s", tag), symbols);
   if (g->default_white_space) {
-    assert(!file->binary);
-    fprintf(file->fp, ", %s", g->default_white_space);
+    if (file->binary) {
+      add_struct_ptr_member(file, D_ParserTables, "", &ext_code_entry, default_white_space);
+    } else
+      fprintf(file->fp, ", %s", g->default_white_space);
   } else {
     add_struct_ptr_member(file, D_ParserTables, "", &null_entry, default_white_space);
   }
@@ -1784,6 +1889,7 @@ void write_parser_tables_internal(Grammar *g, char *base_pathname, char *tag, in
     if (!actions_fp) d_fail("unable to open `%s` for write\n", g->actions_write_pathname);
   }
   file_init(&file, binary, fp, actions_fp, str, str_len);
+  if (actions_fp && g->mutable_speculative_globals) fprintf(actions_fp, "declare mutable_speculative_globals\n");
   if (binary && actions_fp) {
     write_global_code(&file, g, tag);
   } else if (!binary) {

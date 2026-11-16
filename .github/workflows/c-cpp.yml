@@ -20,3 +20,18 @@ jobs:
       run: make
     - name: make check
       run: make check
+
+  rust:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: make
+      run: make
+    - name: cargo test
+      working-directory: rust
+      run: cargo test --workspace
+    - name: C test suite on the Rust runtime
+      working-directory: rust
+      run: python3 conformance/run.py

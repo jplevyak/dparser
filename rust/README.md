@@ -1,126 +1,83 @@
 # DParser for Rust
 
-A **100% pure, native Rust** implementation of the [DParser](https://github.com/jplevyak/dparser) GLR (Generalized Left-to-Right Rightmost derivation) parser.
+A native Rust runtime for [DParser](https://github.com/jplevyak/dparser), the
+scannerless GLR parser generator.
 
-This crate provides a scannerless GLR parser generator and runtime runtime entirely decoupled from the original C runtime dependencies. It guarantees complete memory safety, leveraging native Rust memory constructs, slices, and arena allocation for parse tree execution instead of raw pointers.
+Grammars are compiled by DParser's `make_dparser` (built by this crate) into
+binary tables, and their actions, written in Rust, are compiled into your
+crate. The runtime is a port of the C parsing engine and parses exactly as it
+does: the same trees, disambiguation, error recovery and statistics on the C
+test suite. It supports speculative and final actions, passes, the symbol
+table, external scanners and whitespace functions, and all of the C parser's
+options.
 
-## Features at a Glance
-- **Pure Rust Runtime**: Eliminates the need for traditional FFI bindings and C-extensions. Generates cross-platform, warning-free syntax matching seamlessly.
-- **Embedded Static Grammar**: Safely embeds statically compiled parser properties directly into your compiled binaries using `binrw`, bypassing dynamic linkage errors.
-- **Arena-Backed AST Trees**: Dynamically builds high-performance syntax trees (PNode, SNode, ZNode abstractions) structurally bounded correctly without heap thrashing or dangling pointers.
-- **Dynamic Syntax Dispatching**: Automatically structures reduction closures (`$$`, `$1`, `$g`) through idiomatic generic macros avoiding `unsafe` boundaries.
-- **Zero-Copy Scanning**: Maps characters and whitespaces purely sequentially over the original `&str`/`&[u8]` buffers natively avoiding extra redundant string allocation dynamically.
+## Usage
 
-## Quick Start & Usage
+`build.rs`:
 
-This library seamlessly splits grammar initialization bounds and parsing logic via `build.rs` processing. 
-Here is an example setup leveraging global contexts, structural nodes, and custom structural behaviors directly in pure Rust via your custom `<grammar>.g` configuration.
+```rust
+use std::{env, path::PathBuf, process::Command};
 
-### 1. Define your grammar mappings in `my_grammar.g`
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("cargo:rerun-if-changed=src/my_grammar.g");
+    let out = PathBuf::from(env::var("OUT_DIR")?);
+    let grammar = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?).join("src/my_grammar.g");
+    let make_dparser = PathBuf::from(env::var("DEP_DPARSE_BINARY_PATH")?);
+    let status = Command::new(make_dparser)
+        .arg(&grammar)
+        .args(["-B", "-X", "bin", "-o"]).arg(out.join("my_grammar.g.d_parser.bin"))
+        .arg("-a").arg(out.join("my_grammar.actions"))
+        .status()?;
+    if !status.success() {
+        return Err("make_dparser failed".into());
+    }
+    dparser::build_actions(&out.join("my_grammar.actions"), &out.join("actions.rs"),
+                           "GlobalsStruct", "NodeStruct")?;
+    Ok(())
+}
+```
+
+`src/my_grammar.g`:
+
 ```rust
 {
-// Natively inject context imports for dynamically evaluated elements 
-use dparser_lib;
-
 #[derive(Debug, Default)]
-pub struct GlobalsStruct {
-    a: i32,
-    b: i32,
-}
+pub struct GlobalsStruct { pub sum: i64 }
 
 #[derive(Debug, Default, Clone)]
-pub struct NodeStruct {
-    pub x: i32,
-    pub y: i32,
-}
+pub struct NodeStruct { pub value: i64 }
 }
 
-// Map root reduction rules cleanly interacting with states:
-start: S T {
-    println!("start globally evaluated: a={}, x={}", $g.a, $0.x);
-    $$ = $0.clone();
-};
-
-S: A S 'b' 
-{
-    // Modify dynamic node tree recursively
-    $$ = $1.clone();
-    $$.x = $0.x + $1.x;
-    $g.a += 10;
-}
- | X
-{
-    $$ = $0.clone();
-};
-
-A: 'a' { $$.x = 1; };
-X: 'x' { $$.x = 10; };
-
-T: U* {
-    // Navigate iteration sequences implicitly safely
-    for n in $n0* {
-        print!("({})", n.string);
-    }
-};
-
-U: 'u' | 'v';
+list: number+ { for n in $n0* { $g.sum += n.user.value; } };
+number: "[0-9]+" { $$.value = $n0.string.parse().unwrap(); };
 ```
 
-### 2. Configure `build.rs` to pre-generate mappings
-Use the bundled builder to precompile configurations cleanly via `make_dparser` producing binaries native bindings statically load safely:
-```rust
-use std::env;
-use std::path::PathBuf;
-
-fn main() {
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-
-    // Execute standard DParser compiler bridging
-    let _ = std::process::Command::new("../../make_dparser")
-        .args(&["-B", "-o", out_dir.to_str().unwrap(), "src/my_grammar.g"])
-        .status()
-        .unwrap();
-
-    // Map the built C-macro string replacements native to Rust!
-    dparser_lib::builder::build_actions(
-        &PathBuf::from("src/my_grammar.g"),
-        &out_dir.join("actions.rs"),
-        "GlobalsStruct",
-        "NodeStruct",
-    ).expect("Failed mapping actions");
-}
-```
-
-### 3. Parse Execution locally! (`main.rs`)
+`src/main.rs`:
 
 ```rust
-// include natively exported structures from the .g grammar file seamlessly
+use dparser::Parser;
+
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
 fn main() {
-    let input = "a x  b uvu";
-
-    let binary_data = include_bytes!(concat!(env!("OUT_DIR"), "/my_grammar.g.d_parser.bin"));
-    
-    // Instantiates parsing structural trees statically
+    let tables = include_bytes!(concat!(env!("OUT_DIR"), "/my_grammar.g.d_parser.bin"));
+    let mut parser: Parser<GlobalsStruct, NodeStruct> =
+        Parser::with_actions(tables, actions()).unwrap();
     let mut globals = GlobalsStruct::default();
-    let mut parser = dparser_lib::Parser::new(
-        binary_data, 
-        dispatch_action, // Passes static pointer maps securely
-    );
-
-    // Dynamic execution! 
-    let parse_tree = parser.parse(input, Some(&mut globals));
-
-    match parse_tree {
-        Some(tree) => println!("Parsing successful: {:?}", tree.user),
-        None => println!("Parsing failed dynamically."),
+    match parser.parse("1 2 3", Some(&mut globals)) {
+        Some(_) => println!("sum = {}", globals.sum),
+        None => eprintln!("syntax error at line {}", parser.loc.line),
     }
 }
 ```
 
-## Internal Architecture
-- `dparser_lib/src/binary_format.rs`: Maps pure struct padding sizes corresponding functionally identical to the generic compiler definitions securely without invoking C APIs!
-- `dparser_lib/src/parse.rs`: Houses the primary Tomita scanning loop iterating sequential mapping across boundaries cleanly.
-- `dparser_lib/src/scan.rs`: Defines character block bitmapping DFA traversal.
-- `dparser_lib/src/builder.rs`: Manages native Rust variable binding macro swaps natively formatting string elements mapped reliably matching `$X` inputs cleanly via slice indexing.
+See the [Rust documentation](https://jplevyak.github.io/dparser/reference/rust/)
+for the action specifiers, speculative actions, the symbol table, passes,
+external scanners and the parser options, and `example/` for a complete crate.
+
+## Testing
+
+```bash
+cargo test --workspace      # unit tests, and C test grammars ported to Rust actions
+python3 conformance/run.py  # every input of the C test suite, compared with the C results
+```

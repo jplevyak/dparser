@@ -363,6 +363,9 @@ void add_declaration(Grammar *g, char *start, char *end, uint kind, uint line) {
       case DECLARE_SAVE_PARSE_TREE:
         g->save_parse_tree = 1;
         return;
+      case DECLARE_MUTABLE_SPECULATIVE_GLOBALS:
+        g->mutable_speculative_globals = 1;
+        return;
       default:
         d_fail("declare expects argument, line %d", line);
     }
@@ -372,6 +375,7 @@ void add_declaration(Grammar *g, char *start, char *end, uint kind, uint line) {
       g->default_white_space = dup_str(start, end);
       return;
     case DECLARE_SET_OP_PRIORITY:
+    case DECLARE_MUTABLE_SPECULATIVE_GLOBALS:
       d_fail("declare does not expect argument, line %d", line);
     default:
       new_declaration(g, new_ident(start, end, NULL), kind);
@@ -1654,6 +1658,7 @@ static void print_declarations(Grammar *g) {
   /* todo: DECLARE_STATE_FOR */
   if (g->default_white_space) printf("${declare whitespace %s}\n", g->default_white_space);
   if (g->save_parse_tree) printf("${declare save_parse_tree}\n");
+  if (g->mutable_speculative_globals) printf("${declare mutable_speculative_globals}\n");
   /* todo: DECLARE_NUM */
 
   if (g->scanner.code) printf("${scanner %s}\n", g->scanner.code);

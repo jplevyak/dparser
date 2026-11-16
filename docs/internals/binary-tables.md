@@ -46,7 +46,16 @@ callbacks call that function.
 
 The Rust crate takes another route: `make_dparser -a` writes the action
 code to a separate file, which `dparser::build_actions` turns into a Rust
-`dispatch_action` function indexed the same way.
+`dispatch_action` function indexed the same way. Each action is headed by
+a line naming its kind and action index (`int
+d_speculative_code_action_N`, `d_final_code_action_N` or
+`d_passK_code_action_N`) with its source line, file and length. Rules that
+use the `_` production's default code get a copy under their own index.
 
-External scanner code (`${scan}`, `${scanner}`) and global C code can't be
-used with binary tables.
+External scanners (`${scan}`, `${scanner}`) and whitespace functions
+(`${declare whitespace}`) can't be stored in binary tables either. Their
+states and the tables are marked with another special pointer value (-4),
+which `read_binary_tables()` rejects, and the actions file records what the
+Rust runtime must call: `scan <state> <symbol> <term_priority> <call>`,
+`scanner <function>`, `whitespace <function>` and `token <name> <symbol>`
+lines.

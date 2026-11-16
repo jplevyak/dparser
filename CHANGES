@@ -1,3 +1,26 @@
+1.39    BREAKING: $g is read-only in speculative actions: a
+          const D_ParseNode_Globals * in C and C++, a &G in Rust, so writes
+          no longer compile. Add ${declare mutable_speculative_globals} to
+          restore the old behavior.
+        Rust: a new runtime, ported from the C engine, which parses as C
+          does (same trees, disambiguation, error recovery and statistics
+          on the C test suite): speculative actions with ${reject}, the
+          symbol table (${scope}, ${parser}.symtab), passes, error
+          recovery, whitespace productions, external scanners and
+          whitespace functions (Parser::with_actions), start symbols,
+          partial parses, the commit interval, ambiguity_fn and all of the
+          C options.
+          BREAKING: actions get the node as $n (children as its children)
+          and their globals separately; ambiguity_fn sees the alternatives
+          before their final actions run; an unresolved ambiguity fails the
+          parse; syntax errors are recovered from and reported.
+        make_dparser -B -a: write speculative, final and pass code with
+          their kind; give rules the `_` default actions; record external
+          scanners and whitespace functions instead of failing; expand
+          ${nterm}, ${string} and ${pass}; fix binary tables for grammars
+          with terminal actions, defaults or passes.
+        Regenerate the bootstrap grammar parser (grammar.g.c).
+
 1.38    Symbol table: fix commit_D_Scope breaking later updates; add
           SPECULATIVE_NEW_D_SYM so declarations don't leak between parse
           paths; keep tied derivations with different symbol tables apart.

@@ -1,212 +1,160 @@
 //! `whitespace.rs`
-//! Core structural engine mapping exactly `white_space` natively across buffer boundaries in `parse.c`!
-//! This component natively skips whitespace explicitly resolving `#line` bounds and inline comments.
+//! The default whitespace function (`white_space` in parse.c): skips blanks,
+//! newlines, `//` and nested `/* */` comments, and `#line` directives.
 
 use crate::types::Loc;
 
-pub const WSPACE: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, // 0-9
-    0, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 10-19
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20-29
-    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // 30-39 (32 is space)
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // ... padded ...
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, // Up to 250
-    0, 0, 0, 0, 0, 0, // Up to 256
-];
-
+/// Whitespace characters, not including newline.
 #[inline]
 pub fn is_wspace(c: u8) -> bool {
-    WSPACE[c as usize] != 0
+    matches!(c, b'\t' | 0x0b | 0x0c | b'\r' | b' ')
 }
 
-/// Natively advances the structural tracking limit sequentially jumping over boundaries.
-pub fn white_space(input: &[u8], starting_loc: &mut Loc) {
-    let mut rec = 0;
-
-    let mut s = starting_loc.s;
+/// Skip whitespace in `input[..end]` starting at `loc`, updating the line and
+/// column.  `loc.ws` is left unchanged.
+pub fn white_space(input: &[u8], end: usize, loc: &mut Loc) {
+    // the character at s, or 0 at or beyond the end of the input
+    let ch = |s: usize| -> u8 { if s < end { input[s] } else { 0 } };
+    let mut s = loc.s;
     let mut scol: Option<usize> = None;
+    let mut rec = 0u32;
 
-    // Bounds check closure to cleanly mimic C pointers safely tracking length limits
-    let peek = |idx: usize| -> Option<u8> {
-        if idx < input.len() {
-            Some(input[idx])
+    // A directive (`# 12 "file"` or `#line 12`) is only recognized at the
+    // start of a line; returns false (and leaves s) if this '#' isn't one.
+    let directive = |s: &mut usize, loc: &mut Loc| -> bool {
+        let save = *s;
+        *s += 1;
+        while is_wspace(ch(*s)) {
+            *s += 1;
+        }
+        if end >= *s + 4 && &input[*s..*s + 4] == b"line" && is_wspace(ch(*s + 4)) {
+            *s += 5;
+            while is_wspace(ch(*s)) {
+                *s += 1;
+            }
+        }
+        if ch(*s).is_ascii_digit() {
+            let mut line: u32 = 0;
+            while ch(*s).is_ascii_digit() {
+                line = line.wrapping_mul(10).wrapping_add((ch(*s) - b'0') as u32);
+                *s += 1;
+            }
+            loc.line = line.wrapping_sub(1);
+            while ch(*s) != 0 && ch(*s) != b'\n' {
+                *s += 1;
+            }
+            true
         } else {
-            None
+            *s = save;
+            false
         }
     };
 
-    if peek(s) == Some(b'#') && starting_loc.col == 0 {
-        'directive: loop {
-            let save = s;
-            s += 1;
-            while peek(s).map_or(false, is_wspace) {
+    'done: {
+        if ch(s) == b'#' && loc.col == 0 && !directive(&mut s, loc) {
+            break 'done;
+        }
+        'more: loop {
+            while is_wspace(ch(s)) {
                 s += 1;
             }
-
-            // "#line" natively skipping bytes sequentially!
-            if s + 3 < input.len() && &input[s..s + 4] == b"line" {
-                if peek(s + 4).map_or(false, is_wspace) {
-                    s += 5;
-                    while peek(s).map_or(false, is_wspace) {
+            if ch(s) == b'\n' {
+                loc.line = loc.line.wrapping_add(1);
+                scol = Some(s + 1);
+                s += 1;
+                if ch(s) == b'#' && !directive(&mut s, loc) {
+                    break 'done;
+                }
+                continue 'more;
+            }
+            if ch(s) == b'/' {
+                if ch(s + 1) == b'/' {
+                    while ch(s) != 0 && ch(s) != b'\n' {
                         s += 1;
                     }
+                    continue 'more;
                 }
-            }
-
-            if peek(s).map_or(false, |c| c.is_ascii_digit()) {
-                let mut line_num = 0;
-                while let Some(c) = peek(s) {
-                    if c.is_ascii_digit() {
-                        line_num = line_num * 10 + (c - b'0') as u32;
-                        s += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                if line_num > 0 {
-                    starting_loc.line = line_num - 1;
-                }
-
-                while peek(s).map_or(false, is_wspace) {
-                    s += 1;
-                }
-
-                if peek(s) == Some(b'"') {
-                    // String directive `loc->pathname = s;`
-                    // In Rust, we skip mapping the exact pointer directly unless bounded
-                }
-            } else {
-                s = save;
-                break 'directive; // GOTO Ldone
-            }
-
-            while peek(s).is_some() && peek(s) != Some(b'\n') {
-                s += 1;
-            }
-            break;
-        }
-    }
-
-    'more: loop {
-        while peek(s).map_or(false, is_wspace) {
-            s += 1;
-        }
-
-        if peek(s) == Some(b'\n') {
-            starting_loc.line += 1;
-            scol = Some(s + 1);
-            s += 1;
-            if peek(s) == Some(b'#') {
-                // Technically `goto Ldirective`. We emulate by jumping!
-                // C code repeats `#line` directives securely iteratively!
-                s += 1;
-                while peek(s).map_or(false, is_wspace) {
-                    s += 1;
-                }
-                while peek(s).is_some() && peek(s) != Some(b'\n') {
-                    s += 1;
-                }
-                continue 'more;
-            } else {
-                continue 'more;
-            }
-        }
-
-        if peek(s) == Some(b'/') {
-            if peek(s + 1) == Some(b'/') {
-                while peek(s).is_some() && peek(s) != Some(b'\n') {
-                    s += 1;
-                }
-                continue 'more;
-            }
-
-            if peek(s + 1) == Some(b'*') {
-                s += 2;
-                'nestComment: loop {
+                if ch(s + 1) == b'*' {
+                    s += 2;
                     rec += 1;
-                    'moreComment: loop {
-                        while peek(s).is_some() {
-                            if peek(s) == Some(b'*') && peek(s + 1) == Some(b'/') {
-                                s += 2;
-                                rec -= 1;
-                                if rec == 0 {
-                                    continue 'more;
-                                }
-                                continue 'moreComment;
+                    while ch(s) != 0 {
+                        if ch(s) == b'*' && ch(s + 1) == b'/' {
+                            s += 2;
+                            rec -= 1;
+                            if rec == 0 {
+                                continue 'more;
                             }
-                            if peek(s) == Some(b'/') && peek(s + 1) == Some(b'*') {
-                                s += 2;
-                                continue 'nestComment;
-                            }
-                            if peek(s) == Some(b'\n') {
-                                starting_loc.line += 1;
-                                scol = Some(s + 1);
-                            }
-                            s += 1;
+                            continue;
                         }
-                        break 'moreComment; // Reached EOF safely mappings gracefully!
+                        if ch(s) == b'/' && ch(s + 1) == b'*' {
+                            s += 2;
+                            rec += 1;
+                            continue;
+                        }
+                        if ch(s) == b'\n' {
+                            loc.line = loc.line.wrapping_add(1);
+                            scol = Some(s + 1);
+                        }
+                        s += 1;
                     }
-                    break 'nestComment;
                 }
             }
+            break 'more;
         }
-
-        break 'more;
     }
-
     if let Some(sc) = scol {
-        starting_loc.col = (s - sc) as u32;
+        loc.col = (s - sc) as u32;
     } else {
-        starting_loc.col += (s - starting_loc.s) as u32;
+        loc.col += (s - loc.s) as u32;
     }
-
-    starting_loc.ws = starting_loc.s;
-    starting_loc.s = s;
+    loc.s = s;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::Loc;
 
-    #[test]
-    fn test_white_space_simple() {
-        let input = b" \t \n  x";
-        let mut loc = Loc {
-            s: 0,
-            ws: 0,
-            line: 1,
-            col: 0,
-        };
-
-        white_space(input, &mut loc);
-
-        assert_eq!(loc.s, 6);
-        assert_eq!(loc.ws, 0);
-        assert_eq!(loc.line, 2);
-        assert_eq!(loc.col, 2);
+    fn at(input: &[u8]) -> Loc {
+        let mut loc = Loc { s: 0, ws: 0, line: 1, col: 0 };
+        white_space(input, input.len(), &mut loc);
+        loc
     }
 
     #[test]
-    fn test_white_space_comments() {
+    fn blanks_and_newlines() {
+        let loc = at(b" \t \n  x");
+        assert_eq!((loc.s, loc.line, loc.col), (6, 2, 2));
+    }
+
+    #[test]
+    fn nested_comments() {
         let input = b"/* this is /* nested */ comment */  test";
-        let mut loc = Loc {
-            s: 0,
-            ws: 0,
-            line: 1,
-            col: 0,
-        };
-
-        white_space(input, &mut loc);
-
-        assert_eq!(loc.s, 36);
+        let loc = at(input);
         assert_eq!(input[loc.s], b't');
+    }
+
+    #[test]
+    fn line_directives() {
+        let loc = at(b"# 10 \"f.c\"\nx");
+        assert_eq!((loc.s, loc.line), (11, 10));
+        let loc = at(b"#line 7\nx");
+        assert_eq!((loc.s, loc.line), (8, 7));
+    }
+
+    #[test]
+    fn hash_that_is_not_a_directive_is_not_skipped() {
+        let loc = at(b"#define x");
+        assert_eq!(loc.s, 0);
+        let loc = at(b"a\n#define x");
+        assert_eq!(loc.s, 0);
+        let loc = at(b"  \n#define x");
+        assert_eq!((loc.s, loc.line), (3, 2));
+    }
+
+    #[test]
+    fn stops_at_end() {
+        let mut loc = Loc { s: 0, ws: 0, line: 1, col: 0 };
+        white_space(b"  /* x", 6, &mut loc);
+        assert_eq!(loc.s, 6);
     }
 }

@@ -31,7 +31,7 @@ Options marked *toggle* take no value and flip the default.
 | `-L` | `--write_lines` | on (toggle) | Write `#line` directives so compiler errors in actions point at the grammar. `-L` turns them off. |
 | `-b n` | `--scanner_blocks` | `4` | Number of blocks the scanner tables are split into; a space/time trade-off for large grammars. |
 | `-B` | `--binary_tables` | off (toggle) | Write binary tables instead of C. Use `-o` to name the file. See [Binary tables](c-api.md#binary-tables). |
-| `-a file` | `--actions_output` | none | Write the actions to a separate file in a simple text format, for runtimes that compile them themselves (used by the Rust crate). |
+| `-a file` | `--actions_output` | none | With `-B`, write the actions (and the external scanners and whitespace function the tables need) to a separate file in a simple text format, for runtimes that compile them themselves (used by the Rust crate). See [Binary Tables](../internals/binary-tables.md#actions). |
 | `-R` | `--rdebug_grammar` | 0 | Print a version of the grammar whose actions print each reduction, instead of writing tables. Useful for debugging. |
 | `-v` | `--verbose` | 0 | Print statistics and progress. Repeat for more. |
 | `-d` | `--debug` | 0 | Print debugging information. Repeat for more. |

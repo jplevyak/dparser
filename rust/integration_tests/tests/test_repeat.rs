@@ -1,4 +1,4 @@
-use dparser::{Parser, types::ParseNode};
+use dparser::Parser;
 
 include!(concat!(env!("OUT_DIR"), "/test_repeat_actions.rs"));
 

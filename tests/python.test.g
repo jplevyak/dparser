@@ -14,6 +14,7 @@
 }
 
 ${declare longest_match}
+${declare mutable_speculative_globals}
 ${declare subparser single_input}
 ${declare subparser eval_input}
 ${declare whitespace python_whitespace}
