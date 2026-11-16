@@ -49,18 +49,17 @@ The result is natural grammars and powerful parsing.
 
 
 ## Documentation
-* [Man page for parser generator](make_dparser.cat)
-* [Manual](docs/manual.md)
-* [FAQ](docs/faq.md)
 
-## Implementation Details
-For in-depth analysis of the parser architecture and specific features, see:
-* [Ambiguity Analysis](ANALYSIS_AMBIGUITY.md)
-* [Path Priorities Analysis](ANALYSIS_CHECK_PATH_PRIORTIES.md)
-* [Error Recovery and Epsilon Hints](RECOVERY_AND_EPSILON_HINTS.md)
-* [Speculative Parsing](SPECULATIVE_PARSING.md)
-* [Safe Rust Implementation](SAFE_RUST.md)
-* [DParser Agents](DPARSER_AGENTS.md) - documentation for using DParser with AI coding agents.
+Full documentation is at **<https://jplevyak.github.io/dparser/>**:
+
+* [Getting started](https://jplevyak.github.io/dparser/getting-started/installation/)
+* [Tutorial](https://jplevyak.github.io/dparser/tutorial/)
+* [Reference](https://jplevyak.github.io/dparser/reference/): grammar syntax, actions, `make_dparser`, and the C, C++, Python and Rust APIs
+* [Internals](https://jplevyak.github.io/dparser/internals/): how the parser works
+* [FAQ](https://jplevyak.github.io/dparser/faq/)
+
+The site's source is in [`docs/`](docs/). The man page for the parser
+generator is [make_dparser.cat](make_dparser.cat).
 
 ## Public Headers
 
@@ -71,12 +70,11 @@ For in-depth analysis of the parser architecture and specific features, see:
 
 ## Building
 
-* To build all components (C, Python, Rust): `gmake`
-* To test all components: `gmake test`
-* To build C core only: `gmake make_dparser`
-* To build Python bridge: `gmake python`
-* To build Rust implementation: `gmake rust`
-* To install: `gmake install` -- binary or source code packages
+* To build the C library and `make_dparser`: `gmake`
+* To test: `gmake test`
+* To install: `gmake install` (set `PREFIX` to change the location, default `/usr/local`)
+* To build and install the Python binding: `pip install .`
+* To build the Rust crate: `cd rust && cargo build --workspace`
 
 ## Language Support
 

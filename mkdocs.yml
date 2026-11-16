@@ -1,0 +1,112 @@
+site_name: DParser
+site_description: A scannerless GLR parser generator for C, Python and Rust
+site_url: https://jplevyak.github.io/dparser/
+repo_url: https://github.com/jplevyak/dparser
+repo_name: jplevyak/dparser
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2002&ndash;2026 John Plevyak. BSD licensed.
+
+docs_dir: docs
+site_dir: site
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Your First Parser: getting-started/first-parser.md
+  - Tutorial:
+      - tutorial/index.md
+      - 1. A Calculator: tutorial/calculator.md
+      - 2. Parse Trees: tutorial/parse-trees.md
+      - 3. Whitespace and Errors: tutorial/whitespace-and-errors.md
+      - 4. Ambiguity: tutorial/ambiguity.md
+      - 5. Speculative Actions: tutorial/speculative-actions.md
+      - 6. Python: tutorial/python.md
+  - Reference:
+      - reference/index.md
+      - Grammar Syntax: reference/grammar.md
+      - Terminals and Scanning: reference/terminals.md
+      - Actions: reference/actions.md
+      - Declarations: reference/declarations.md
+      - Priorities and Disambiguation: reference/disambiguation.md
+      - Symbol Table: reference/symbol-table.md
+      - make_dparser: reference/make_dparser.md
+      - C API: reference/c-api.md
+      - C++ Wrapper: reference/cpp.md
+      - Python API: reference/python.md
+      - Rust: reference/rust.md
+      - Building and Integrating: reference/building.md
+  - Internals:
+      - internals/index.md
+      - Table Construction: internals/tables.md
+      - Scanning: internals/scanning.md
+      - The GLR Runtime: internals/glr.md
+      - Disambiguation: internals/disambiguation.md
+      - Actions and Commit: internals/actions.md
+      - Symbol Table: internals/symbol-table.md
+      - Error Recovery: internals/error-recovery.md
+      - Binary Tables: internals/binary-tables.md
+  - FAQ: faq.md
+  - Project:
+      - Changelog: changelog.md
+      - Contributing: contributing.md
+      - Roadmap: todo.md

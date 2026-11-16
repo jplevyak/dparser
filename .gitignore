@@ -29,3 +29,6 @@ test_cpp_actions
 python/dparser.c
 python/dparser.h
 python/dparser*.so
+
+# MkDocs build output
+/site/

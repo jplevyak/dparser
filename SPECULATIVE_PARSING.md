@@ -853,7 +853,7 @@ The speculative parsing architecture enables:
 
 - **Tomita, Masaru** (1985): *Efficient Parsing for Natural Language*
 - **Scott & Johnstone** (2006): *GLL Parsing* (related generalized approach)
-- **DParser Manual**: docs/manual.md - Symbol Table section
+- **DParser Manual**: https://jplevyak.github.io/dparser/reference/symbol-table/
 - **Test Grammars**: tests/g28.test.g, tests/g29.test.g - Working examples
 
 ---
