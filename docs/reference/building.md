@@ -65,22 +65,21 @@ cmake --install build --prefix /usr/local
 ```
 
 The package provides a `dparse_generate()` function for running
-`make_dparser` as a build step:
+`make_dparser` as a build step. A complete consumer project:
 
 ```cmake
+cmake_minimum_required(VERSION 3.10)
+project(calc C)
+find_package(dparser 1.37 REQUIRED)
 dparse_generate(${CMAKE_CURRENT_SOURCE_DIR}/calc.g
                 ${CMAKE_CURRENT_BINARY_DIR}/calc.g.d_parser.c)
 add_executable(calc main.c ${CMAKE_CURRENT_BINARY_DIR}/calc.g.d_parser.c)
+target_link_libraries(calc PRIVATE dparser::dparse)
 ```
 
-!!! note
-    The Makefile is the primary, best-tested build. The CMake package is
-    less complete: its install step currently copies only `d.h` and
-    `dparse.h` (not `dparse_tables.h` and `dsymtab.h`, which `dparse.h`
-    includes), and the generated `dparser-config.cmake` does not import
-    the `dparser::` targets. Until that is fixed, you may need to add the
-    DParser source directory to your include path and refer to
-    `make_dparser` and `libdparse` directly.
+Configure it with `-DCMAKE_PREFIX_PATH=<install prefix>` if DParser is
+not installed in a standard location. Linking `dparser::dparse` adds the
+installed include directory automatically.
 
 ## Python and Rust
 

@@ -3,7 +3,7 @@ use dparser::{types::ParseNode, Parser};
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
 fn main() {
-    let input_string = "a x  b uvu\0";
+    let input_string = "a x  b uvu";
 
     println!("Parsing input: '{}'", input_string);
 

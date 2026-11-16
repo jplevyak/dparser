@@ -6,6 +6,8 @@ pub struct SafeGrammarTables {
     pub goto_table: Vec<u16>,
     pub whitespace_state: u32,
     pub save_parse_tree: bool,
+    /// Kind of each symbol (D_SYMBOL_NTERM, D_SYMBOL_INTERNAL, ...), indexed by symbol.
+    pub symbol_kinds: Vec<u32>,
     pub _binary_data: Vec<u64>, // Natively maintains ownership over buffer containing pointer mappings cleanly!
 }
 

@@ -43,12 +43,12 @@ extern D_ParserTables parser_tables_gram;
 With error recovery on (the default), a parse with syntax errors can still
 succeed. **Check `p->syntax_errors`** to see whether the input was valid.
 
-!!! warning "The buffer must be NUL-terminated"
-    The scanner and the default whitespace handler stop at a `'\0'` byte
-    rather than checking `buf_len`, so make sure `buf[buf_len]` is `'\0'`.
-    C string literals and `fgets` buffers already are; a buffer you read
-    with `fread` needs one extra byte. A consequence is that input can't
-    contain NUL bytes.
+The buffer does not need to be NUL-terminated: DParser never reads past
+`buf_len`. Your own [external scanners](terminals.md#external-scanners)
+and whitespace functions are only given the current position, so if you
+write any, either NUL-terminate the buffer or make sure they don't read
+past its end. A NUL byte inside the input is treated as an ordinary
+character that no terminal matches.
 
 The buffer must stay valid as long as you use the parse tree or symbol
 table, because nodes and symbols point into it. A parser can be reused for
@@ -205,6 +205,5 @@ free_D_Parser(p);
 free_BinaryTables(bt);
 ```
 
-`read_binary.h` is not installed by `make install`; copy it from the source
-tree. The Python and Rust bindings use binary tables. See
+The Python and Rust bindings use binary tables. See
 [Binary Tables](../internals/binary-tables.md).

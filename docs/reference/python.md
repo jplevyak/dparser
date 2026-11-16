@@ -39,7 +39,7 @@ are recognized **by name**:
 |---|---|
 | `spec` | The action also runs speculatively. `spec` is true when it does. Return `Reject` to reject the parse. |
 | `spec_only` | The action runs only speculatively; its speculative return value is kept as the final value. |
-| `g` | The global state, a one-element list. |
+| `g` | A one-element list holding the global state. Assign `g[0]` to change it; the value carries over to later actions in the same parse and starts as `None`. |
 | `s` | The element texts, as a nested list, including whitespace. |
 | `nodes` | A list of `DParseNode` objects for the elements. |
 | `this` | The `DParseNode` for the node being built. |
@@ -71,13 +71,13 @@ Raises `dparser.NoActionsFound` if there are no `d_` functions.
 
 ```python
 parser.parse(buf, buf_offset=0, initial_skip_space_fn=None,
-             syntax_error_fn=None, ambiguity_fn=None,
+             syntax_error_fn=None, ambiguity_fn=None, make_token=None,
              dont_fixup_internal_productions=False, fixup_EBNF_productions=False,
              dont_merge_epsilon_trees=False, commit_actions_interval=100,
-             error_recovery=False, partial_parses=False,
+             error_recovery=False, print_debug_info=0, partial_parses=False,
              dont_compare_stacks=False,
              dont_use_greediness_for_disambiguation=False,
-             dont_use_height_for_disambiguation=False)
+             dont_use_height_for_disambiguation=False, start_symbol='')
 ```
 
 | Argument | Description |
@@ -87,19 +87,23 @@ parser.parse(buf, buf_offset=0, initial_skip_space_fn=None,
 | `initial_skip_space_fn` | A whitespace function. It receives a `DLoc` and should advance `loc.s`. |
 | `syntax_error_fn` | Called with a `DLoc` on each syntax error. `dparser.my_syntax_error_func` raises a `SyntaxErr` showing the error in context. |
 | `ambiguity_fn` | Called with a list of `DParseNode` alternatives; must return one of them (the same object). If it raises, the first alternative is used. |
+| `make_token` | A function applied to the text of every terminal; its result is what actions see in `t` instead of the string. |
+| `start_symbol` | The name of the nonterminal to parse, instead of the first rule. Raises `ValueError` for an unknown name. |
+| `print_debug_info` | `1` prints a line for every action call (marked `???` when speculative); `2` prints final actions only. |
 | `error_recovery` | Recover from syntax errors and continue. Off by default in Python. |
 | `partial_parses` | Accept a parse of a prefix of the input. |
 | other options | As the [C parser options](c-api.md#options). |
-
-`parse()` also accepts `make_token`, `print_debug_info` and `start_symbol`
-for compatibility, but currently ignores them.
 
 Returns a `ParsedStructure`:
 
 | Method | Returns |
 |---|---|
 | `getStructure()` | The value of the root node: the start rule's action result. |
-| `getStringLeft()` | The text covered by the parse. |
+| `getStringLeft()` | The input after the end of the parse: empty unless `partial_parses` stopped early. |
+| `getString()` | The parsed text as a nested list, as actions see it in `s`, including any edits actions made to it. Use this to rewrite text. |
+
+After a parse, `parser.globals` holds the final global state (see the `g`
+argument).
 
 Raises `dparser.SyntaxErr` if the parse fails.
 

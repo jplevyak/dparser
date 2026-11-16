@@ -132,7 +132,12 @@ fn main() {
 ```
 
 `dispatch_action` is generated in `actions.rs`. `Parser` also has public
-`syntax_error_fn` and `ambiguity_fn` fields for callbacks.
+`syntax_error_fn` and `ambiguity_fn` fields for callbacks, and
+`dont_fixup_internal_productions` and `fixup_ebnf_productions` fields with
+the same meaning as the [C options](c-api.md#options).
+
+As in C, a node's `string` is its text without trailing whitespace, and a
+repeated element such as `$n0` for `U*` has one child per repetition.
 
 ## Complete example
 

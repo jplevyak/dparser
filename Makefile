@@ -8,7 +8,7 @@ D_LEAK_DETECT ?= 0
 D_USE_FREELISTS ?= 1
 
 MAJOR=1
-MINOR=37
+MINOR=38
 RELEASE=$(MAJOR).$(MINOR)
 
 CC ?= gcc
@@ -127,10 +127,10 @@ MAKE_DPARSER = ./make_dparser
 EXECUTABLES = make_dparser
 LIBRARIES = $(LIBMKDPARSE) $(LIBDPARSE)
 INSTALL_LIBRARIES = $(LIBDPARSE)
-INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h
+INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp
 MANPAGES = make_dparser.1
 
-EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions
+EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions test_bounds
 ifeq ($(OS_TYPE),CYGWIN)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
@@ -150,10 +150,11 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions
+test: test_cpp test_cpp_actions test_bounds
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
+	./test_bounds
 
 test-dsymtab: test_dsymtab
 	./test_dsymtab
@@ -203,6 +204,10 @@ test_cpp: $(TEST_CPP_OBJS) version.o $(INSTALL_LIBRARIES)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -std=c++17 -I. -o $@ $^ $(LIBS)
 
 TEST_CPP_ACTIONS_OBJS = test_cpp_actions.o test_cpp_actions.g.d_parser.o
+
+TEST_BOUNDS_OBJS = test_bounds.o test_bounds.g.d_parser.o
+test_bounds: $(TEST_BOUNDS_OBJS) $(INSTALL_LIBRARIES)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 test_cpp_actions.g.d_parser.o: test_cpp_actions.g.d_parser.c
 	$(CXX) $(CXXFLAGS) -I. -x c++ -c -o $@ $<

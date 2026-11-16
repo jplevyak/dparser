@@ -4,7 +4,11 @@
 
 #include "d.h"
 
-int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
+/* Characters at or beyond 'end' read as '\0', which has no transitions, so
+   scanning never reads past the end of the input buffer. */
+#define NEXT_CHAR() (s < end ? (uint8)*s++ : (s++, (uint8)0))
+
+int scan_buffer(d_loc_t *aloc, char *end, D_State *parse_state, ShiftResult *results) {
   d_loc_t loc = *aloc, last_loc = *aloc;
   char *s = loc.s;
   int col = loc.col, line = loc.line;
@@ -19,7 +23,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
       uint8 state = 0, last = state, prev = state;
       uint8 c;
       uint32 sb, so;
-      c = (uint8)*s++;
+      c = NEXT_CHAR();
       while ((state = st[state].scanner_block[(sb = (c >> SCANNER_BLOCK_SHIFT))][(so = c & SCANNER_BLOCK_MASK)])) {
         state -= 1;
         if (prev && parse_state->accepts_diff) {
@@ -42,7 +46,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           last = state;
           last_loc = loc;
         }
-        c = (uint8)*s++;
+        c = NEXT_CHAR();
       }
       shift = st[last].shift;
       break;
@@ -54,7 +58,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
       uint16 state = 0, last = state, prev = state;
       uint8 c;
       uint32 sb, so;
-      c = (uint8)*s++;
+      c = NEXT_CHAR();
       while ((state = st[state].scanner_block[(sb = (c >> SCANNER_BLOCK_SHIFT))][(so = c & SCANNER_BLOCK_MASK)])) {
         state -= 1;
         if (prev && parse_state->accepts_diff) {
@@ -77,7 +81,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           last = state;
           last_loc = loc;
         }
-        c = (uint8)*s++;
+        c = NEXT_CHAR();
       }
       shift = st[last].shift;
       break;
@@ -89,7 +93,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
       uint32 state = 0, last = state, prev = state;
       uint8 c;
       uint32 sb, so;
-      c = (uint8)*s++;
+      c = NEXT_CHAR();
       while ((state = st[state].scanner_block[(sb = (c >> SCANNER_BLOCK_SHIFT))][(so = c & SCANNER_BLOCK_MASK)])) {
         state -= 1;
         if (prev && parse_state->accepts_diff) {
@@ -112,7 +116,7 @@ int scan_buffer(d_loc_t *aloc, D_State *parse_state, ShiftResult *results) {
           last = state;
           last_loc = loc;
         }
-        c = (uint8)*s++;
+        c = NEXT_CHAR();
       }
       shift = st[last].shift;
       break;

@@ -1244,7 +1244,7 @@ static void shift_all(Parser *p, char *pos) {
       }
     }
     if (state->scanner_table) {
-      uint n = scan_buffer(&loc, state, &p->shift_results[nshifts]);
+      uint n = scan_buffer(&loc, p->end, state, &p->shift_results[nshifts]);
       for (i = 0; i < n; i++) p->shift_results[nshifts + i].snode = s->snode;
       nshifts += n;
     }
@@ -1646,16 +1646,11 @@ static int commit_stack(Parser *p, SNode *sn) {
   return res;
 }
 
-static const char *find_substr(const char *str, const char *s) {
+/* Find s in [str, end); return the position just after it, or NULL. */
+static const char *find_substr(const char *str, const char *end, const char *s) {
   uint len = strlen(s);
-  if (len == 1) {
-    while (*str && *str != *s) str++;
-    if (*str == *s) return str + 1;
-  } else
-    while (*str) {
-      if (!strncmp(s, str, len)) return str + len;
-      str++;
-    }
+  for (; str < end && (uint)(end - str) >= len; str++)
+    if (*str == *s && !strncmp(s, str, len)) return str + len;
   return NULL;
 }
 
@@ -1726,7 +1721,7 @@ static int error_recovery(Parser *p) {
     if (sn->state->error_recovery_hints.n) {
       for (i = 0; i < sn->state->error_recovery_hints.n; i++) {
         D_ErrorRecoveryHint *er = &sn->state->error_recovery_hints.v[i];
-        if ((ss = find_substr(s, er->string))) {
+        if ((ss = find_substr(s, p->end, er->string))) {
           if (!best_sn || ss < best_s ||
               (best_sn && ss == best_s &&
                (best_sn->depth < sn->depth || (best_sn->depth == sn->depth && best_er->depth < er->depth)))) {
@@ -1913,70 +1908,72 @@ char _wspace[256] = {
 
 #define wspace(_x) (_wspace[(unsigned char)_x])
 
-static void white_space(D_Parser *p, d_loc_t *loc, void **p_user_globals) {
+static void white_space(D_Parser *ap, d_loc_t *loc, void **p_user_globals) {
   uint rec = 0;
-  char *s = loc->s, *scol = 0;
-  (void)p;
+  char *s = loc->s, *scol = 0, *e = ((Parser *)ap)->end;
   (void)p_user_globals;
+/* the character at _s, or 0 at or beyond the end of the input */
+#define WS_CH(_s) ((_s) < e ? *(_s) : 0)
 
-  if (*s == '#' && loc->col == 0) {
+  if (WS_CH(s) == '#' && loc->col == 0) {
   Ldirective : {
     char *save = s;
     s++;
-    while (wspace(*s)) s++;
-    if (!strncmp("line", s, 4)) {
-      if (wspace(s[4])) {
+    while (wspace(WS_CH(s))) s++;
+    if (e - s >= 4 && !strncmp("line", s, 4)) {
+      if (wspace(WS_CH(s + 4))) {
         s += 5;
-        while (wspace(*s)) s++;
+        while (wspace(WS_CH(s))) s++;
       }
     }
-    if (isdigit_(*s)) {
-      loc->line = atoi(s) - 1;
-      while (isdigit_(*s)) s++;
-      while (wspace(*s)) s++;
-      if (*s == '"') loc->pathname = s;
+    if (isdigit_(WS_CH(s))) {
+      int line = 0;
+      for (; isdigit_(WS_CH(s)); s++) line = line * 10 + (*s - '0');
+      loc->line = line - 1;
+      while (wspace(WS_CH(s))) s++;
+      if (WS_CH(s) == '"') loc->pathname = s;
     } else {
       s = save;
       goto Ldone;
     }
   }
-    while (*s && *s != '\n') s++;
+    while (WS_CH(s) && WS_CH(s) != '\n') s++;
   }
 Lmore:
-  while (wspace(*s)) s++;
-  if (*s == '\n') {
+  while (wspace(WS_CH(s))) s++;
+  if (WS_CH(s) == '\n') {
     loc->line++;
     scol = s + 1;
     s++;
-    if (*s == '#')
+    if (WS_CH(s) == '#')
       goto Ldirective;
     else
       goto Lmore;
   }
-  if (s[0] == '/') {
-    if (s[1] == '/') {
-      while (*s && *s != '\n') {
+  if (WS_CH(s) == '/') {
+    if (WS_CH(s + 1) == '/') {
+      while (WS_CH(s) && WS_CH(s) != '\n') {
         s++;
       }
       goto Lmore;
     }
-    if (s[1] == '*') {
+    if (WS_CH(s + 1) == '*') {
       s += 2;
     LnestComment:
       rec++;
     LmoreComment:
-      while (*s) {
-        if (s[0] == '*' && s[1] == '/') {
+      while (WS_CH(s)) {
+        if (WS_CH(s) == '*' && WS_CH(s + 1) == '/') {
           s += 2;
           rec--;
           if (!rec) goto Lmore;
           goto LmoreComment;
         }
-        if (s[0] == '/' && s[1] == '*') {
+        if (WS_CH(s) == '/' && WS_CH(s + 1) == '*') {
           s += 2;
           goto LnestComment;
         }
-        if (*s == '\n') {
+        if (WS_CH(s) == '\n') {
           loc->line++;
           scol = s + 1;
         }
@@ -1985,6 +1982,7 @@ Lmore:
     }
   }
 Ldone:
+#undef WS_CH
   if (scol)
     loc->col = s - scol;
   else

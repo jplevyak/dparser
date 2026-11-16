@@ -208,11 +208,22 @@ impl BinaryTables {
             });
         }
         
+        let nsymbols = (*tables).nsymbols as usize;
+        let symbol_kinds = if nsymbols == 0 || (*tables).symbols.is_null() {
+            Vec::new()
+        } else {
+            std::slice::from_raw_parts((*tables).symbols, nsymbols)
+                .iter()
+                .map(|s| s.kind as u32)
+                .collect()
+        };
+
         SafeGrammarTables {
             states: safe_states,
             goto_table,
             whitespace_state: (*tables).whitespace_state,
             save_parse_tree: (*tables).save_parse_tree != 0,
+            symbol_kinds,
             _binary_data: Vec::new(),
         }
     }

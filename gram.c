@@ -7,6 +7,14 @@
 
 extern D_ParserTables parser_tables_dparser_gram;
 
+/* The public D_ASSOC_* values in dparse_tables.h must match AssocKind. */
+typedef char d_assoc_values_match[(D_ASSOC_NONE == ASSOC_NONE && D_ASSOC_UNARY_LEFT == ASSOC_UNARY_LEFT &&
+                                   D_ASSOC_UNARY_RIGHT == ASSOC_UNARY_RIGHT &&
+                                   D_ASSOC_BINARY_LEFT == ASSOC_BINARY_LEFT &&
+                                   D_ASSOC_BINARY_RIGHT == ASSOC_BINARY_RIGHT)
+                                      ? 1
+                                      : -1];
+
 static char *action_types[] = {"ACCEPT", "SHIFT", "REDUCE"};
 
 static void print_state(State *s);

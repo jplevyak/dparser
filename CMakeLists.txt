@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
-project(dparser VERSION 1.30.0.0)
+project(dparser VERSION 1.38.0)
 
 include(CPack)
 include(GenerateExportHeader)
@@ -84,6 +84,9 @@ macro(d_comple_defs _target)
   if(${LEAK_DETECT})
     target_compile_definitions(${_target} PRIVATE -DLEAK_DETECT)
   endif()
+  if(${USE_FREELISTS})
+    target_compile_definitions(${_target} PRIVATE -DUSE_FREELISTS)
+  endif()
   target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
@@ -94,6 +97,14 @@ d_comple_defs(mkdparse)
 d_comple_defs(dparse)
 
 generate_export_header(dparse)
+
+# Consumers of the installed (or exported) libraries get the headers' directory.
+foreach(_lib dparse mkdparse)
+  target_include_directories(${_lib} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+  )
+endforeach()
 
 install(
   TARGETS make_dparser sample_parser test_parser
@@ -106,19 +117,21 @@ install(
   ARCHIVE DESTINATION lib
 )
 install(
-  FILES d.h dparse.h
+  FILES dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp
   DESTINATION include
 )
 configure_file(dparser-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake @ONLY)
 configure_file(dparser-generate.cmake ${CMAKE_CURRENT_BINARY_DIR}/dparser-generate.cmake COPYONLY)
 install(
-  FILES dparser-generate.cmake ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake
+  FILES dparser-generate.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/dparser-config-version.cmake
   DESTINATION lib/cmake/dparser
 )
 
 
 write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/DParseVersion.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/dparser-config-version.cmake"
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )

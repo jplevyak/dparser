@@ -390,8 +390,18 @@ cdef object make_pyobject_from_node(D_Parser *parser, D_ParseNode *d, int string
             st = (<long>d.start_loc.s) - <long><char*>p.buf
             ed = (<long>end_ptr) - <long><char*>p.buf
             user_obj = p.buf[st:ed].decode('utf-8')
+            if not string and p.make_token is not None:
+                user_obj = p.make_token(user_obj)
 
     return user_obj
+
+
+cdef void print_debug(D_ParseNode *dd, object p, object action_fn, int speculative) noexcept with gil:
+    # One line per action call: name, '???' if speculative, and the node's text.
+    cdef long st = (<long>dd.start_loc.s) - <long><char*>p.buf
+    cdef long ed = (<long>dd.end_skip) - <long><char*>p.buf
+    text = p.buf[st:ed][:255].decode('utf-8', 'replace')
+    print("%30s%s:\t%s" % (action_fn.__name__, " ???" if speculative else "    ", text))
 
 
 cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
@@ -410,6 +420,7 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
     cdef list nodes_arr
     cdef DParseNode n
     cdef tuple action_tuple = None
+    cdef list globals_holder = None
 
     if parser.initial_globals == NULL:
         return 0  # sub-parser (e.g. whitespace): no Python context, just succeed
@@ -448,8 +459,9 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
         for arg_t in arg_types[1:]:
             if arg_t == 1:        # spec
                 args.append(speculative)
-            elif arg_t == 2:      # g (globals placeholder)
-                args.append(None)
+            elif arg_t == 2:      # g: one-element list holding the global state
+                globals_holder = [p.globals]
+                args.append(globals_holder)
             elif arg_t == 3:      # s (string children)
                 args.append(string_list)
             elif arg_t == 4:      # nodes (DParseNode list)
@@ -474,8 +486,12 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
             else:
                 args.append(None)
 
+        if p.print_debug_info and (not speculative or p.print_debug_info != 2):
+            print_debug(dd, p, action_fn, speculative)
         try:
             py_res = action_fn(*args)
+            if globals_holder is not None:
+                p.globals = globals_holder[0]
             if py_res is Reject or isinstance(py_res, Reject) or (
                     isinstance(py_res, type) and issubclass(py_res, Reject)):
                 return -1
@@ -619,19 +635,29 @@ class Tables:
 class ParsedStructure:
     def __init__(self, result):
         self.string_left = ""
+        self.strings = None
         self.structure = None
         self.top_node = None
         if result:
-            if len(result) == 3:
+            if len(result) >= 3:
                 self.string_left = result[2]
+            if len(result) >= 4:
+                self.strings = result[3]
             self.top_node = result[1]
             self.structure = result[0]
 
     def getStructure(self):
+        """The value returned by the start rule's action."""
         return self.structure
 
     def getStringLeft(self):
+        """The input after the end of the parse ('' unless partial_parses)."""
         return self.string_left
+
+    def getString(self):
+        """The parsed text as a nested list, as seen by actions' `s`
+        argument, including any edits actions made to it."""
+        return self.strings
 
 # ---------------------------------------------------------------------------
 # Parser
@@ -765,6 +791,9 @@ class Parser:
         self.initial_skip_space_fn = initial_skip_space_fn
         self.syntax_error_fn = syntax_error_fn
         self.ambiguity_fn = ambiguity_fn
+        self.make_token = make_token
+        self.print_debug_info = print_debug_info
+        self.globals = None
 
         tables_ptr = self.tables.getTables()
         if tables_ptr == 0:
@@ -773,7 +802,12 @@ class Parser:
         if bt == NULL or bt.parser_tables_gram == NULL:
             raise RuntimeError("parser tables are missing")
 
+        if start_symbol:
+            start_state = self._start_state(<long>bt.parser_tables_gram, start_symbol)
+
         dp = new_D_Parser(bt.parser_tables_gram, sizeof(user_pyobjects))
+        if start_symbol:
+            dp.start_state = start_state
         # Store self so all C callbacks can retrieve the Parser object.
         # self is kept alive by the call stack for the duration of dparse().
         dp.initial_globals = <void*><PyObject*>self
@@ -808,18 +842,33 @@ class Parser:
 
         # Extract results while the tree is still alive.
         # Cython INCREFs when assigning <object> to a Python variable, so
-        # result/s_list_res each own one ref.  free_D_ParseNode will then
-        # DECREF via my_free_node_fn, balancing my_action's Py_INCREF.
+        # result owns one ref.  free_D_ParseNode will then DECREF via
+        # my_free_node_fn, balancing my_action's Py_INCREF.
         result = <object>pn.user.t if pn.user.t != NULL else None
+        # The text of the parse as a nested list (the root's `s` argument),
+        # including any edits actions made to their `s` lists.
         if pn.user.s != NULL:
-            s_list_res = <object>pn.user.s
+            strings = <object>pn.user.s
         else:
             st = (<long>pn.start_loc.s) - <long>buf_ptr
             ed = (<long>pn.end) - <long>buf_ptr
-            s_list_res = buf_bytes[st:ed].decode('utf-8')
+            strings = buf_bytes[st:ed].decode('utf-8')
+
+        # The input not consumed by the parse (non-empty with partial_parses).
+        ed = (<long>pn.end_skip) - <long>buf_ptr
+        string_left = buf_bytes[ed:].decode('utf-8')
 
         free_D_ParseTreeBelow(dp, pn)
         free_D_ParseNode(dp, pn)
         free_D_Parser(dp)
 
-        return ParsedStructure([result, None, s_list_res])
+        return ParsedStructure([result, None, string_left, strings])
+
+    def _start_state(self, tables_obj, start_symbol):
+        cdef D_ParserTables *tables = <D_ParserTables*><long>tables_obj
+        cdef unsigned int i
+        name = start_symbol.encode('utf-8') if isinstance(start_symbol, str) else start_symbol
+        for i in range(tables.nsymbols):
+            if tables.symbols[i].kind == D_SYMBOL_NTERM and tables.symbols[i].name == name:
+                return tables.symbols[i].start_symbol
+        raise ValueError("unknown start symbol: %r" % (start_symbol,))

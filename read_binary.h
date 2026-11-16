@@ -4,6 +4,14 @@
 #ifndef _read_binary_H_
 #define _read_binary_H_
 
+#include <stddef.h>
+#include <stdio.h>
+#include "dparse_tables.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct BinaryTablesHead {
   int n_relocs;
   int n_strings;
@@ -21,5 +29,9 @@ BinaryTables *read_binary_tables(char *file_name, D_ReductionCode spec_code, D_R
 BinaryTables *read_binary_tables_from_file(FILE *fp, D_ReductionCode spec_code, D_ReductionCode final_code);
 BinaryTables *read_binary_tables_from_string(unsigned char *buf, size_t len, D_ReductionCode spec_code, D_ReductionCode final_code);
 void free_BinaryTables(BinaryTables *binary_tables);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif

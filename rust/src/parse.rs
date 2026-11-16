@@ -44,11 +44,8 @@ pub fn dparse(ctx: &mut ParserContext, tables: &SafeGrammarTables, input: &[u8])
 
         // --- 2. DONE CHECK ---
         if ctx.shifts_todo.is_empty() {
-            // If we successfully reached the end of bounds dynamically with an acceptance state!
-            let maybe_accept = root_snode_id; // Abstract tracking proxy
-            if ctx.accept_snode.is_none() {
-                ctx.accept_snode = Some(maybe_accept); // Graceful loop termination dummy
-            }
+            // Every parse path has ended.  accept_snode stays None unless an
+            // accepting state reached the end of the input: the parse failed.
             break;
         }
 
@@ -59,22 +56,22 @@ pub fn dparse(ctx: &mut ParserContext, tables: &SafeGrammarTables, input: &[u8])
 
         let sn_loc = ctx.snode_arena.get(binding_state.0).unwrap().loc;
 
-        // Temporarily bound testing loop termination directly bridging exact string completion!
-        if sn_loc.s >= input.len() {
-            ctx.accept_snode = Some(binding_state);
-            break;
-        }
-
         let s_id = ctx.snode_arena.get(binding_state.0).unwrap().state_id;
+
+        // At the end of the input, only an accepting state completes the parse;
+        // any other path can go no further.
+        if sn_loc.s >= input.len() {
+            let accepting = tables.states.is_empty()
+                || (s_id < tables.states.len() && tables.states[s_id].accept != 0);
+            if accepting {
+                ctx.accept_snode = Some(binding_state);
+                break;
+            }
+            continue;
+        }
 
         if !tables.states.is_empty() {
             let table_states = &tables.states;
-            if s_id < table_states.len() && table_states[s_id].accept != 0 {
-                if sn_loc.s >= input.len() - 1 {
-                    ctx.accept_snode = Some(binding_state);
-                    break;
-                }
-            }
 
             let parse_state = &table_states[s_id];
 
@@ -148,10 +145,7 @@ mod tests {
     use super::*;
     use crate::grammar::{GrammarState, SafeGrammarTables};
 
-    #[test]
-    fn test_full_synthetic_dparse() {
-        let input = b"synthetic input";
-        let mut ctx = ParserContext::new(input);
+    fn synthetic_tables() -> SafeGrammarTables {
 
         let mock_state = GrammarState {
             goto_valid: Vec::new(),
@@ -168,16 +162,31 @@ mod tests {
             accepts_diff: 0,
         };
 
-        let tables = SafeGrammarTables {
+        SafeGrammarTables {
             states: vec![mock_state],
             goto_table: vec![1],
             whitespace_state: 0,
             save_parse_tree: true,
+            symbol_kinds: Vec::new(),
             _binary_data: Vec::new(),
-        };
+        }
+    }
 
-        // Fire the core unified GLR event loop algorithm!
-        let result = dparse(&mut ctx, &tables, input);
-        assert!(result.is_some());
+    #[test]
+    fn test_full_synthetic_dparse() {
+        // An accepting start state accepts the empty input...
+        let tables = synthetic_tables();
+        let mut ctx = ParserContext::new(b"");
+        assert!(dparse(&mut ctx, &tables, b"").is_some());
+    }
+
+    #[test]
+    fn test_unconsumed_input_is_rejected() {
+        // ...but must not "accept" input it has no way to scan.  This used to
+        // succeed because a failed parse returned the start state.
+        let tables = synthetic_tables();
+        let input = b"synthetic input";
+        let mut ctx = ParserContext::new(input);
+        assert!(dparse(&mut ctx, &tables, input).is_none());
     }
 }

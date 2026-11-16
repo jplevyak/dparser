@@ -14,6 +14,7 @@ sample_parser
 test_dsymtab
 test_cpp
 test_cpp_actions
+test_bounds
 /.aider*
 /.build
 /.vs

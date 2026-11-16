@@ -3,6 +3,46 @@ use crate::parser_ctx::ParserContext;
 use crate::types::ParseNode;
 use crate::DispatchActionFn;
 
+const D_SYMBOL_INTERNAL: u32 = 2;
+const D_SYMBOL_EBNF: u32 = 3;
+
+fn symbol_kind<G: 'static, N: 'static>(parser: &crate::Parser<G, N>, symbol: i32) -> u32 {
+    parser
+        ._tables_container
+        .symbol_kinds
+        .get(symbol as usize)
+        .copied()
+        .unwrap_or(0)
+}
+
+/// Flatten internal productions as the C runtime does (`fixup_internal_symbol`):
+/// a node for an internal or EBNF production absorbs the children of its
+/// internal children, so `x*` becomes one node with a child per repetition
+/// rather than a nested left-recursive chain.
+fn fixup_internal<'a, G: 'static, N: 'static>(parser: &crate::Parser<G, N>, node: &mut ParseNode<'a, N>) {
+    if parser.dont_fixup_internal_productions {
+        return;
+    }
+    let kind = symbol_kind(parser, node.symbol);
+    if kind != D_SYMBOL_INTERNAL && kind != D_SYMBOL_EBNF {
+        return;
+    }
+    let mut i = 0;
+    while i < node.children.len() {
+        let ck = symbol_kind(parser, node.children[i].symbol);
+        let splice = ck == D_SYMBOL_INTERNAL || (parser.fixup_ebnf_productions && ck == D_SYMBOL_EBNF);
+        if splice {
+            let child = node.children.remove(i);
+            for (j, grandchild) in child.children.into_iter().enumerate() {
+                node.children.insert(i + j, grandchild);
+            }
+            // re-examine position i: it now holds the first spliced grandchild
+        } else {
+            i += 1;
+        }
+    }
+}
+
 pub fn build_parse_tree<'a, G: 'static, N: 'static + Default + Clone>(
     ctx: &mut ParserContext<'a>,
     root_id: NodeId,
@@ -77,6 +117,7 @@ fn commit_tree<'a, G: 'static, N: 'static + Default + Clone>(
             for child_id in children_ids.clone() {
                 primary_shadow.children.push(commit_tree(ctx, child_id, parser, dispatch_action));
             }
+            fixup_internal(parser, &mut primary_shadow);
             let mut primary_accepted = true;
             if let Some(safe_red) = safe_red_opt.clone() {
                 if let Some(dispatch_fn) = dispatch_action {
@@ -104,6 +145,7 @@ fn commit_tree<'a, G: 'static, N: 'static + Default + Clone>(
                 for child_id in alt_children_ids {
                     alt_shadow.children.push(commit_tree(ctx, child_id, parser, dispatch_action));
                 }
+                fixup_internal(parser, &mut alt_shadow);
                 
                 let mut alt_accepted = true;
                 if let Some(safe_red) = alt_safe_red {
@@ -143,6 +185,7 @@ fn commit_tree<'a, G: 'static, N: 'static + Default + Clone>(
         let child_container = commit_tree(ctx, child_id, parser, dispatch_action);
         shadow_node.children.push(child_container);
     }
+    fixup_internal(parser, &mut shadow_node);
 
     // Trigger final_code
     if let Some(safe_red) = safe_red_opt {

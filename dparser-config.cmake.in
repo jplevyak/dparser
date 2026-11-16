@@ -1,1 +1,2 @@
+include("${CMAKE_CURRENT_LIST_DIR}/DParseTargets.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/dparser-generate.cmake")

@@ -25,16 +25,16 @@ no action, the value never gets copied up to it. Give it one:
 
 ### How do I parse a file?
 
-Read it into a buffer **with one extra byte set to `'\0'`**, and pass the
-length without that byte. DParser's scanner stops at a NUL byte rather
-than checking the length:
+Read it into a buffer and pass the buffer and its length:
 
 ```c
-char *buf = malloc(size + 1);
+char *buf = malloc(size);
 fread(buf, 1, size, fp);
-buf[size] = '\0';
 D_ParseNode *pn = dparse(parser, buf, size);
 ```
+
+The buffer doesn't need a terminating `'\0'` (unless you have written
+your own scanner or whitespace functions that rely on one).
 
 Set `parser->loc.pathname` to the file name for error messages, and keep
 the buffer until you are done with the tree.

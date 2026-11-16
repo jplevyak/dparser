@@ -234,6 +234,7 @@ mod tests {
             save_parse_tree: true,
             states: Vec::new(),
             goto_table: Vec::new(),
+            symbol_kinds: Vec::new(),
             _binary_data: Vec::new(),
         };
         

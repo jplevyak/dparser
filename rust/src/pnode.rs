@@ -29,7 +29,9 @@ pub fn add_pnode(
         // Track physical node offsets matching legacy layout gracefully based on slices!
         let p_start_offset = pnode.start_loc.s;
         
-        let p_end_offset = pnode.end_loc_s;
+        // Nodes are identified by where the parse continues (end_skip, after
+        // trailing whitespace), as in the C runtime.
+        let p_end_offset = pnode.end_skip_loc_s;
 
         if pnode.symbol == symbol
             && p_start_offset == start_loc.s
@@ -79,6 +81,12 @@ pub fn add_pnode(
                 }
             }
         }
+    }
+
+    // As in C's make_PNode: a reduction's text ends where its last child's
+    // text ends, excluding trailing whitespace (which is in end_skip).
+    if let Some(last) = new_pn.children.last() {
+        new_pn.end_loc_s = ctx.pnode_arena.get(last.0).unwrap().end_loc_s;
     }
 
     let allocated_id = NodeId(ctx.pnode_arena.alloc(new_pn));

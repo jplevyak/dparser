@@ -112,11 +112,10 @@ point in the grammar. It can be mixed freely with ordinary terminals:
 ```c
 {
 #include "dparse.h"
-#define ASSOC_BINARY_LEFT 0x11  /* see the table below */
 int ops_scan(d_loc_t *loc, unsigned char *op_assoc, int *op_priority) {
   if (loc->s[0] == '+') {
     loc->s++;
-    *op_assoc = ASSOC_BINARY_LEFT;
+    *op_assoc = D_ASSOC_BINARY_LEFT;
     *op_priority = 9500;
     return 1;
   }
@@ -133,16 +132,15 @@ associativity and priority for the match, so a scanner can return
 operators with their precedence. If written as `${scan fn(arg)}`, the
 function is called as `fn(arg, loc, op_assoc, op_priority)`.
 
-The associativity values are defined in DParser's internal header
-`gram.h`, which is not installed, so define the ones you need yourself:
+The associativity values are defined in `dparse_tables.h`:
 
-| Associativity | Value | Grammar equivalent |
-|---|---|---|
-| none | `0x00` | |
-| unary left | `0x09` | `$unary_op_left` |
-| unary right | `0x0A` | `$unary_op_right` |
-| binary left | `0x11` | `$binary_op_left` |
-| binary right | `0x12` | `$binary_op_right` |
+| Constant | Grammar equivalent |
+|---|---|
+| `D_ASSOC_NONE` | |
+| `D_ASSOC_UNARY_LEFT` | `$unary_op_left` |
+| `D_ASSOC_UNARY_RIGHT` | `$unary_op_right` |
+| `D_ASSOC_BINARY_LEFT` | `$binary_op_left` |
+| `D_ASSOC_BINARY_RIGHT` | `$binary_op_right` |
 
 ### Global scanners: `${scanner}`
 

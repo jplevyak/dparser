@@ -19,7 +19,7 @@ sudo make install
 |---|---|
 | `make_dparser` (the parser generator) | `$PREFIX/bin` |
 | `libdparse.a` (the runtime library) | `$PREFIX/lib` |
-| `dparse.h`, `dparse_tables.h`, `dsymtab.h`, `dparse_tree.h` | `$PREFIX/include` |
+| `dparse.h`, `dparse_tables.h`, `dsymtab.h`, `dparse_tree.h`, `read_binary.h`, `dparse.hpp` | `$PREFIX/include` |
 | `make_dparser.1` (man page) | `$PREFIX/man/man1` |
 
 To install somewhere else, for example into your home directory:

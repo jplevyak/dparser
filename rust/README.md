@@ -98,7 +98,7 @@ fn main() {
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
 fn main() {
-    let input = "a x  b uvu\0"; // Requires explicit EOF terminator dynamically
+    let input = "a x  b uvu";
 
     let binary_data = include_bytes!(concat!(env!("OUT_DIR"), "/my_grammar.g.d_parser.bin"));
     

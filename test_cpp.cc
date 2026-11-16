@@ -39,6 +39,31 @@ int main(int argc, char* argv[]) {
         std::cout << "Parse failed completely." << std::endl;
         return 1;
     }
-    
-    return parser.syntax_errors() > 0 ? 1 : 0;
+    if (parser.syntax_errors() > 0) return 1;
+
+    // The wrapper keeps the tree by default.
+    {
+        dparser::Parser p2(&parser_tables_gram, SIZEOF_MY_PARSE_NODE);
+        auto t2 = p2.parse(code);
+        if (!t2 || !t2.has_tree() || !t2.root()) {
+            std::cout << "Default parse did not keep the tree." << std::endl;
+            return 1;
+        }
+    }
+
+    // Regression: with save_parse_tree off, dparse returns the NO_DPN
+    // placeholder; ParseTree must not try to free it as a real node.
+    {
+        dparser::Parser p3(&parser_tables_gram, SIZEOF_MY_PARSE_NODE);
+        p3.set_save_parse_tree(false);
+        auto t3 = p3.parse(code);
+        if (!t3 || t3.has_tree() || t3.root() || t3.c_root()) {
+            std::cout << "Unsaved parse should succeed without a tree." << std::endl;
+            return 1;
+        }
+        auto t4 = std::move(t3);  // moving and destroying must be safe too
+    }
+    std::cout << "save_parse_tree checks passed" << std::endl;
+
+    return 0;
 }

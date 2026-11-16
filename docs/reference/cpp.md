@@ -2,8 +2,7 @@
 
 `dparse.hpp` is a header-only C++17 wrapper around the C API, in namespace
 `dparser`. It provides RAII ownership of the parser and tree, and
-iterators over children. It is in the source tree (it is not installed by
-`make install`, so copy it into your project).
+iterators over children. `make install` installs it alongside `dparse.h`.
 
 ## Example
 
@@ -29,7 +28,6 @@ extern "C" D_ParserTables parser_tables_gram;
 
 int main() {
   dparser::Parser parser(&parser_tables_gram);
-  parser.set_save_parse_tree(true);
   parser.set_loc("<input>");
   auto tree = parser.parse(std::string_view("alpha beta gamma"));
   if (!tree || parser.syntax_errors()) return 1;
@@ -57,19 +55,16 @@ beta
 gamma
 ```
 
-!!! warning "Always call `set_save_parse_tree(true)`"
-    Without it, `dparse` returns the `NO_DPN` placeholder rather than a
-    tree, and `ParseTree`'s destructor will try to free it and crash.
-
 ## `dparser::Parser`
 
-Owns a `D_Parser`. Move-only.
+Owns a `D_Parser`. Move-only. Unlike the C API, the wrapper keeps the
+parse tree by default (`save_parse_tree` is on).
 
 | Member | Description |
 |---|---|
 | `Parser(D_ParserTables *tables, int sizeof_user = 0)` | Create a parser. Throws `std::runtime_error` on failure. |
 | `ParseTree parse(std::string_view)`, `parse(const std::string &)`, `parse(const char *, int)` | Parse a buffer. The buffer must outlive the tree. |
-| `void set_save_parse_tree(bool)` | See the warning above. |
+| `void set_save_parse_tree(bool)` | Whether to keep the tree (default `true`). With `false`, final actions still run but `ParseTree` holds no tree. |
 | `void set_loc(const char *pathname, int line = 1, int col = 0)` | Set the starting location and file name. |
 | `void set_syntax_error_fn(D_SyntaxErrorFn)` | Install a syntax error callback. |
 | `void set_ambiguity_fn(D_AmbiguityFn)` | Install an ambiguity callback. |
@@ -78,13 +73,15 @@ Owns a `D_Parser`. Move-only.
 
 ## `dparser::ParseTree`
 
-Owns the tree returned by a parse. Move-only. Converts to `bool`: false if
-the parse failed.
+Owns the tree returned by a parse, and frees it when destroyed. Move-only.
+It must not outlive the `Parser` that produced it. Converts to `bool`:
+false if the parse failed.
 
 | Member | Description |
 |---|---|
-| `ParseNode root() const` | The root node. |
-| `D_ParseNode *c_root() const` | The underlying C node. |
+| `bool has_tree() const` | True if the parse succeeded and the tree was kept. |
+| `ParseNode root() const` | The root node, or an invalid node if no tree was kept. |
+| `D_ParseNode *c_root() const` | The underlying C node, or `nullptr`. |
 
 ## `dparser::ParseNode`
 

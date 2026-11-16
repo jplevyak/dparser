@@ -108,16 +108,13 @@ inline ParseNode ParseNode::ChildIterator::operator*() const {
     return ParseNode(d_get_child(parent_, index_));
 }
 
+// Owns the result of a parse.  It must not outlive the Parser that made it.
 class ParseTree {
 public:
     ParseTree() : parser_(nullptr), root_(nullptr) {}
     ParseTree(D_Parser* parser, D_ParseNode* root) : parser_(parser), root_(root) {}
 
-    ~ParseTree() {
-        if (root_ && parser_) {
-            free_D_ParseTreeBelow(parser_, root_);
-        }
-    }
+    ~ParseTree() { release(); }
 
     ParseTree(const ParseTree&) = delete;
     ParseTree& operator=(const ParseTree&) = delete;
@@ -129,7 +126,7 @@ public:
 
     ParseTree& operator=(ParseTree&& other) noexcept {
         if (this != &other) {
-            if (root_ && parser_) free_D_ParseTreeBelow(parser_, root_);
+            release();
             parser_ = other.parser_;
             root_ = other.root_;
             other.parser_ = nullptr;
@@ -138,13 +135,24 @@ public:
         return *this;
     }
 
+    // True if the parse succeeded (check Parser::syntax_errors() too).
     bool is_valid() const { return root_ != nullptr; }
     explicit operator bool() const { return is_valid(); }
 
-    ParseNode root() const { return ParseNode(root_); }
-    D_ParseNode* c_root() const { return root_; }
+    // True if a tree was kept: the parse succeeded and save_parse_tree was on.
+    bool has_tree() const { return root_ != nullptr && root_ != NO_DPN; }
+
+    // The root node, or an invalid node if no tree was kept.
+    ParseNode root() const { return ParseNode(has_tree() ? root_ : nullptr); }
+    D_ParseNode* c_root() const { return has_tree() ? root_ : nullptr; }
 
 private:
+    void release() {
+        // free_D_ParseNode frees the whole tree and accepts the NO_DPN placeholder.
+        if (root_ && parser_) free_D_ParseNode(parser_, root_);
+        root_ = nullptr;
+    }
+
     D_Parser* parser_;
     D_ParseNode* root_;
 };
@@ -156,6 +164,8 @@ public:
         if (!parser_) {
             throw std::runtime_error("Failed to initialize D_Parser");
         }
+        // ParseTree exists to hold a tree, so keep it by default.
+        parser_->save_parse_tree = 1;
     }
 
     ~Parser() {

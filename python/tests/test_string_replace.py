@@ -33,14 +33,21 @@ def parser(make_parser):
 
 def test_percent_replaced_with_plus(parser):
     result = parser.parse('1 % 2 % 3')
-    assert stringify(result.getStringLeft()) == '1 + 2 + 3'
+    assert stringify(result.getString()) == '1 + 2 + 3'
 
 
 def test_single_replacement(parser):
     result = parser.parse('1 % 2')
-    assert stringify(result.getStringLeft()) == '1 + 2'
+    assert stringify(result.getString()) == '1 + 2'
 
 
 def test_no_replacement(parser):
     result = parser.parse('42')
-    assert stringify(result.getStringLeft()) == '42'
+    assert stringify(result.getString()) == '42'
+
+
+def test_string_left_is_unparsed_remainder(parser):
+    result = parser.parse('1 % 2 rest', partial_parses=True)
+    assert stringify(result.getString()) == '1 + 2 '
+    assert result.getStringLeft() == 'rest'
+    assert parser.parse('1 % 2').getStringLeft() == ''

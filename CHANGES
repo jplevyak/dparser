@@ -1,3 +1,21 @@
+1.38    Symbol table: fix commit_D_Scope breaking later updates; add
+          SPECULATIVE_NEW_D_SYM so declarations don't leak between parse
+          paths; keep tied derivations with different symbol tables apart.
+        dparse() no longer reads past buf_len; input need not be
+          NUL-terminated.
+        C++ wrapper: no crash without save_parse_tree; trees are freed
+          completely; save_parse_tree defaults to on.
+        Install read_binary.h and dparse.hpp; add public D_ASSOC_* values
+          for external scanners.
+        CMake: install all headers, make find_package(dparser) work, fix
+          the version.
+        Python: restore start_symbol, make_token, print_debug_info and the
+          g argument; getStringLeft() returns the unparsed input, new
+          getString() returns the (possibly edited) parsed text.
+        Rust: flatten repetitions, don't drop the last character, reject
+          incomplete input, exclude trailing whitespace from node text.
+        Documentation site at https://jplevyak.github.io/dparser/
+
 1.37    Native Rust runtime. Cython instead of swig.
 
 1.36    Alpha Rust support.

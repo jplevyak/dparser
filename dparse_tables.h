@@ -55,6 +55,15 @@ typedef struct D_ErrorRecoveryHint {
   const char *string;
 } D_ErrorRecoveryHint;
 
+/* Operator associativity values, for the op_assoc result of external
+   scanners (${scan ...} and ${scanner ...}).  These match the internal
+   AssocKind values used for $unary_op_left and friends. */
+#define D_ASSOC_NONE 0x00
+#define D_ASSOC_UNARY_LEFT 0x09
+#define D_ASSOC_UNARY_RIGHT 0x0A
+#define D_ASSOC_BINARY_LEFT 0x11
+#define D_ASSOC_BINARY_RIGHT 0x12
+
 typedef struct D_Shift {
   unsigned short symbol;
   unsigned char shift_kind;

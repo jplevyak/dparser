@@ -39,8 +39,9 @@ position, at every length. For example, in a state where both `'a'` and
 `'ab'` are valid, the input `abc` yields both. Each becomes a separate
 shift, and the GLR parser follows both.
 
-The DFA stops at a byte with no transition. A `'\0'` byte never has one,
-which is why the input must be NUL-terminated.
+The DFA stops at a byte with no transition. Positions at or beyond the
+end of the input read as `'\0'`, which never has a transition, so the
+scanner never reads past the buffer.
 
 ## Filtering matches
 

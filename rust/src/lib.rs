@@ -33,6 +33,11 @@ pub struct Parser<G: 'static, N: 'static> {
     pub syntax_error_fn: Option<fn(&mut Self)>,
     pub ambiguity_fn: Option<fn(&mut Self, usize, &mut [ParseNode<'_, N>]) -> usize>,
     pub save_parse_tree: bool,
+    /// Don't flatten the internal nodes created for `*`, `+` and groups
+    /// (as the C runtime's `dont_fixup_internal_productions`).
+    pub dont_fixup_internal_productions: bool,
+    /// Also splice EBNF nodes into their parents (as `fixup_EBNF_productions`).
+    pub fixup_ebnf_productions: bool,
     _phantom_g: std::marker::PhantomData<G>,
     _phantom_n: std::marker::PhantomData<N>,
 }
@@ -51,6 +56,8 @@ impl<G: 'static, N: 'static + Default> Parser<G, N> {
             syntax_error_fn: None,
             ambiguity_fn: None,
             save_parse_tree: false,
+            dont_fixup_internal_productions: false,
+            fixup_ebnf_productions: false,
             _phantom_g: std::marker::PhantomData,
             _phantom_n: std::marker::PhantomData,
         })
@@ -69,7 +76,12 @@ impl<G: 'static, N: 'static + Default> Parser<G, N> {
         N: Default + Clone,
     {
         self.initial_globals = initial_globals.map(|g| g as *mut G);
-        let input_bytes = input.as_bytes();
+        // Input used to require a trailing '\0'.  Trailing NUL bytes are still
+        // accepted, and ignored.
+        let mut input_bytes = input.as_bytes();
+        while let [rest @ .., 0] = input_bytes {
+            input_bytes = rest;
+        }
         let tables_ref_ptr_hack = &self._tables_container as *const _;
 
         let mut ctx = crate::parser_ctx::ParserContext::new(
