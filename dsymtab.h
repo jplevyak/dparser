@@ -71,8 +71,11 @@
  *
  *   GLR parsers create multiple parse paths. Symbol table supports this by:
  *   - enter_D_Scope() creates speculative parse instance
+ *   - SPECULATIVE_NEW_D_SYM() declares a symbol on this parse path only
+ *     (NEW_D_SYM() adds to the scope itself, which other paths may share)
  *   - UPDATE_D_SYM() creates symbol versions per parse path
- *   - commit_D_Scope() collapses to single successful path
+ *   - commit_D_Scope() collapses to single successful path; call it only
+ *     when no other parse path still uses the scopes being committed
  *   - current_D_Sym() finds correct version for parse path
  *
  * See dsymtab.c for detailed implementation notes.
@@ -129,6 +132,9 @@ D_Scope *scope_D_Scope(D_Scope *current, D_Scope *scope);
 void free_D_Scope(D_Scope *st, int force);
 D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym);
 #define NEW_D_SYM(_st, _name, _end) new_D_Sym(_st, _name, _end, sizeof(D_Sym))
+/* use in speculative actions: declares in a new scope instance, updating *st */
+D_Sym *speculative_new_D_Sym(D_Scope **st, char *name, char *end, int sizeof_D_Sym);
+#define SPECULATIVE_NEW_D_SYM(_st, _name, _end) speculative_new_D_Sym(_st, _name, _end, sizeof(D_Sym))
 D_Sym *find_D_Sym(D_Scope *st, char *name, char *end);
 D_Sym *find_global_D_Sym(D_Scope *st, char *name, char *end);
 /* use for first update in a production to update scope */

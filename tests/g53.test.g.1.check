@@ -1,0 +1,4 @@
+declared p
+used p
+16 states 7 scans 7 shifts 9 reductions 1 compares 0 ambiguities
+(( d  a ) ;  p  ; )

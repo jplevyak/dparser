@@ -561,20 +561,44 @@ static void commit_ll(D_Scope *st, D_SymHash *sh) {
 }
 
 /*
- * commit_update - Update symbol pointers to latest versions
+ * root_D_Sym - Find the canonical version of a symbol
+ * @sym: Any version of a symbol
+ *
+ * Updates point at the version they were made from via update_of.  Before
+ * any commit this is the original symbol, whose update_of is NULL.  A commit
+ * makes the latest version of a symbol the new canonical version: its
+ * update_of is cleared and older versions (including the original) are
+ * pointed at it.  Following update_of until it is NULL therefore always
+ * yields the version that updates on the current parse path refer to.
+ */
+static D_Sym *root_D_Sym(D_Sym *sym) {
+  while (sym->update_of) sym = sym->update_of;
+  return sym;
+}
+
+/*
+ * commit_update - Make the latest versions of symbols canonical
  * @st: Scope to commit from
  * @sh: Hash table containing symbols to update
  *
- * Internal function that updates all symbols in the hash table to point
- * directly to their latest versions. This optimizes future lookups by
- * collapsing update chains after speculative parsing completes.
+ * Internal function that, for each symbol in the hash table, makes the
+ * version visible from @st the canonical version (see root_D_Sym).  Lookups
+ * through the hash table then return it without needing the update chain
+ * that produced it, and later updates are made relative to it.
  */
 static void commit_update(D_Scope *st, D_SymHash *sh) {
   uint i;
-  D_Sym *s;
+  D_Sym *s, *root, *latest;
 
   for (i = 0; i < sh->syms.n; i++)
-    for (s = sh->syms.v[i]; s; s = s->next) s->update_of = current_D_Sym(st, s);
+    for (s = sh->syms.v[i]; s; s = s->next) {
+      root = root_D_Sym(s);
+      latest = current_D_Sym(st, s);
+      if (latest == root) continue;
+      latest->update_of = NULL;
+      root->update_of = latest;
+      if (s != root) s->update_of = latest; /* keep the hash entry one hop away */
+    }
 }
 
 /*
@@ -647,6 +671,30 @@ D_Sym *new_D_Sym(D_Scope *st, char *name, char *end, int sizeof_D_Sym) {
 }
 
 /*
+ * speculative_new_D_Sym - Create a symbol without affecting other parse paths
+ * @pst: Pointer to current scope (updated to a new scope instance)
+ * @name: Pointer to symbol name in input buffer
+ * @end: Pointer to character after name, or NULL to use strlen()
+ * @sizeof_D_Sym: Size of symbol structure (for user extensions)
+ *
+ * new_D_Sym() adds the symbol to *pst itself.  During speculative parsing a
+ * scope may be shared by several parse paths, so the symbol would become
+ * visible to all of them.  This function first creates a new instance of the
+ * scope (as update_D_Sym() does), adds the symbol there and updates *pst, so
+ * only the current parse path sees the declaration.
+ *
+ * Use this (or SPECULATIVE_NEW_D_SYM) in speculative actions.  new_D_Sym() is
+ * still appropriate in final actions and for building a symbol table before
+ * parsing.
+ *
+ * Returns: Newly created symbol
+ */
+D_Sym *speculative_new_D_Sym(D_Scope **pst, char *name, char *end, int sizeof_D_Sym) {
+  *pst = enter_D_Scope(*pst, *pst);
+  return new_D_Sym(*pst, name, end, sizeof_D_Sym);
+}
+
+/*
  * current_D_Sym - Get current version of a symbol
  * @st: Current scope (determines which updates are visible)
  * @sym: Symbol to get current version of (may be NULL)
@@ -666,7 +714,7 @@ D_Sym *current_D_Sym(D_Scope *st, D_Sym *sym) {
   D_Sym *uu;
 
   if (!sym) return NULL;
-  if (sym->update_of) sym = sym->update_of;
+  sym = root_D_Sym(sym);
   /* return the last update */
   for (sc = st; sc; sc = sc->up_updates) {
     for (uu = sc->updates; uu; uu = uu->next)
@@ -890,8 +938,7 @@ D_Sym *update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym) {
   if (!sym) return NULL;
   s = MALLOC(sizeof_D_Sym);
   memcpy(s, sym, sizeof(D_Sym));
-  if (sym->update_of) sym = sym->update_of;
-  s->update_of = sym;
+  s->update_of = root_D_Sym(sym);
   s->next = st->updates;
   st->updates = s;
   return s;

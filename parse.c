@@ -294,22 +294,48 @@ static void free_SNode(Parser *p, struct SNode *s) {
 #define PNODE_HASH(_si, _ei, _s, _sc) \
   ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)))
 
-PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, uint *hash) {
+/* Two scopes give the same view of the symbol table. */
+static int same_D_Scope(D_Scope *a, D_Scope *b) { return a == b || equiv_D_Scope(a) == equiv_D_Scope(b); }
+
+/* Find the PNode for start/end/symbol/initial scope whose resulting scope is
+   equivalent to 'result_scope'.  Derivations whose actions leave the symbol
+   table in different states are kept as separate PNodes (rather than merged
+   as ambiguities) so that each parse path continues with its own scope.
+   With result_scope NULL, return any of them. */
+PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, D_Scope *result_scope,
+                  uint *hash) {
   PNodeHash *ph = &p->pnode_hash;
   PNode *pn;
   uint h = PNODE_HASH(start, end_skip, symbol, sc);
   *hash = h;
-  PNode *result = NULL;
   if (ph->v)
     for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
       if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
           pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
         PNode *t = pn;
         LATEST(p, t);
-        assert(!result  || result == t);
-        result = t;
+        if (!result_scope || same_D_Scope(t->parse_node.scope, result_scope)) return t;
       }
-  return result;
+  return NULL;
+}
+
+/* Find an existing PNode (or ambiguity) for exactly this derivation. */
+static int PNode_equal(Parser *p, PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh);
+static PNode *find_equal_PNode(Parser *p, uint h, char *start, char *end_skip, int symbol, D_Scope *sc,
+                               D_Reduction *r, VecZNode *path, D_Shift *sh) {
+  PNodeHash *ph = &p->pnode_hash;
+  PNode *pn, *amb;
+  if (ph->v)
+    for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
+      if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
+          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
+        PNode *t = pn;
+        LATEST(p, t);
+        if (PNode_equal(p, t, r, path, sh)) return t;
+        for (amb = t->ambiguities; amb; amb = amb->ambiguities)
+          if (PNode_equal(p, amb, r, path, sh)) return t;
+      }
+  return NULL;
 }
 
 void insert_PNode_internal(Parser *p, PNode *pn) {
@@ -992,13 +1018,10 @@ static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNod
                         D_Shift *sh) {
   D_Scope *scope = equiv_D_Scope(pn->parse_node.scope);
   uint hash;
-  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, &hash), *new_pn;
+  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, NULL, &hash), *new_pn, *match;
   if (old_pn) {
-    PNode *amb = 0;
-    if (PNode_equal(p, old_pn, r, path, sh)) return old_pn;
-    for (amb = old_pn->ambiguities; amb; amb = amb->ambiguities) {
-      if (PNode_equal(p, amb, r, path, sh)) return old_pn;
-    }
+    PNode *same = find_equal_PNode(p, hash, start_loc->s, e, symbol, scope, r, path, sh);
+    if (same) return same;
   }
   new_pn = make_PNode(p, hash, symbol, start_loc, e, pn, r, path, sh, scope);
   if (!old_pn) {
@@ -1008,9 +1031,19 @@ static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNod
     goto Lreturn;
   }
   if (!new_pn) goto Lreturn;
+  /* prefer to compare against the derivation leaving the symbol table in the same state */
+  match = find_PNode(p, start_loc->s, e, symbol, scope, new_pn->parse_node.scope, &hash);
+  if (match) old_pn = match;
   p->compares++;
   switch (cmp_pnodes(p, new_pn, old_pn)) {
     case 0:
+      if (!match) {
+        /* Ambiguous, but the symbol table differs: keep a separate PNode so that this
+           parse path continues with its own scope.  Ambiguities which survive to the
+           end of the parse are merged by handle_top_level_ambiguities. */
+        insert_PNode(p, new_pn);
+        return new_pn;
+      }
       ref_pn(new_pn);
       new_pn->ambiguities = old_pn->ambiguities;
       old_pn->ambiguities = new_pn;
@@ -2035,28 +2068,53 @@ static void free_whitespace_parser(Parser *p) {
   }
 }
 
+static void add_top_level_ambiguity(Parser *p, PNode *x, PNode **pn, PNode **last) {
+  LATEST(p, x);
+  if (!*pn)
+    *pn = x;
+  else if (x != *pn && !x->ambiguities && x != *last) {
+    x->ambiguities = (*pn)->ambiguities;
+    ref_pn(x);
+    (*pn)->ambiguities = x;
+    if (!*last) *last = x;
+  }
+}
+
+/* Other accepting SNodes at the same position: parse paths whose symbol tables differ. */
+static int other_accepts(SNode *sn, SNode *x) {
+  return x != sn && x->state == sn->state && x->loc.s == sn->loc.s;
+}
+
+static int has_top_level_ambiguities(Parser *p, SNode *sn) {
+  SNode *x;
+  if (sn->zns.n != 1) return 1;
+  for (x = p->snode_hash.all; x; x = x->all_next)
+    if (other_accepts(sn, x)) return 1;
+  for (x = p->snode_hash.last_all; x; x = x->all_next)
+    if (other_accepts(sn, x)) return 1;
+  return 0;
+}
+
 static PNode *handle_top_level_ambiguities(Parser *p, SNode *sn) {
   uint i;
   ZNode *z = 0;
-  PNode *pn = NULL, *last = NULL, *x;
+  PNode *pn = NULL, *last = NULL;
+  SNode *x;
+  int pass;
   for (i = 0; i < sn->zns.n; i++) {
     if (sn->zns.v[i]) {
-      x = sn->zns.v[i]->pn;
-      LATEST(p, x);
-      if (!pn) {
+      add_top_level_ambiguity(p, sn->zns.v[i]->pn, &pn, &last);
+      if (!z)
         z = sn->zns.v[i];
-        pn = x;
-      } else {
-        if (x != pn && !x->ambiguities && x != last) {
-          x->ambiguities = pn->ambiguities;
-          ref_pn(x);
-          pn->ambiguities = x;
-          if (!last) last = x;
-        }
+      else
         free_ZNode(p, sn->zns.v[i], sn);
-      }
     }
   }
+  for (pass = 0; pass < 2; pass++)
+    for (x = pass ? p->snode_hash.last_all : p->snode_hash.all; x; x = x->all_next)
+      if (other_accepts(sn, x))
+        for (i = 0; i < x->zns.n; i++)
+          if (x->zns.v[i]) add_top_level_ambiguity(p, x->zns.v[i]->pn, &pn, &last);
   sn->zns.v[0] = z;
   sn->zns.n = 1;
   sn->zns.i = 0;
@@ -2086,7 +2144,7 @@ D_ParseNode *dparse(D_Parser *ap, char *buf, int buf_len) {
   r = exhaustive_parse(p, p->user.start_state);
   if (!r) {
     sn = p->accept;
-    if (sn->zns.n != 1)
+    if (has_top_level_ambiguities(p, sn))
       pn = handle_top_level_ambiguities(p, sn);
     else
       pn = sn->zns.v[0]->pn;

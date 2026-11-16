@@ -29,7 +29,7 @@ expression
     D_Sym *s;
     if (find_D_Sym_in_Scope(${scope}, ${scope}, $n0.start_loc.s, $n0.end))
       printf("duplicate identifier line %d\n", $n0.start_loc.line);
-    s = NEW_D_SYM(${scope}, $n0.start_loc.s, $n0.end);
+    s = SPECULATIVE_NEW_D_SYM(&${scope}, $n0.start_loc.s, $n0.end);
     s->user.value = $2.value;
     $$.value = s->user.value;
   ]

@@ -313,6 +313,83 @@ static int test_commit_scope(void) {
   TEST_PASS();
 }
 
+/* Regression: commit used to store the latest version in update_of, which
+   everything else treats as "the original symbol".  Updates after a commit
+   then copied the stale original and later updates became invisible. */
+static int test_update_after_commit(void) {
+  TEST_START("Updates and lookups across repeated commits");
+
+  D_Scope *global = new_D_Scope(NULL), *s = global;
+  D_Sym *x = NEW_D_SYM(global, "x", NULL), *u;
+  x->user = 1;
+  u = UPDATE_D_SYM(x, &s);
+  u->user = 2;
+
+  int round;
+  for (round = 0; round < 4; round++) {
+    unsigned int v = 2 + round;
+    s = commit_D_Scope(s);
+    TEST_ASSERT(s == global, "Commit should return the global scope");
+    TEST_ASSERT(find_D_Sym(s, "x", NULL)->user == v, "Committed value should be visible after commit");
+    TEST_ASSERT(current_D_Sym(s, x)->user == v, "current_D_Sym of original should give committed value");
+
+    u = UPDATE_D_SYM(find_D_Sym(s, "x", NULL), &s);
+    TEST_ASSERT(u->user == v, "Update after commit should copy the committed value");
+    u->user = v + 1;
+    TEST_ASSERT(find_D_Sym(s, "x", NULL)->user == v + 1, "Update after commit should be visible");
+    TEST_ASSERT(current_D_Sym(s, x) == u, "current_D_Sym of original should find update after commit");
+
+    /* a second update in the same scope supersedes the first */
+    D_Sym *u2 = UPDATE_ADDITIONAL_D_SYM(s, x);
+    TEST_ASSERT(u2->user == v + 1, "Additional update should copy latest value");
+    TEST_ASSERT(find_D_Sym(s, "x", NULL) == u2, "Additional update should be visible");
+    u2->user = v + 1;
+  }
+
+  /* committing a symbol with no updates must leave it unchanged */
+  D_Sym *y = NEW_D_SYM(global, "y", NULL);
+  y->user = 7;
+  s = commit_D_Scope(s);
+  TEST_ASSERT(y->update_of == NULL, "Symbol without updates should not point at itself");
+  TEST_ASSERT(find_D_Sym(s, "y", NULL) == y, "Symbol without updates should be found");
+  u = UPDATE_D_SYM(y, &s);
+  u->user = 8;
+  TEST_ASSERT(find_D_Sym(s, "y", NULL)->user == 8, "Update of symbol committed without updates should be visible");
+
+  free_D_Scope(global, 1);
+  TEST_PASS();
+}
+
+/* Regression: NEW_D_SYM adds to the scope it is given, which may be shared by
+   other speculative parse paths.  SPECULATIVE_NEW_D_SYM declares on a new
+   scope instance instead. */
+static int test_speculative_new_symbol(void) {
+  TEST_START("SPECULATIVE_NEW_D_SYM does not leak into other parse paths");
+
+  D_Scope *global = new_D_Scope(NULL);
+  D_Scope *block = new_D_Scope(global);
+  NEW_D_SYM(block, "outer", NULL);
+
+  /* two parse paths start from the same scope */
+  D_Scope *path_a = block, *path_b = block;
+  D_Sym *a = SPECULATIVE_NEW_D_SYM(&path_a, "a", NULL);
+  D_Sym *b = SPECULATIVE_NEW_D_SYM(&path_b, "b", NULL);
+
+  TEST_ASSERT(path_a != block && path_b != block, "Scope pointer should be advanced");
+  TEST_ASSERT(path_a->depth == block->depth && path_a->up == block->up, "New instance is the same lexical scope");
+  TEST_ASSERT(find_D_Sym(path_a, "a", NULL) == a, "Path a sees its own declaration");
+  TEST_ASSERT(find_D_Sym(path_b, "b", NULL) == b, "Path b sees its own declaration");
+  TEST_ASSERT(find_D_Sym(path_a, "b", NULL) == NULL, "Path a must not see path b's declaration");
+  TEST_ASSERT(find_D_Sym(path_b, "a", NULL) == NULL, "Path b must not see path a's declaration");
+  TEST_ASSERT(find_D_Sym(block, "a", NULL) == NULL, "Shared scope must not see either declaration");
+  TEST_ASSERT(find_D_Sym(path_a, "outer", NULL) != NULL, "Earlier declarations remain visible");
+  TEST_ASSERT(find_D_Sym_in_Scope(path_a, path_a, "outer", NULL) != NULL,
+              "Same-scope lookup (duplicate detection) still sees the shared scope");
+
+  free_D_Scope(global, 1);
+  TEST_PASS();
+}
+
 /* ========================================================================
    SYMBOL UPDATES
    ======================================================================== */
@@ -821,7 +898,9 @@ int main(void) {
   RUN_TEST(test_global_scope_access);
   RUN_TEST(test_find_global_symbol);
   RUN_TEST(test_commit_scope);
-  
+  RUN_TEST(test_update_after_commit);
+  RUN_TEST(test_speculative_new_symbol);
+
   /* Symbol Updates */
   printf(COLOR_YELLOW "=== Symbol Updates ===" COLOR_RESET "\n");
   RUN_TEST(test_update_symbol);

@@ -543,22 +543,29 @@ the bulk of the data.  It defines the following functions in the file
 struct D_Scope *new_D_Scope(struct D_Scope *st);
 struct D_Scope *enter_D_Scope(struct D_Scope *current, struct D_Scope *scope);
 D_Sym *NEW_D_SYM(struct D_Scope *st, char *name, char *end);
+D_Sym *SPECULATIVE_NEW_D_SYM(struct D_Scope **st, char *name, char *end);
 D_Sym *find_D_Sym(struct D_Scope *st, char *name, char *end);
-D_Sym *UPDATE_D_SYM(struct D_Scope *st, D_Sym *sym);
+D_Sym *UPDATE_D_SYM(D_Sym *sym, struct D_Scope **st);
 D_Sym *current_D_Sym(struct D_Scope *st, D_Sym *sym);
-D_Sym *find_D_Sym_in_Scope(struct D_Scope *st, char *name, char *end);
+D_Sym *find_D_Sym_in_Scope(struct D_Scope *st, struct D_Scope *cur, char *name, char *end);
+struct D_Scope *commit_D_Scope(struct D_Scope *st);
 ```
-<!-- TODO check if commit_D_Scope should actually be NEW_D_SYM -->
 * `new_D_Scope` creates a new scope below `st`, or `NULL` for a 'top level'
   scope.
 * `enter_D_Scope` returns to a previous scoping level.  **NOTE**: do not simply
   assign `${scope}` to a previous scope as any updated symbol information will
   be lost.
 * `commit_D_Scope` can be used in final actions to compress the update list for
-  the top level scope and improve efficiency.
+  the top level scope and improve efficiency.  Only call it when no other parse
+  path still uses the scopes being committed.
+* `NEW_D_SYM` creates a symbol in scope `st`.  In speculative actions use
+  `SPECULATIVE_NEW_D_SYM(&${scope}, ...)` instead: a scope may be shared by
+  several speculative parse paths, and `NEW_D_SYM` would make the symbol
+  visible to all of them.  `SPECULATIVE_NEW_D_SYM` creates the symbol in a new
+  instance of the scope and updates `${scope}`.
 * `find_D_Sym` finds the most current version of a symbol in a given scope.
 * `UPDATE_D_SYM` updates the value of symbol (creates a different record on the
-  current speculative parse path).
+  current speculative parse path) and updates the scope pointer.
 * `current_D_Sym` is used to retrieve the current version of a symbol, the
   pointer to which may have been stored in some other attribute or variable.
 
@@ -602,16 +609,16 @@ expression:
     identifier ':' expression
         [
           D_Sym *s;
-          if (find_D_Sym_in_Scope(${scope}, $n0.start_loc.s, $n0.end))
+          if (find_D_Sym_in_Scope(${scope}, ${scope}, $n0.start_loc.s, $n0.end))
             printf("duplicate identifier line %d\n", $n0.start_loc.line);
-          s = NEW_D_SYM(${scope}, $n0.start_loc.s, $n0.end);
+          s = SPECULATIVE_NEW_D_SYM(&${scope}, $n0.start_loc.s, $n0.end);
           s->user.value = $2.value;
           $$.value = s->user.value;
         ]
   | identifier '=' expression
         [
           D_Sym *s = find_D_Sym(${scope}, $n0.start_loc.s, $n0.end);
-          s = UPDATE_D_SYM(${scope}, s);
+          s = UPDATE_D_SYM(s, &${scope});
           s->user.value = $2.value;
           $$.value = s->user.value;
         ]
