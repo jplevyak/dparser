@@ -55,7 +55,7 @@ wheels = [
 
 [[package]]
 name = "dparser"
-version = "1.38"
+version = "1.41"
 source = { editable = "." }
 
 [package.dev-dependencies]
