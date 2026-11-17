@@ -147,6 +147,20 @@ cdef extern from "dparse.h":
     void *d_get_whitespace_state(D_Parser *p)
     void **d_state_slot(D_ParseNode *pn)
 
+cdef extern from "dsymtab.h":
+    ctypedef struct D_Scope:
+        pass
+    ctypedef struct D_Sym:
+        char *name
+        int len
+        unsigned int user
+    D_Scope *new_D_Scope(D_Scope *parent)
+    D_Scope *enter_D_Scope(D_Scope *current, D_Scope *scope)
+    D_Sym *find_D_Sym(D_Scope *st, char *name, char *end)
+    D_Sym *find_D_Sym_in_Scope(D_Scope *st, D_Scope *cur, char *name, char *end)
+    D_Sym *speculative_new_D_Sym(D_Scope **st, char *name, char *end, int sizeof_D_Sym)
+    D_Sym *update_D_Sym(D_Sym *sym, D_Scope **st, int sizeof_D_Sym)
+
 cdef extern from "gram.h":
     cdef struct Grammar:
         int set_op_priority_from_rule
@@ -300,6 +314,122 @@ cdef class DParseNode:
     def state_before(self):
         """The threaded state before this node (None if there is none)."""
         return _state_object(d_get_state_before(self.ptr))
+
+# ---------------------------------------------------------------------------
+# The symbol table, for actions taking a `scope` argument.  Scope and Symbol
+# wrap C pointers that live only as long as the parse, so they check that
+# their parse is still running.  A symbol's value is a Python object kept in
+# the parser's per-parse list; the C symbol stores its index + 1.
+# ---------------------------------------------------------------------------
+
+class SymbolTableError(Exception):
+    pass
+
+
+cdef bytes _sym_name(object name):
+    return name.encode('utf-8') if isinstance(name, str) else bytes(name)
+
+
+cdef class Symbol:
+    """A symbol: its name and value.  Valid only during the parse."""
+    cdef D_Sym *ptr
+    cdef object parser
+    cdef long generation
+
+    def _check(self):
+        if self.parser._parse_generation != self.generation:
+            raise SymbolTableError("symbols can only be used during the parse that made them")
+
+    @property
+    def name(self):
+        self._check()
+        return self.ptr.name[:self.ptr.len].decode('utf-8', 'replace')
+
+    @property
+    def value(self):
+        self._check()
+        return self.parser._sym_values[self.ptr.user - 1] if self.ptr.user else None
+
+    def __repr__(self):
+        return 'Symbol(%r, %r)' % (self.name, self.value)
+
+
+cdef Symbol _make_symbol(D_Sym *sym, object parser):
+    cdef Symbol s
+    if sym == NULL:
+        return None
+    s = Symbol()
+    s.ptr = sym
+    s.parser = parser
+    s.generation = parser._parse_generation
+    return s
+
+
+cdef class Scope:
+    """The symbol table scope of the node an action is building (${scope} in
+    C).  Lookups work in any action; changes only in speculative actions,
+    where they affect this parse path and everything to its right."""
+    cdef D_ParseNode *node
+    cdef object parser
+    cdef long generation
+    cdef int speculative
+
+    def _check(self, changing=False):
+        if self.parser._parse_generation != self.generation:
+            raise SymbolTableError("a scope can only be used during the parse that made it")
+        if changing and not self.speculative:
+            raise SymbolTableError("the symbol table can only be changed in speculative actions")
+
+    def find(self, name):
+        """The symbol visible here with this name, or None."""
+        cdef bytes b = _sym_name(name)
+        cdef char *c = b
+        self._check()
+        return _make_symbol(find_D_Sym(<D_Scope*>self.node.scope, c, c + len(b)), self.parser)
+
+    def find_local(self, name):
+        """The symbol with this name declared in this scope itself, or None."""
+        cdef bytes b = _sym_name(name)
+        cdef char *c = b
+        cdef D_Scope *sc = <D_Scope*>self.node.scope
+        self._check()
+        return _make_symbol(find_D_Sym_in_Scope(sc, sc, c, c + len(b)), self.parser)
+
+    def declare(self, name, value=None):
+        """Declare a symbol on this parse path (SPECULATIVE_NEW_D_SYM)."""
+        cdef bytes b = _sym_name(name)
+        cdef char *c
+        cdef D_Sym *sym
+        self._check(True)
+        self.parser._sym_names.append(b)  # the C table keeps a pointer to the name
+        c = b
+        sym = speculative_new_D_Sym(<D_Scope**>&self.node.scope, c, c + len(b), sizeof(D_Sym))
+        self.parser._sym_values.append(value)
+        sym.user = len(self.parser._sym_values)
+        return _make_symbol(sym, self.parser)
+
+    def update(self, Symbol symbol, value):
+        """Give a symbol a new value on this parse path (UPDATE_D_SYM)."""
+        cdef D_Sym *sym
+        self._check(True)
+        symbol._check()
+        sym = update_D_Sym(symbol.ptr, <D_Scope**>&self.node.scope, sizeof(D_Sym))
+        self.parser._sym_values.append(value)
+        sym.user = len(self.parser._sym_values)
+        return _make_symbol(sym, self.parser)
+
+    def push(self):
+        """Open a scope nested in this one, for what follows (new_D_Scope)."""
+        self._check(True)
+        self.node.scope = <void*>new_D_Scope(<D_Scope*>self.node.scope)
+
+    def pop(self, DParseNode node):
+        """Return to the scope after `node`, keeping updates made since to
+        symbols outside it (enter_D_Scope).  Typically `node` is the element
+        that opened the block, such as nodes[0] for its '{'."""
+        self._check(True)
+        self.node.scope = <void*>enter_D_Scope(<D_Scope*>self.node.scope, <D_Scope*>node.ptr.scope)
+
 
 # ---------------------------------------------------------------------------
 # Threaded state: any hashable Python object, interned by the parser, which
@@ -514,8 +644,11 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
         action_tuple = p.actions[action_index]
         if action_tuple is not None:
             takes_speculative = action_tuple[2]
-            # takes_speculative == -1 means "final actions only"; skip speculative pass
+            # -1: the final pass only.  2 (spec_only): the speculative pass only;
+            # the node keeps the value from it.
             if takes_speculative == -1 and speculative:
+                return 0
+            if takes_speculative == 2 and not speculative:
                 return 0
 
     string_list = pylist_children(parser, dd, 1)
@@ -567,6 +700,13 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
                 args.append(speculative)
             elif arg_t == 7:      # parser
                 args.append(p)
+            elif arg_t == 9:      # scope: the symbol table
+                sc = Scope()
+                sc.node = dd
+                sc.parser = p
+                sc.generation = p._parse_generation
+                sc.speculative = speculative
+                args.append(sc)
             elif arg_t == 8:      # state: one-element list holding the threaded state
                 state_slot = d_state_slot(dd)
                 old_state = _state_object(state_slot[0])
@@ -812,6 +952,9 @@ class Parser:
                  file_prefix="d_parser_mach_gen", make_grammar_file=False):
         self.tables = Tables()
         self.actions = []
+        self._parse_generation = 0
+        self._sym_values = []
+        self._sym_names = []
         self.alternatives = []  # per action index: which rule of its function
 
         if not modules:
@@ -904,9 +1047,13 @@ class Parser:
                     arg_types.append(5)
                 elif var == 'spec_only':
                     arg_types.append(6)
-                    speculative = -1
+                    speculative = 2
                 elif var == 'parser':
                     arg_types.append(7)
+                elif var == 'scope':
+                    arg_types.append(9)
+                    if speculative == 0:
+                        speculative = 1  # the symbol table is changed by speculative actions
                 elif var == 'state':
                     arg_types.append(8)
                     if speculative == 0:
@@ -1001,10 +1148,14 @@ class Parser:
 
         saved_prefer = _prefer_state
         _prefer_state = prefer_state
+        self._parse_generation += 1
+        self._sym_values = []
+        self._sym_names = []
         try:
             pn = dparse(dp, buf_ptr + <int>buf_offset, len(self.buf) - buf_offset)
         finally:
             _prefer_state = saved_prefer
+            self._parse_generation += 1  # Scope and Symbol objects expire with the parse
 
         if pn == NULL:
             free_D_Parser(dp)
