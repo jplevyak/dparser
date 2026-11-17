@@ -453,6 +453,29 @@ static int test_update_null_symbol(void) {
   TEST_PASS();
 }
 
+/* A D_UserSym larger than the library's default: an update must copy all of
+   the caller's symbol, not just the library's sizeof(D_Sym). */
+typedef struct {
+  D_Sym sym;
+  char extra[64];
+} BigSym;
+
+static int test_update_large_user_data(void) {
+  TEST_START("Update copies user data larger than the default D_UserSym");
+
+  D_Scope *scope = new_D_Scope(NULL);
+  BigSym *x = (BigSym *)new_D_Sym(scope, "x", NULL, sizeof(BigSym));
+  memset(x->extra, 'u', sizeof(x->extra));
+  BigSym *u = (BigSym *)update_D_Sym(&x->sym, &scope, sizeof(BigSym));
+
+  TEST_ASSERT(u && u != x, "Update should create a new symbol version");
+  TEST_ASSERT(u->extra[0] == 'u' && u->extra[sizeof(u->extra) - 1] == 'u',
+              "User data beyond sizeof(D_Sym) should be copied");
+
+  free_D_Scope(scope, 1);
+  TEST_PASS();
+}
+
 static int test_current_null_symbol(void) {
   TEST_START("current_D_Sym with NULL returns NULL");
   
@@ -906,6 +929,7 @@ int main(void) {
   RUN_TEST(test_update_symbol);
   RUN_TEST(test_multiple_updates);
   RUN_TEST(test_update_null_symbol);
+  RUN_TEST(test_update_large_user_data);
   RUN_TEST(test_current_null_symbol);
   
   /* Scope-Specific Searches */

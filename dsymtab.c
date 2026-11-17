@@ -937,7 +937,7 @@ D_Sym *update_additional_D_Sym(D_Scope *st, D_Sym *sym, int sizeof_D_Sym) {
   sym = current_D_Sym(st, sym);
   if (!sym) return NULL;
   s = MALLOC(sizeof_D_Sym);
-  memcpy(s, sym, sizeof(D_Sym));
+  memcpy(s, sym, sizeof_D_Sym); /* the caller's size: D_UserSym may be larger */
   s->update_of = root_D_Sym(sym);
   s->next = st->updates;
   st->updates = s;
