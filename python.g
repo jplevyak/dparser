@@ -47,7 +47,7 @@ pointfloat ::= "[0-9][0-9_]*\.[0-9_]*|[0-9_]+\.";
 exponentfloat ::= "([0-9][0-9_]*|[0-9][0-9_]*\.[0-9_]*|[0-9_]+\.)[eE][+-]?[0-9][0-9_]*";
 imagnumber ::= (floatnumber | "[0-9][0-9_]*") "[jJ]";
 
-stringprefix ::= 'r' | 'u' | 'R' | 'U' | 'f' | 'F' | 'fr' | 'Fr' | 'fR' | 'FR' | 'rf' | 'rF' | 'Rf' | 'RF' | 'b' | 'B' | 'br' | 'Br' | 'bR' | 'BR' | 'rb' | 'rB' | 'Rb' | 'RB';
+stringprefix ::= 'r' | 'u' | 'R' | 'U' | 'f' | 'F' | 'fr' | 'Fr' | 'fR' | 'FR' | 'rf' | 'rF' | 'Rf' | 'RF' | 't' | 'T' | 'tr' | 'Tr' | 'tR' | 'TR' | 'rt' | 'rT' | 'Rt' | 'RT' | 'b' | 'B' | 'br' | 'Br' | 'bR' | 'BR' | 'rb' | 'rB' | 'Rb' | 'RB';
 shortstring ::= "'" shortstringsingleitem* "'" | '"' shortstringdoubleitem* '"';
 longstring ::= "'''" longstringsingleitem* "'''" | '"""' longstringdoubleitem* '"""';
 
