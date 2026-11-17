@@ -46,7 +46,7 @@ bininteger ::= "0[bB](_?[01])+";
 
 digitpart ::= "[0-9](_?[0-9])*";
 floatnumber ::= pointfloat | exponentfloat;
-pointfloat ::= digitpart '.' digitpart?;
+pointfloat ::= digitpart '.' digitpart? | '.' digitpart;
 exponentfloat ::= (digitpart | pointfloat) exponent;
 exponent ::= "[eE][+-]?" digitpart;
 imagnumber ::= (floatnumber | digitpart) "[jJ]";
