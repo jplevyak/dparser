@@ -302,7 +302,7 @@ bintar:
 
 clean:
 	\rm -f *.o core *.core *.gmon *.d_parser.c *.d_parser.h *.a $(EXEC_FILES)
-	\rm -rf build *.egg-info .pytest_cache
+	\rm -rf build .pytest_cache
 	$(MAKE) -C python clean
 	$(MAKE) -C rust clean
 

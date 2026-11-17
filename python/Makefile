@@ -10,7 +10,7 @@ install:
 
 clean:
 	rm -rf dparser.c dparser.h dparser*.so \
-		d_parser_mach_gen.g*
+		d_parser_mach_gen.g* *.egg-info
 
 test: all
 	PYTHONPATH=. $(PYTHON) -m pytest tests
