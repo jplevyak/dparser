@@ -59,3 +59,12 @@ which `read_binary_tables()` rejects, and the actions file records what the
 Rust runtime must call: `scan <state> <symbol> <term_priority> <call>`,
 `scanner <function>`, `whitespace <function>` and `token <name> <symbol>`
 lines.
+
+The actions file also has a `rule <production> <n> <number>` line for the
+*n*-th rule of each production, giving the number that
+[`d_get_production`](../reference/attributes.md#which-rule-built-a-node)
+returns for it; `build_actions` turns these into `D_RULE_<production>_<n>`
+constants. A grammar with
+[`${declare mutable_speculative_globals}`](../reference/declarations.md#mutable-speculative-globals)
+gets a `declare mutable_speculative_globals` line, which makes
+`build_actions` give speculative actions a writable `$g`.
