@@ -47,7 +47,7 @@ expression
       $$.value = s->user.value;
   ]
   | expression '+' expression
-  [ $$.value = $0.value + $1.value; ]
+  [ $$.value = $0.value + $2.value; ]
   ;
 
 integer: "-?([0-9]|0(x|X))[0-9]*(u|U|b|B|w|W|L|l)*" $term -1;

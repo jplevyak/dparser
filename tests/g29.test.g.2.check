@@ -1,0 +1,9 @@
+1
+3
+4
+10
+13
+13
+14
+230 states 130 scans 77 shifts 147 reductions 0 compares 3 ambiguities
+((( a  :  1 ) ; )(( b  : ( a  +  2 )) ; )(( b  +  a ) ; )( { ((( a  :  10 ) ; )(( a  +  b ) ; )(( b  = ( a  +  b )) ; )) } )(( a  +  b ) ; ))
