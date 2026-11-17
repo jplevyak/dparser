@@ -1,7 +1,7 @@
 # Proposal: Speculation-Safe Threaded State and Post-Parse Attributes
 
-- **Status:** Draft
-- **Target:** DParser 1.39 (Part A), 1.40 (Part B)
+- **Status:** Part A in progress: C runtime, code generator and C tests done; bindings to do
+- **Target:** DParser 1.40 (Part A), 1.41 (Part B)
 - **Date:** 2026-11-16
 
 ## Summary
@@ -122,6 +122,9 @@ SNode(state=S0) ──shift──▶ ... ──reduce A (action sets ${state} = 
 | `${state}` | In a speculative action: the current threaded state. It can be assigned to change the state seen by everything to the right. In a final action: the state *after* this node, read-only. |
 | `${state N}` | The state at the *start* of child `N`, read-only. |
 
+Whitespace can read the state but not change it (see
+[Whitespace](#whitespace)).
+
 `${state}` names the inherited, threaded value. It is distinct from `$g`,
 which stays a single global.
 
@@ -152,23 +155,33 @@ typedef struct D_StateFns {
   unsigned (*hash)(void *state);
   int      (*equal)(void *a, void *b);   /* nonzero if equal */
   void     (*free)(void *state);         /* optional; called by free_D_Parser */
+  int      (*prefer)(void *a, void *b);  /* optional; >0 prefer a, <0 prefer b, 0 neither */
 } D_StateFns;
 
 /* New D_Parser user configurables (appended; see "Compatibility"). */
-D_StateFns *state_fns;      /* NULL: threaded state is disabled */
+D_StateFns *state_fns;      /* NULL: states are compared by pointer, not interned or freed */
 void       *initial_state;
 
 /* Helpers for actions. */
 void *d_intern_state(D_Parser *p, void *state);   /* returns the canonical pointer */
 void *d_get_state(D_ParseNode *pn);               /* state after pn */
-void *d_get_start_state(D_ParseNode *pn);         /* state before pn */
+void *d_get_state_before(D_ParseNode *pn);        /* state before pn */
+void *d_get_whitespace_state(D_Parser *p);        /* in a whitespace function */
 ```
 
 Interning keeps every comparison a pointer comparison. The runtime interns
 whatever an action assigns to `${state}` when the action returns, so users
 only have to intern in their constructors as an optimization.
 
-**Memory.** Values are owned by the parser's intern table. They live until
+With `state_fns == NULL` the feature still works, but state values are
+compared by pointer and never interned or freed. This suits states that are
+a small set of static values, or that the user interns.
+
+**Memory.** Values are owned by the parser's intern table. Assigning a
+value to `${state}` hands it to the parser: if an equal value is already
+interned, the new one is freed with `state_fns->free` and the canonical
+pointer is used. An action that needs to keep a value should call
+`d_intern_state` first. They live until
 `free_D_Parser`, which calls `state_fns->free` for each one. This matches how
 scope versions live today. A later improvement could trim the table when
 actions are committed (`commit_actions_interval`).
@@ -186,26 +199,86 @@ The work follows the 1.38 scope fix almost exactly:
    - `PNODE_HASH` / `find_PNode`.
 3. **Ambiguity merging.** In `add_PNode` / `find_PNode`, derivations with the
    same span and symbol but different result states stay separate. This uses
-   the same rule as `same_D_Scope` and the `result_scope` argument.
+   the same rule as `same_D_Scope` and the `result_scope` argument: priority,
+   greediness and height still decide between such derivations, and only a
+   tie with different result states keeps both.
 4. **Top-level ambiguities.** `handle_top_level_ambiguities` merges accepting
    nodes at the end of input. When several accepting paths have different
-   final states, they go to `ambiguity_fn` like any other ambiguity.
+   final states and `state_fns->prefer` is set, candidates whose state is
+   less preferred than another candidate's are dropped first (see
+   [Choosing between final states](#choosing-between-final-states)). What
+   remains goes to `ambiguity_fn` like any other ambiguity.
 5. **Error recovery.** Nodes created during recovery inherit the state of the
    stack node they are built on.
-6. **Whitespace subparser.** It inherits the state but cannot change it. This
-   matches how `.skip_space` is handled today; a later change could allow
-   that.
+6. **Whitespace.** Whitespace reads the state but cannot change it; see
+   [Whitespace](#whitespace).
 
 When `state_fns == NULL`, all states are `NULL`. Hashing and comparison then
 behave exactly as they do today, so grammars that don't use the feature see no
 change in behavior and a negligible cost.
 
+### Choosing between final states
+
+Paths that survive to the end of input only because their states differ
+are usually not ambiguities the user cares about, but the final state
+often matters. For example, a grammar accepting two dialects can record in
+the state which dialect a path has committed to. The input `print(x)` then
+parses both ways, ending with `{v1}` on one path and `{v2}` on the other;
+the user wants "prefer v2 when both work", not an ambiguity report.
+
+`state_fns->prefer(a, b)` supplies that ordering. It returns a positive
+value to prefer `a`, a negative value to prefer `b`, and 0 for no
+preference, so it can be a partial order. At the top level, a candidate is
+dropped when some other candidate's state is preferred to it. Candidates
+that remain, including several with the same state or with unordered
+states, go to `ambiguity_fn` as before. `prefer` is not used for merges
+inside the parse, because there a state can still decide what parses later.
+
+### Whitespace
+
+Whitespace can **read** the threaded state but cannot **change** it.
+
+- A whitespace function calls `d_get_whitespace_state(p)`. Whitespace
+  productions see it as `${state}` in their actions; assignments there
+  have no effect on the main parse.
+- The state seen is the one after the preceding token, including any
+  change made by that token's own action (for example a `::=` terminal
+  such as `LP ::= '(' [ ... ]`). It is the state *before* any reduction
+  that ends at that token, because whitespace is scanned when the token is
+  shifted.
+- `shift_all` caches the result of skipping whitespace per position. The
+  cache key becomes (position, state), so a position reached with k
+  distinct states is scanned up to k times.
+
+Letting whitespace change the state was rejected:
+
+- The change would belong to no parse node, so `d_get_state`,
+  `${state N}` and Part B would see state change with no node responsible.
+- Whitespace after a token runs before the reductions that end at that
+  token, so a change from whitespace would reach those reductions'
+  actions, which come earlier in the text.
+- The whitespace subparser can have several accepting parses; with
+  writable state it would have to return several (location, state)
+  results and fork the main parse.
+- Whitespace is the most frequent thing in the input, so state changes
+  there would multiply parse paths.
+
+Text that should change the mode, such as a pragma or `#if 0`, can be a
+token or production in the grammar whose action sets `${state}`, with
+whitespace then only reading it.
+
 ### Code generation (`write_tables.c`)
 
-- Translate `${state}` to `D_PN(_ps, _offset)`'s state slot. It can be
-  assigned in speculative actions.
-- Translate `${state N}` to child `N`'s start state.
-- Assigning `${state}` in a final action is an error.
+The state lives in the internal `PNode`, not in `D_ParseNode`, so generated
+code reaches it through functions:
+
+- In speculative actions, `${state}` becomes `(*d_state_slot(D_PN(_ps, _offset)))`,
+  which can be assigned.
+- In final actions and passes, `${state}` becomes `(d_get_state(...))`, which
+  is not an lvalue, so assigning it is a compile error.
+- `${state N}` becomes `(d_get_state_before(D_PN(_children[N], _offset)))`.
+  The state before a node is recorded on its leftmost leaf (a token, an
+  epsilon reduction or an error recovery node).
 
 ### Bindings
 
@@ -239,7 +312,9 @@ commit rules (`equiv_D_Scope`, `commit_D_Scope`) that work well.
   - an ambiguous grammar where a state-dependent rejection keeps exactly one
     path alive;
   - `break`-in-loop;
-  - the case of the same text with different states at the top level;
+  - the case of the same text with different states at the top level,
+    with and without `prefer`;
+  - a whitespace function whose behavior depends on the state;
   - the case where state is unused (output must match today's byte for byte).
 - `test_dsymtab`-style unit test for the intern table.
 - Python tests with tuple and dataclass states, plus a Rust integration test.
@@ -337,7 +412,7 @@ parenthesis. Both files now use `${declare mutable_speculative_globals}`.
 
 This grammar is the best first test for Part A. `implicit_line_joining` and
 the indent stack are read by the **whitespace function**, so Part A must let
-whitespace see the threaded state (open question 2). Porting this grammar to
+whitespace read the threaded state (see [Whitespace](#whitespace)). Porting this grammar to
 `${state}`, and adding an input where paths split across a parenthesis,
 should be Part A's acceptance test.
 
@@ -530,16 +605,17 @@ About 1.5–2.5 weeks in total.
 4. **Revisit grammar syntax for attributes** only if users of Part B ask for
    it.
 
+## Resolved questions
+
+1. **Part A and `ambiguity_fn`.** When complete parses differ in their
+   final state, the user can choose with an optional ordering of states,
+   `state_fns->prefer`, applied before `ambiguity_fn`. See
+   [Choosing between final states](#choosing-between-final-states).
+2. **Part A and whitespace.** Whitespace can read the state but not change
+   it. See [Whitespace](#whitespace).
+
 ## Open questions
 
-1. **Part A and `ambiguity_fn`.** When two complete parses differ only in
-   their final state, should the parser report an ambiguity? Or should it be
-   able to choose by a user-supplied ordering of states?
-2. **Part A and whitespace.** The Python grammar needs whitespace handling
-   to *read* path-specific state (`implicit_line_joining`, the indent stack),
-   so reading should be supported. Should whitespace also be able to
-   *change* state, for example for comment syntax that depends on a mode?
-   That requires the whitespace subparser to return state.
 3. **Part B: attributes during disambiguation.** Is it worth building attribute
    trees for each candidate inside `ambiguity_fn`, for example to pick the
    well-typed reading of `a * b;`? This is powerful but costly, and it mixes

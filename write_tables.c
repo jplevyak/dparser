@@ -1283,6 +1283,23 @@ static void write_code(File *file, Grammar *g, Rule *r, int kind, char *fnname, 
           fprintf(fp, " free_D_ParseTreeBelow(_parser, (D_PN(_ps, _offset)))");
         } else if (STREQ(c, e - c, "scope")) {
           fprintf(fp, "(D_PN(_ps, _offset)->scope)");
+        } else if (STREQ(c, e - c, "state")) {
+          /* ${state}: assignable in speculative actions, read-only elsewhere.
+             ${state N}: the state at the start of child N, read-only. */
+          char *n = e;
+          while (n < a && isspace_(*n)) n++;
+          if (n < a) {
+            int i = atoi(n);
+            if (!isdigit_(*n)) d_fail("bad ${state N} at line %d", line);
+            while (n < a && isdigit_(*n)) n++;
+            while (n < a && isspace_(*n)) n++;
+            if (n < a) d_fail("bad ${state N} at line %d", line);
+            if (i > (int)r->elems.n - 1) d_fail("${state N} greater than number of children at line %d", line);
+            fprintf(fp, "(d_get_state_before(D_PN(_children[%d], _offset)))", i);
+          } else if (kind == CODE_SPECULATIVE)
+            fprintf(fp, "(*d_state_slot(D_PN(_ps, _offset)))");
+          else
+            fprintf(fp, "(d_get_state(D_PN(_ps, _offset)))");
         } else if (STREQ(c, e - c, "parser")) {
           fprintf(fp, "_parser");
         } else if (STREQ(c, e - c, "nterm")) {

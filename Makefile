@@ -130,7 +130,7 @@ INSTALL_LIBRARIES = $(LIBDPARSE)
 INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp
 MANPAGES = make_dparser.1
 
-EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions test_bounds
+EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions test_bounds test_state
 ifeq ($(OS_TYPE),CYGWIN)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
@@ -150,11 +150,12 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions test_bounds test_spec_globals
+test: test_cpp test_cpp_actions test_bounds test_state test_spec_globals
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
 	./test_bounds
+	./test_state
 
 # $g is read-only in speculative actions unless the grammar declares
 # ${declare mutable_speculative_globals}: check that this is enforced in C and C++.
@@ -222,6 +223,16 @@ TEST_CPP_ACTIONS_OBJS = test_cpp_actions.o test_cpp_actions.g.d_parser.o
 TEST_BOUNDS_OBJS = test_bounds.o test_bounds.g.d_parser.o
 test_bounds: $(TEST_BOUNDS_OBJS) $(INSTALL_LIBRARIES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+TEST_STATE_OBJS = test_state.o test_state.g.d_parser.o test_state_ws.g.d_parser.o
+test_state: $(TEST_STATE_OBJS) $(INSTALL_LIBRARIES)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+test_state.g.d_parser.c: test_state.g make_dparser
+	$(MAKE_DPARSER) -A -i state $<
+
+test_state_ws.g.d_parser.c: test_state_ws.g make_dparser
+	$(MAKE_DPARSER) -i state_ws $<
 
 test_cpp_actions.g.d_parser.o: test_cpp_actions.g.d_parser.c
 	$(CXX) $(CXXFLAGS) -I. -x c++ -c -o $@ $<

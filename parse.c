@@ -139,16 +139,87 @@ char *d_ws_after(D_Parser *ap, D_ParseNode *apn) {
   return pn->ws_after;
 }
 
-#define SNODE_HASH(_s, _sc) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))))
+/* Threaded state.  With state_fns, values are interned in an open-addressed
+   table (power of 2 size) so that equal values share a pointer; the table
+   owns them until free_D_Parser.  Without state_fns, pointers are used as is. */
 
-SNode *find_SNode(Parser *p, uint state, D_Scope *sc) {
+static void state_table_insert(Parser *p, void *state) {
+  uint mask = p->state_table.m - 1, h = p->user.state_fns->hash(state) & mask;
+  while (p->state_table.v[h]) h = (h + 1) & mask;
+  p->state_table.v[h] = state;
+  p->state_table.n++;
+}
+
+void *d_intern_state(D_Parser *ap, void *state) {
+  Parser *p = (Parser *)ap;
+  D_StateFns *fns = p->user.state_fns;
+  uint mask, h, i;
+  void *x;
+  if (!fns || !state) return state;
+  if (p->state_table.m) {
+    mask = p->state_table.m - 1;
+    for (h = fns->hash(state) & mask; (x = p->state_table.v[h]); h = (h + 1) & mask)
+      if (x == state) return x;
+    for (h = fns->hash(state) & mask; (x = p->state_table.v[h]); h = (h + 1) & mask)
+      if (fns->equal(x, state)) {
+        if (fns->free) fns->free(state);
+        return x;
+      }
+  }
+  if ((p->state_table.n + 1) * 2 > p->state_table.m) {
+    void **v = p->state_table.v;
+    uint m = p->state_table.m;
+    p->state_table.m = m ? m * 2 : 64;
+    p->state_table.n = 0;
+    p->state_table.v = MALLOC(p->state_table.m * sizeof(void *));
+    memset(p->state_table.v, 0, p->state_table.m * sizeof(void *));
+    for (i = 0; i < m; i++)
+      if (v[i]) state_table_insert(p, v[i]);
+    FREE(v);
+  }
+  state_table_insert(p, state);
+  return state;
+}
+
+static void free_state_table(Parser *p) {
+  uint i;
+  if (p->user.state_fns && p->user.state_fns->free)
+    for (i = 0; i < p->state_table.m; i++)
+      if (p->state_table.v[i]) p->user.state_fns->free(p->state_table.v[i]);
+  FREE(p->state_table.v);
+  p->state_table.v = NULL;
+  p->state_table.n = p->state_table.m = 0;
+}
+
+/* After a speculative action: intern whatever it assigned to ${state}. */
+static void intern_result_state(Parser *p, PNode *pn) {
+  if (pn->state != pn->initial_state) pn->state = d_intern_state((D_Parser *)p, pn->state);
+}
+
+void **d_state_slot(D_ParseNode *apn) { return &D_ParseNode_to_PNode(apn)->state; }
+
+void *d_get_state(D_ParseNode *apn) { return D_ParseNode_to_PNode(apn)->state; }
+
+/* The state before a node is the state before its leftmost leaf: a token, an
+   epsilon reduction or an error recovery node, which record it on creation. */
+void *d_get_state_before(D_ParseNode *apn) {
+  PNode *pn = D_ParseNode_to_PNode(apn);
+  while (pn->children.n) pn = pn->children.v[0];
+  return pn->initial_state;
+}
+
+void *d_get_whitespace_state(D_Parser *ap) { return ((Parser *)ap)->ws_state; }
+
+#define SNODE_HASH(_s, _sc, _st) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))) + (((uintptr_t)(_st)) >> 3))
+
+SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *st) {
   SNodeHash *ph = &p->snode_hash;
   SNode *sn;
-  uint h = SNODE_HASH(state, sc);
+  uint h = SNODE_HASH(state, sc, st);
   SNode *result = NULL;
   if (ph->v)
     for (sn = ph->v[h % ph->m]; sn; sn = sn->bucket_next)
-      if (sn->state - p->t->state == state && sn->initial_scope == sc) {
+      if (sn->state - p->t->state == state && sn->initial_scope == sc && sn->initial_state == st) {
         assert(!result);
         result = sn;
       }
@@ -157,7 +228,7 @@ SNode *find_SNode(Parser *p, uint state, D_Scope *sc) {
 
 void insert_SNode_internal(Parser *p, SNode *sn) {
   SNodeHash *ph = &p->snode_hash;
-  uint h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope), i;
+  uint h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_state), i;
   SNode *t;
 
   if (ph->n + 1 > ph->m) {
@@ -187,7 +258,7 @@ static void insert_SNode(Parser *p, SNode *sn) {
   p->snode_hash.all = sn;
 }
 
-static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc) {
+static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, void *st) {
   SNode *sn = p->free_snodes;
   if (!sn)
     sn = MALLOC(sizeof *sn);
@@ -203,6 +274,7 @@ static SNode *new_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc) {
   p->states++;
   sn->state = state;
   sn->initial_scope = sc;
+  sn->initial_state = st;
   sn->last_pn = NULL;
   sn->loc = *loc;
   insert_SNode(p, sn);
@@ -291,44 +363,47 @@ static void free_SNode(Parser *p, struct SNode *s) {
 #define free_ZNode(_p, _z, _s)
 #endif
 
-#define PNODE_HASH(_si, _ei, _s, _sc) \
-  ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)))
+#define PNODE_HASH(_si, _ei, _s, _sc, _st)                                                \
+  ((((uintptr_t)_si) << 8) + (((uintptr_t)_ei) << 16) + (((uintptr_t)_s)) + (((uintptr_t)_sc)) + \
+   (((uintptr_t)_st) >> 3))
 
 /* Two scopes give the same view of the symbol table. */
 static int same_D_Scope(D_Scope *a, D_Scope *b) { return a == b || equiv_D_Scope(a) == equiv_D_Scope(b); }
 
-/* Find the PNode for start/end/symbol/initial scope whose resulting scope is
-   equivalent to 'result_scope'.  Derivations whose actions leave the symbol
-   table in different states are kept as separate PNodes (rather than merged
-   as ambiguities) so that each parse path continues with its own scope.
-   With result_scope NULL, return any of them. */
-PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, D_Scope *result_scope,
-                  uint *hash) {
+/* Find the PNode for start/end/symbol/initial scope and state whose resulting
+   scope is equivalent to, and resulting threaded state the same as, those of
+   'result'.  Derivations whose actions leave the symbol table or the threaded
+   state different are kept as separate PNodes (rather than merged as
+   ambiguities) so that each parse path continues with its own scope and state.
+   With result NULL, return any of them. */
+static PNode *find_PNode(Parser *p, char *start, char *end_skip, int symbol, D_Scope *sc, void *st, PNode *result,
+                         uint *hash) {
   PNodeHash *ph = &p->pnode_hash;
   PNode *pn;
-  uint h = PNODE_HASH(start, end_skip, symbol, sc);
+  uint h = PNODE_HASH(start, end_skip, symbol, sc, st);
   *hash = h;
   if (ph->v)
     for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
       if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
-          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
+          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc && pn->initial_state == st) {
         PNode *t = pn;
         LATEST(p, t);
-        if (!result_scope || same_D_Scope(t->parse_node.scope, result_scope)) return t;
+        if (!result || (same_D_Scope(t->parse_node.scope, result->parse_node.scope) && t->state == result->state))
+          return t;
       }
   return NULL;
 }
 
 /* Find an existing PNode (or ambiguity) for exactly this derivation. */
 static int PNode_equal(Parser *p, PNode *pn, D_Reduction *r, VecZNode *path, D_Shift *sh);
-static PNode *find_equal_PNode(Parser *p, uint h, char *start, char *end_skip, int symbol, D_Scope *sc,
+static PNode *find_equal_PNode(Parser *p, uint h, char *start, char *end_skip, int symbol, D_Scope *sc, void *st,
                                D_Reduction *r, VecZNode *path, D_Shift *sh) {
   PNodeHash *ph = &p->pnode_hash;
   PNode *pn, *amb;
   if (ph->v)
     for (pn = ph->v[h % ph->m]; pn; pn = pn->bucket_next)
       if (pn->hash == h && pn->parse_node.symbol == symbol && pn->parse_node.start_loc.s == start &&
-          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc) {
+          pn->parse_node.end_skip == end_skip && pn->initial_scope == sc && pn->initial_state == st) {
         PNode *t = pn;
         LATEST(p, t);
         if (PNode_equal(p, t, r, path, sh)) return t;
@@ -340,7 +415,9 @@ static PNode *find_equal_PNode(Parser *p, uint h, char *start, char *end_skip, i
 
 void insert_PNode_internal(Parser *p, PNode *pn) {
   PNodeHash *ph = &p->pnode_hash;
-  uint h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope), i;
+  uint h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope,
+                      pn->initial_state),
+       i;
   PNode *t;
 
   if (ph->n + 1 > ph->m) {
@@ -374,7 +451,7 @@ static void free_old_nodes(Parser *p) {
   PNode *pn = p->pnode_hash.all, *tpn, **lpn;
   SNode *sn = p->snode_hash.all, *tsn, **lsn;
   while (sn) {
-    h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope);
+    h = SNODE_HASH(sn->state - p->t->state, sn->initial_scope, sn->initial_state);
     lsn = &p->snode_hash.v[h % p->snode_hash.m];
     tsn = sn;
     sn = sn->all_next;
@@ -399,7 +476,8 @@ static void free_old_nodes(Parser *p) {
         pn->children.v[i] = tpn;
       }
     }
-    h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope);
+    h = PNODE_HASH(pn->parse_node.start_loc.s, pn->parse_node.end_skip, pn->parse_node.symbol, pn->initial_scope,
+                   pn->initial_state);
     lpn = &p->pnode_hash.v[h % p->pnode_hash.m];
     tpn = pn;
     pn = pn->all_next;
@@ -535,11 +613,11 @@ static void add_Shift(Parser *p, SNode *snode) {
   *l = s;
 }
 
-static SNode *add_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc) {
+static SNode *add_SNode(Parser *p, D_State *state, d_loc_t *loc, D_Scope *sc, void *st) {
   uint i;
-  SNode *sn = find_SNode(p, state - p->t->state, sc);
+  SNode *sn = find_SNode(p, state - p->t->state, sc, st);
   if (sn) return sn;
-  sn = new_SNode(p, state, loc, sc);
+  sn = new_SNode(p, state, loc, sc, st);
   if (sn->state->shifts) add_Shift(p, sn);
   for (i = 0; i < sn->state->reductions.n; i++)
     if (!sn->state->reductions.v[i]->nelements) add_Reduction(p, 0, sn, sn->state->reductions.v[i]);
@@ -921,7 +999,7 @@ static int cmp_pnodes(Parser *p, PNode *x, PNode *y) {
 }
 
 static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r,
-                         VecZNode *path, D_Shift *sh, D_Scope *scope) {
+                         VecZNode *path, D_Shift *sh, D_Scope *scope, void *st) {
   int i;
   uint l = sizeof(PNode) - sizeof(d_voidp)  // -sizeof default D_ParseNode_User (voidp).
            + p->user.sizeof_user_parse_node;
@@ -951,6 +1029,7 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
   new_pn->reduction = r;
   new_pn->parse_node.scope = pn->parse_node.scope;
   new_pn->initial_scope = scope;
+  new_pn->state = new_pn->initial_state = st;
   new_pn->latest = new_pn;
   new_pn->ws_after = e;
   if (sh) {
@@ -962,8 +1041,10 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
       dummy.action_index = sh->action_index;
       new_pn->reduction = &dummy;
       void **v0 = new_pn->children.v == NULL ? NULL : (void **)&new_pn->children.v[0];
-      if (sh->speculative_code(new_pn, v0, new_pn->children.n,
-                               (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)), (D_Parser *)p)) {
+      int rejected = sh->speculative_code(new_pn, v0, new_pn->children.n,
+                                          (intptr_t)(sizeof(PNode) - sizeof(D_ParseNode)), (D_Parser *)p);
+      intern_result_state(p, new_pn);
+      if (rejected) {
         free_PNode(p, new_pn);
         return NULL;
       }
@@ -977,7 +1058,9 @@ static PNode *make_PNode(Parser *p, uint hash, int symbol, d_loc_t *start_loc, c
         ref_pn(latest);
         vec_add(&new_pn->children, latest);
       }
-    if (reduce_actions(p, new_pn, r)) {
+    int rejected = reduce_actions(p, new_pn, r);
+    intern_result_state(p, new_pn);
+    if (rejected) {
       free_PNode(p, new_pn);
       return NULL;
     }
@@ -1017,13 +1100,14 @@ static int PNode_equal(Parser *p, PNode *pn, D_Reduction *r, VecZNode *path, D_S
 static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNode *pn, D_Reduction *r, VecZNode *path,
                         D_Shift *sh) {
   D_Scope *scope = equiv_D_Scope(pn->parse_node.scope);
+  void *st = pn->state;
   uint hash;
-  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, NULL, &hash), *new_pn, *match;
+  PNode *old_pn = find_PNode(p, start_loc->s, e, symbol, scope, st, NULL, &hash), *new_pn, *match;
   if (old_pn) {
-    PNode *same = find_equal_PNode(p, hash, start_loc->s, e, symbol, scope, r, path, sh);
+    PNode *same = find_equal_PNode(p, hash, start_loc->s, e, symbol, scope, st, r, path, sh);
     if (same) return same;
   }
-  new_pn = make_PNode(p, hash, symbol, start_loc, e, pn, r, path, sh, scope);
+  new_pn = make_PNode(p, hash, symbol, start_loc, e, pn, r, path, sh, scope, st);
   if (!old_pn) {
     old_pn = new_pn;
     if (!new_pn) return NULL;
@@ -1031,15 +1115,15 @@ static PNode *add_PNode(Parser *p, int symbol, d_loc_t *start_loc, char *e, PNod
     goto Lreturn;
   }
   if (!new_pn) goto Lreturn;
-  /* prefer to compare against the derivation leaving the symbol table in the same state */
-  match = find_PNode(p, start_loc->s, e, symbol, scope, new_pn->parse_node.scope, &hash);
+  /* prefer to compare against the derivation leaving the symbol table and threaded state the same */
+  match = find_PNode(p, start_loc->s, e, symbol, scope, st, new_pn, &hash);
   if (match) old_pn = match;
   p->compares++;
   switch (cmp_pnodes(p, new_pn, old_pn)) {
     case 0:
       if (!match) {
-        /* Ambiguous, but the symbol table differs: keep a separate PNode so that this
-           parse path continues with its own scope.  Ambiguities which survive to the
+        /* Ambiguous, but the symbol table or threaded state differs: keep a separate
+           PNode so that this parse path continues with its own scope and state.  Ambiguities which survive to the
            end of the parse are merged by handle_top_level_ambiguities. */
         insert_PNode(p, new_pn);
         return new_pn;
@@ -1151,7 +1235,7 @@ static SNode *goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
   if (!IS_BIT_SET(ps->state->goto_valid, pn->parse_node.symbol)) return NULL;
   state_index = GOTO_STATE(p, pn, ps);
   state = &p->t->state[state_index];
-  new_ps = add_SNode(p, state, loc, pn->parse_node.scope);
+  new_ps = add_SNode(p, state, loc, pn->parse_node.scope, pn->state);
   if (new_ps->last_pn) unref_pn(p, new_ps->last_pn);
   ref_pn(pn);
   new_ps->last_pn = pn;
@@ -1168,7 +1252,7 @@ static SNode *goto_PNode(Parser *p, d_loc_t *loc, PNode *pn, SNode *ps) {
     if (!pn->shift)
       for (j = 0; j < new_ps->state->right_epsilon_hints.n; j++) {
         D_RightEpsilonHint *h = &new_ps->state->right_epsilon_hints.v[j];
-        pre_ps = find_SNode(p, h->preceeding_state, new_ps->initial_scope);
+        pre_ps = find_SNode(p, h->preceeding_state, new_ps->initial_scope, new_ps->initial_state);
         if (!pre_ps) continue;
         for (k = 0; k < pre_ps->zns.n; k++)
           if (pre_ps->zns.v[k]) {
@@ -1193,6 +1277,7 @@ void parse_whitespace(D_Parser *ap, d_loc_t *loc, void **p_globals) {
   Parser *pp = ((Parser *)ap)->whitespace_parser;
   (void)p_globals;
   pp->start = loc->s;
+  pp->top_state = ((Parser *)ap)->ws_state; /* readable, not changeable, by whitespace */
   if (!exhaustive_parse(pp, ((Parser *)ap)->t->whitespace_state)) {
     if (pp->accept) {
       uint old_col = loc->col, old_line = loc->line;
@@ -1209,6 +1294,7 @@ static void shift_all(Parser *p, char *pos) {
   uint i, j, nshifts = 0;
   int ncode = 0;
   d_loc_t loc, skip_loc;
+  void *skip_state = NULL;
   PNode *new_pn;
   D_State *state;
   ShiftResult *r;
@@ -1286,8 +1372,9 @@ static void shift_all(Parser *p, char *pos) {
                p->t->symbols[r->shift->symbol].name));
     new_pn = add_PNode(p, r->shift->symbol, &r->snode->loc, r->loc.s, r->snode->last_pn, NULL, NULL, r->shift);
     if (new_pn) {
-      if (!skip_loc.s || skip_loc.s != r->loc.s) {
+      if (!skip_loc.s || skip_loc.s != r->loc.s || skip_state != new_pn->state) {
         skip_loc = r->loc;
+        skip_state = p->ws_state = new_pn->state;
         p->user.initial_white_space_fn((D_Parser *)p, &skip_loc, &p->user.initial_globals);
         skip_loc.ws = r->loc.s;
         new_pn->ws_before = loc.ws;
@@ -1763,9 +1850,10 @@ static int error_recovery(Parser *p) {
       ZNode *zn = best_sn->zns.v[i];
       if (zn && (!best_pn || best_pn->parse_node.start_loc.s < zn->pn->parse_node.start_loc.s)) best_pn = zn->pn;
     }
+    p->ws_state = best_sn->initial_state;
     p->user.initial_white_space_fn((D_Parser *)p, &best_loc, &p->user.initial_globals);
     new_pn = add_PNode(p, 0, &p->user.loc, best_loc.s, best_pn, 0, 0, 0);
-    new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope);
+    new_sn = new_SNode(p, best_sn->state, &best_loc, new_pn->initial_scope, new_pn->initial_state);
     ref_pn(new_pn);
     new_sn->last_pn = new_pn;
     set_add_znode(&new_sn->zns, (z = new_ZNode(p, new_pn)));
@@ -1843,11 +1931,13 @@ static int exhaustive_parse(Parser *p, int state) {
 
   pos = p->user.loc.ws = p->user.loc.s = p->start;
   loc = p->user.loc;
+  p->ws_state = p->top_state;
   p->user.initial_white_space_fn((D_Parser *)p, &loc, &p->user.initial_globals);
   /* initial state */
-  sn = add_SNode(p, &p->t->state[state], &loc, p->top_scope);
+  sn = add_SNode(p, &p->t->state[state], &loc, p->top_scope, p->top_state);
   memset(&tpn, 0, sizeof(tpn));
   tpn.initial_scope = tpn.parse_node.scope = p->top_scope;
+  tpn.initial_state = tpn.state = p->top_state;
   tpn.parse_node.end = loc.s;
   if (sn->last_pn) unref_pn(p, sn->last_pn);
   pn = add_PNode(p, 0, &loc, loc.s, &tpn, 0, 0, 0);
@@ -2021,6 +2111,7 @@ void free_D_Parser(D_Parser *ap) {
   Parser *p = (Parser *)ap;
   if (p->top_scope && !p->user.initial_scope) free_D_Scope(p->top_scope, 0);
   if (p->whitespace_parser) free_D_Parser((D_Parser *)p->whitespace_parser);
+  free_state_table(p);
   FREE(ap);
 }
 
@@ -2078,7 +2169,8 @@ static void add_top_level_ambiguity(Parser *p, PNode *x, PNode **pn, PNode **las
   }
 }
 
-/* Other accepting SNodes at the same position: parse paths whose symbol tables differ. */
+/* Other accepting SNodes at the same position: parse paths whose symbol tables or
+   threaded states differ. */
 static int other_accepts(SNode *sn, SNode *x) {
   return x != sn && x->state == sn->state && x->loc.s == sn->loc.s;
 }
@@ -2093,26 +2185,52 @@ static int has_top_level_ambiguities(Parser *p, SNode *sn) {
   return 0;
 }
 
+/* Is some other candidate's final state preferred to that of candidate i? */
+static int dominated_state(Parser *p, VecPNode *v, uint i) {
+  uint j;
+  for (j = 0; j < v->n; j++)
+    if (v->v[j]->state != v->v[i]->state && p->user.state_fns->prefer(v->v[j]->state, v->v[i]->state) > 0) return 1;
+  return 0;
+}
+
 static PNode *handle_top_level_ambiguities(Parser *p, SNode *sn) {
   uint i;
   ZNode *z = 0;
-  PNode *pn = NULL, *last = NULL;
+  PNode *pn = NULL, *last = NULL, *c;
   SNode *x;
   int pass;
+  VecPNode candidates;
+  vec_clear(&candidates);
   for (i = 0; i < sn->zns.n; i++) {
     if (sn->zns.v[i]) {
-      add_top_level_ambiguity(p, sn->zns.v[i]->pn, &pn, &last);
-      if (!z)
-        z = sn->zns.v[i];
-      else
-        free_ZNode(p, sn->zns.v[i], sn);
+      vec_add(&candidates, sn->zns.v[i]->pn);
+      if (!z) z = sn->zns.v[i];
     }
   }
   for (pass = 0; pass < 2; pass++)
     for (x = pass ? p->snode_hash.last_all : p->snode_hash.all; x; x = x->all_next)
       if (other_accepts(sn, x))
         for (i = 0; i < x->zns.n; i++)
-          if (x->zns.v[i]) add_top_level_ambiguity(p, x->zns.v[i]->pn, &pn, &last);
+          if (x->zns.v[i]) vec_add(&candidates, x->zns.v[i]->pn);
+  for (i = 0; i < candidates.n; i++) {
+    c = candidates.v[i];
+    LATEST(p, c);
+    candidates.v[i] = c;
+  }
+  /* Drop candidates whose final state is less preferred than another's. */
+  if (p->user.state_fns && p->user.state_fns->prefer) {
+    uint keep = 0;
+    char *dominated = MALLOC(candidates.n ? candidates.n : 1);
+    for (i = 0; i < candidates.n; i++) dominated[i] = (char)dominated_state(p, &candidates, i);
+    for (i = 0; i < candidates.n; i++)
+      if (!dominated[i]) candidates.v[keep++] = candidates.v[i];
+    candidates.n = keep;
+    FREE(dominated);
+  }
+  for (i = 0; i < candidates.n; i++) add_top_level_ambiguity(p, candidates.v[i], &pn, &last);
+  vec_free(&candidates);
+  for (i = 0; i < sn->zns.n; i++)
+    if (sn->zns.v[i] && sn->zns.v[i] != z) free_ZNode(p, sn->zns.v[i], sn);
   sn->zns.v[0] = z;
   sn->zns.n = 1;
   sn->zns.i = 0;
@@ -2139,6 +2257,7 @@ D_ParseNode *dparse(D_Parser *ap, char *buf, int buf_len) {
     p->top_scope = new_D_Scope(NULL);
     p->top_scope->kind = D_SCOPE_SEQUENTIAL;
   }
+  p->top_state = d_intern_state((D_Parser *)p, p->user.initial_state);
   r = exhaustive_parse(p, p->user.start_state);
   if (!r) {
     sn = p->accept;
@@ -2157,6 +2276,7 @@ D_ParseNode *dparse(D_Parser *ap, char *buf, int buf_len) {
           "%d states %d scans %d shifts %d reductions "
           "%d compares %d ambiguities\n",
           p->states, p->scans, p->shifts, p->reductions, p->compares, p->ambiguities);
+      if (p->state_table.n) printf("%d threaded states\n", p->state_table.n);
       if (p->user.save_parse_tree) {
         if (d_verbose_level > 1)
           xprint_paren(p, pn);

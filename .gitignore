@@ -4,6 +4,7 @@ D_BUILD_VERSION
 *.swp
 *.d_parser.c
 *.d_parser.dat
+*.d_parser.h
 *.g.md5
 d_parser_mach_gen.g
 tests/*.out
@@ -15,6 +16,7 @@ test_dsymtab
 test_cpp
 test_cpp_actions
 test_bounds
+test_state
 /.aider*
 /.build
 /.vs

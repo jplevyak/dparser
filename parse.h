@@ -79,6 +79,13 @@ typedef struct Parser {
   int ncode_shifts;
   /* comments */
   struct Parser *whitespace_parser;
+  /* threaded state */
+  void *top_state;  /* state at the start of the parse */
+  void *ws_state;   /* state seen by the whitespace function being called */
+  struct {
+    void **v;
+    uint n, m; /* used, size (power of 2) */
+  } state_table;
   /* interface support */
   void *pinterface1;
 #ifdef TRACK_PNODES
@@ -113,6 +120,8 @@ typedef struct PNode {
   char *ws_before;
   char *ws_after;
   D_Scope *initial_scope;
+  void *initial_state; /* threaded state before this node's action */
+  void *state;         /* threaded state after this node */
 #ifdef TRACK_PNODES
   struct PNode *xnext;
   struct PNode *xprev;
@@ -132,6 +141,7 @@ typedef struct SNode {
   uint32 in_error_recovery_queue : 1;
   D_State *state;
   D_Scope *initial_scope;
+  void *initial_state;
   PNode *last_pn;
   VecZNode zns;
   struct SNode *bucket_next;

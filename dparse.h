@@ -31,6 +31,17 @@ typedef void (*D_SyntaxErrorFn)(struct D_Parser *);
 typedef struct D_ParseNode *(*D_AmbiguityFn)(struct D_Parser *, int n, struct D_ParseNode **v);
 typedef void (*D_FreeNodeFn)(struct D_ParseNode *d);
 
+/* Threaded state: an immutable value per parse path, flowing left to right.
+   Values are interned (equal values share one pointer) and owned by the
+   parser, which frees them in free_D_Parser.  With D_Parser.state_fns NULL,
+   values are compared by pointer and are neither interned nor freed. */
+typedef struct D_StateFns {
+  unsigned (*hash)(void *state);
+  int (*equal)(void *a, void *b);  /* nonzero if equal */
+  void (*free)(void *state);       /* optional */
+  int (*prefer)(void *a, void *b); /* optional: >0 prefer a, <0 prefer b, 0 neither */
+} D_StateFns;
+
 typedef struct D_Parser {
   D_ParseNode_Globals *initial_globals; /* global values */
   D_WhiteSpaceFn initial_white_space_fn;
@@ -55,6 +66,9 @@ typedef struct D_Parser {
   int partial_parses;
   /* parse results */
   int syntax_errors; /* do not move or change without fixing copy_user_configurables() */
+  /* threaded state (not copied to subparsers) */
+  D_StateFns *state_fns;
+  void *initial_state;
 } D_Parser;
 
 typedef struct D_ParseNode {
@@ -79,6 +93,12 @@ char *d_ws_before(D_Parser *p, D_ParseNode *pn); /* points BEFORE leading ws */
 char *d_ws_after(D_Parser *p, D_ParseNode *pn);  /* points AFTER trailing ws */
 
 void d_pass(D_Parser *p, D_ParseNode *pn, int pass_number);
+
+void *d_intern_state(D_Parser *p, void *state); /* the canonical pointer; the parser owns it */
+void *d_get_state(D_ParseNode *pn);             /* the state after pn */
+void *d_get_state_before(D_ParseNode *pn);      /* the state before pn */
+void *d_get_whitespace_state(D_Parser *p);      /* the state, in a whitespace function */
+void **d_state_slot(D_ParseNode *pn);           /* used by generated code for ${state} */
 
 int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v);
 
