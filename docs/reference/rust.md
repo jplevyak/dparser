@@ -9,6 +9,8 @@ The Rust runtime parses exactly as the C runtime does. It gives the same
 parse trees, ambiguity resolution, error recovery, and even the same
 statistics on the C test suite (see [Testing](#testing)).
 
+The [Rust tutorial](../tutorial/rust.md) builds a parser step by step.
+
 !!! note
     The Rust runtime's API may still change.
 

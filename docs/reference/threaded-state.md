@@ -15,7 +15,8 @@ and that affect which parses are accepted:
   function, or the active language version;
 - **counters and stacks**: nesting depth, or an indentation stack.
 
-Threaded state is available in C, C++, Python and Rust.
+Threaded state is available in C, C++, Python and Rust. The tutorial
+introduces it in [Scopes and State](../tutorial/scopes-and-state.md#context-that-isnt-a-name).
 
 ## Which kind of state?
 

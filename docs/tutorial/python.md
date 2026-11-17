@@ -1,4 +1,4 @@
-# 6. Python
+# 7. Python
 
 The Python binding lets you write a whole parser in Python. There is no
 separate grammar file and no C compiler step. Each grammar rule lives in

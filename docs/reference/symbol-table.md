@@ -6,7 +6,8 @@ sharing everything they have in common.
 
 It is optional: you only need it if your speculative actions depend on
 declarations, as in the C `typedef` problem. For a walkthrough see
-[Speculative Actions](../tutorial/speculative-actions.md); for how it works
+[Speculative Actions](../tutorial/speculative-actions.md) and
+[Scopes and State](../tutorial/scopes-and-state.md); for how it works
 see [Symbol Table internals](../internals/symbol-table.md).
 
 ## Concepts

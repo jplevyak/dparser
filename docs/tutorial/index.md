@@ -2,8 +2,8 @@
 
 This tutorial builds working parsers step by step. Each chapter has
 complete code that you can copy, compile and run. Every example was run
-while writing these pages: chapters 1 to 6 with DParser 1.37, and chapter 7
-with 1.40.
+while writing these pages: chapters 1 to 5 and 7 with DParser 1.37, and
+chapters 6, 8 and 9 with 1.40.
 
 1. **[A Calculator](calculator.md)**: attach C actions to grammar rules,
    carry values up the parse tree, and use priorities to get operator
@@ -17,10 +17,15 @@ with 1.40.
 5. **[Speculative Actions](speculative-actions.md)**: run code while
    alternatives are still being explored, reject parse paths, and use the
    symbol table to solve the classic C `typedef` problem.
-6. **[Python](python.md)**: the same ideas using the Python binding, with
+6. **[Scopes and State](scopes-and-state.md)**: nested scopes and data in
+   symbols, and threaded state for other context that depends on the
+   parse path, such as loop depth.
+7. **[Python](python.md)**: the same ideas using the Python binding, with
    grammar rules written in docstrings.
-7. **[Attributes after Parsing](attributes.md)**: compute values that flow
+8. **[Attributes after Parsing](attributes.md)**: compute values that flow
    up and down the finished tree, such as scopes and types, on demand.
+9. **[Rust](rust.md)**: a calculator, the symbol table and threaded state
+   with the native Rust runtime.
 
 You should have DParser [installed](../getting-started/installation.md)
 and have read [Your First Parser](../getting-started/first-parser.md).

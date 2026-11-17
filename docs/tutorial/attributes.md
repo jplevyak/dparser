@@ -1,4 +1,4 @@
-# 7. Attributes after Parsing
+# 8. Attributes after Parsing
 
 Actions compute values bottom up: each node's value comes from its
 children's. Much of what a compiler needs after parsing also flows the
@@ -235,5 +235,4 @@ See the [Attributes reference](../reference/attributes.md) for all of them.
 - `d_attr_production` and the `D_RULE_` constants tell you which rule
   built a node.
 
-That's the end of the tutorial. The [Reference](../reference/index.md)
-covers everything in full detail.
+Next: [Rust](rust.md).

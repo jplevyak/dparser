@@ -59,8 +59,8 @@ A rule can have both kinds: `rule: elements [ speculative ] { final };`
     A speculative action may run for a parse that is later abandoned, and
     may run a different number of times than the rule appears in the final
     parse. Only write to `$$` (the node's own data), to `${scope}` (the
-    symbol table, below), to `${state}` (the threaded state, below), or to
-    nothing at all. Printing or allocating
+    symbol table, below), to `${state}` (the threaded state, in the
+    [next chapter](scopes-and-state.md)), or to nothing at all. Printing or allocating
     global resources from a speculative action will see the effects of
     parses that never happen. For the same reason, `$g` is read-only in
     speculative actions; see
@@ -177,54 +177,12 @@ The same text, `a * b;`, is parsed as a multiplication before the
     `NEW_D_SYM` is fine in final actions, or when you build a symbol table
     before parsing.
 
-## Nested scopes
-
-Block-structured languages need nested scopes. Open one with
-`new_D_Scope(${scope})` when a block starts, and at the end of the block
-return to the enclosing scope with `enter_D_Scope(${scope}, outer)`. Don't
-simply assign the outer scope back to `${scope}`: `enter_D_Scope` keeps
-any updates to outer symbols made inside the block. The
-[Symbol Table reference](../reference/symbol-table.md) has a complete
-example.
-
-## Attaching data to symbols
-
-Define `D_UserSym` before including `dparse.h` to give each symbol a field
-of your own type, `sym->user`:
-
-```c
-typedef struct { int is_type; int value; } MySym;
-#define D_UserSym MySym
-```
-
-## Threaded state
-
-The symbol table is one kind of state that flows from left to right along
-a parse path. For other context, such as whether you are inside a loop,
-use the [threaded state](../reference/threaded-state.md), `${state}`: a
-value of your own that speculative actions read and replace. Paths with
-different states are kept apart, just as with scopes.
-
-```c
-stmt: 'while' '(' expr ')' enter stmt leave
-    | 'break' ';' [ if (depth(${state}) == 0) ${reject}; ]
-    | expr ';' ;
-enter: [ ${state} = with_depth(depth(${state}) + 1); ] ;
-leave: [ ${state} = with_depth(depth(${state}) - 1); ] ;
-```
-
-States are immutable: build a new value and assign it. Tell the parser how
-to compare them with `parser->state_fns`; the reference page has the
-details and a complete example.
-
 ## What you learned
 
 - `[ ]` actions run speculatively, possibly several times, on parses that
   may be abandoned. `{ }` actions run once on the final parse.
 - `${reject}` in a speculative action abandons the current parse path.
 - The symbol table gives each parse path its own view. Use
-  `SPECULATIVE_NEW_D_SYM` and `UPDATE_D_SYM` in speculative actions.
-- `${state}` carries other path-specific context, such as nesting depth,
-  from left to right.
+  `SPECULATIVE_NEW_D_SYM` to add symbols in speculative actions.
 
-Next: [Python](python.md).
+Next: [Scopes and State](scopes-and-state.md).

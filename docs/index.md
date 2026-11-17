@@ -38,7 +38,8 @@ number: "[0-9]+" { $$.value = atof($n0.start_loc.s); };
 -   **[Tutorial](tutorial/index.md)**
 
     Build a calculator step by step, then learn parse trees, error recovery,
-    ambiguity, speculative actions and attributes.
+    ambiguity, speculative actions, scopes and state, and attributes, in C,
+    Python and Rust.
 
 -   **[Reference](reference/index.md)**
 

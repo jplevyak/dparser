@@ -80,8 +80,10 @@ nav:
       - 3. Whitespace and Errors: tutorial/whitespace-and-errors.md
       - 4. Ambiguity: tutorial/ambiguity.md
       - 5. Speculative Actions: tutorial/speculative-actions.md
-      - 6. Python: tutorial/python.md
-      - 7. Attributes after Parsing: tutorial/attributes.md
+      - 6. Scopes and State: tutorial/scopes-and-state.md
+      - 7. Python: tutorial/python.md
+      - 8. Attributes after Parsing: tutorial/attributes.md
+      - 9. Rust: tutorial/rust.md
   - Reference:
       - reference/index.md
       - Grammar Syntax: reference/grammar.md
