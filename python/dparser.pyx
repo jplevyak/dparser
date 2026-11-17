@@ -58,6 +58,10 @@ cdef extern from "dparse_tables.h":
         D_SYMBOL_CODE = 6
         D_SYMBOL_TOKEN = 7
 
+cdef extern from "parse.h":
+    # the internal node of a D_ParseNode, for its reduction
+    PNode *DPN_TO_PN(D_ParseNode *pn)
+
 cdef extern from "dparse.h":
     ctypedef struct D_ParserTables:
         unsigned int nsymbols
@@ -728,12 +732,52 @@ class Tables:
 # ParsedStructure
 # ---------------------------------------------------------------------------
 
+class Node:
+    """A node of a parse tree kept with parse(..., keep_tree=True).
+
+    symbol, name: the symbol number and name.  text: the node's text.
+    start, end: byte offsets of the text.  line: the line it starts on.
+    children: the child Nodes.  value: what the node's action returned (for
+    a terminal, its text).  action: the d_ function whose rule built the
+    node, or None.  alternative: which of that function's rules (from 0), or
+    -1."""
+
+    __slots__ = ('symbol', 'name', 'text', 'start', 'end', 'line', 'children', 'value', 'action',
+                 'alternative')
+
+    def __repr__(self):
+        return 'Node(%s %r)' % (self.name, self.text)
+
+
+cdef object make_tree(D_ParseNode *d, D_ParserTables *tables, bytes buf, long base, list actions,
+                      list alternatives):
+    cdef PNode *pnode = DPN_TO_PN(d)
+    cdef int i, n = d_get_number_of_children(d)
+    cdef long st = (<long>d.start_loc.s) - base, ed = (<long>d.end) - base
+    node = Node()
+    node.symbol = d.symbol
+    node.name = tables.symbols[d.symbol].name.decode('utf-8', 'replace')
+    node.text = buf[st:ed].decode('utf-8', 'replace')
+    node.start = st
+    node.end = ed
+    node.line = d.start_loc.line
+    node.value = <object>d.user.t if d.user.t != NULL else None
+    node.action = None
+    node.alternative = -1
+    if pnode.reduction != NULL and 0 <= pnode.reduction.action_index < len(actions):
+        node.action = actions[pnode.reduction.action_index][0]
+        node.alternative = alternatives[pnode.reduction.action_index]
+    node.children = [make_tree(d_get_child(d, i), tables, buf, base, actions, alternatives) for i in range(n)]
+    return node
+
+
 class ParsedStructure:
     def __init__(self, result):
         self.string_left = ""
         self.strings = None
         self.structure = None
         self.top_node = None
+        self.tree = None
         if result:
             if len(result) >= 3:
                 self.string_left = result[2]
@@ -745,6 +789,10 @@ class ParsedStructure:
     def getStructure(self):
         """The value returned by the start rule's action."""
         return self.structure
+
+    def getTree(self):
+        """The parse tree as Nodes, if parse() was given keep_tree=True."""
+        return self.tree
 
     def getStringLeft(self):
         """The input after the end of the parse ('' unless partial_parses)."""
@@ -764,6 +812,7 @@ class Parser:
                  file_prefix="d_parser_mach_gen", make_grammar_file=False):
         self.tables = Tables()
         self.actions = []
+        self.alternatives = []  # per action index: which rule of its function
 
         if not modules:
             try:
@@ -868,6 +917,7 @@ class Parser:
                 speculative = -1
             for i in range(len(doc_rules)):
                 self.actions.append((f, arg_types, speculative))
+                self.alternatives.append(i)
 
         grammar_str = ''.join(grammar_str).encode()
         self.tables.load_tables(grammar_str, self.filename, make_grammar_file)
@@ -879,11 +929,12 @@ class Parser:
               error_recovery=False, print_debug_info=0, partial_parses=False,
               dont_compare_stacks=False, dont_use_greediness_for_disambiguation=False,
               dont_use_height_for_disambiguation=False, start_symbol='',
-              initial_state=None, prefer_state=None):
+              initial_state=None, prefer_state=None, keep_tree=False):
         """Parse buf.  initial_state is the threaded state at the start
         (any hashable object; None for none).  prefer_state(a, b) returns >0
         to prefer state a, <0 to prefer b and 0 for neither; it chooses
-        between parses that end with different states."""
+        between parses that end with different states.  keep_tree keeps the
+        parse tree as Nodes, for ParsedStructure.getTree()."""
         global _prefer_state
         cdef BinaryTables* bt
         cdef D_Parser* dp
@@ -977,11 +1028,18 @@ class Parser:
         ed = (<long>pn.end_skip) - <long>buf_ptr
         string_left = buf_bytes[ed:].decode('utf-8')
 
+        tree = None
+        if keep_tree:
+            tree = make_tree(pn, bt.parser_tables_gram, buf_bytes, <long>buf_ptr, self.actions,
+                             self.alternatives)
+
         free_D_ParseTreeBelow(dp, pn)
         free_D_ParseNode(dp, pn)
         free_D_Parser(dp)
 
-        return ParsedStructure([result, None, string_left, strings])
+        ps = ParsedStructure([result, None, string_left, strings])
+        ps.tree = tree
+        return ps
 
     def _start_state(self, tables_obj, start_symbol):
         cdef D_ParserTables *tables = <D_ParserTables*><long>tables_obj

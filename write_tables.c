@@ -50,6 +50,7 @@ typedef struct File {
   int d_parser_tables_loc;
 } File;
 
+static void write_rule_numbers(FILE *fp, Grammar *g, const char *fmt);
 static char *REDUCTION_ARGS = "(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser)";
 
 OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
@@ -1066,6 +1067,7 @@ static void write_external_code(File *file, Grammar *g) {
   for (i = 0; i < g->terminals.n; i++)
     if (g->terminals.v[i]->kind == TERM_TOKEN)
       fprintf(afp, "token %s %d\n", g->terminals.v[i]->string, g->terminals.v[i]->index + g->productions.n);
+  write_rule_numbers(afp, g, "rule %s %u %d\n");
 }
 
 static int find_symbol(Grammar *g, char *s, char *e, int kind) {
@@ -1727,6 +1729,20 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
 static void find_same_reductions(Grammar *g);
 static Rule *reduction_rule(Rule *r);
 
+/* Rule numbers, as returned by d_get_production(): for the n-th rule of
+   production p, fmt is given p's name, n and the number.  Rules sharing a
+   D_Reduction share the number of the first of them. */
+static void write_rule_numbers(FILE *fp, Grammar *g, const char *fmt) {
+  uint i, j;
+  find_same_reductions(g);
+  for (i = 0; i < g->productions.n; i++) {
+    Production *p = g->productions.v[i];
+    if (p->internal || p->regex || !strcmp(p->name, "_")) continue;
+    for (j = 0; j < p->rules.n; j++)
+      if (p->rules.v[j]->action_index < 0) fprintf(fp, fmt, p->name, j, reduction_rule(p->rules.v[j])->index);
+  }
+}
+
 static int write_header(Grammar *g, char *base_pathname, char *tag) {
   char pathname[FILENAME_MAX];
   char ver[128];
@@ -1777,18 +1793,7 @@ static int write_header(Grammar *g, char *base_pathname, char *tag) {
         if (!g->productions.v[i]->internal && g->productions.v[i]->elem)
           fprintf(hfp, "#define D_START_STATE_%s \t%d\n", g->productions.v[i]->name, g->productions.v[i]->state->index);
     }
-    /* Rule numbers, as returned by d_get_production(): D_RULE_<production>_<n>
-       for the n-th rule of a production.  Rules sharing a D_Reduction share
-       the number of the first of them. */
-    find_same_reductions(g);
-    for (i = 0; i < g->productions.n; i++) {
-      Production *p = g->productions.v[i];
-      uint j;
-      if (p->internal || p->regex || !strcmp(p->name, "_")) continue;
-      for (j = 0; j < p->rules.n; j++)
-        if (p->rules.v[j]->action_index < 0)
-          fprintf(hfp, "#define D_RULE_%s_%u \t%d\n", p->name, j, reduction_rule(p->rules.v[j])->index);
-    }
+    write_rule_numbers(hfp, g, "#define D_RULE_%s_%u \t%d\n");
     fprintf(hfp, "#endif\n");
     fclose(hfp);
     return 1;

@@ -36,9 +36,10 @@ dev = [
 
 
 [tool.setuptools]
-# Only the Cython extension (see setup.py); don't auto-discover stray .py files.
+# The Cython extension (see setup.py) and the attribute module; don't
+# auto-discover stray .py files.
 packages = []
-py-modules = []
+py-modules = ["dparser_attrs"]
 
 [tool.uv]
 # Rebuild the editable extension when the Cython or C sources change, not just

@@ -288,6 +288,17 @@ pub fn build_actions(
         } else if let Some(rest) = line.strip_prefix("whitespace ") {
             white_space = Some(rest.trim().to_string());
             i += 1;
+        } else if let Some(rest) = line.strip_prefix("rule ") {
+            // rule <production> <n> <number>: the number d_get_production
+            // gives the n-th rule of the production (ParseNode::production)
+            let mut f = rest.split_whitespace();
+            if let (Some(name), Some(n), Some(v)) = (f.next(), f.next(), f.next()) {
+                tokens.push_str(&format!(
+                    "#[allow(non_upper_case_globals, dead_code)]\npub const D_RULE_{}_{}: i32 = {};\n",
+                    name, n, v
+                ));
+            }
+            i += 1;
         } else if let Some(rest) = line.strip_prefix("token ") {
             let mut f = rest.split_whitespace();
             if let (Some(name), Some(n)) = (f.next(), f.next()) {

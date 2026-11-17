@@ -5,6 +5,7 @@
 //! actions (written in Rust) are turned into a dispatch function by
 //! [`build_actions`].  See the crate README and the DParser documentation.
 
+pub mod attrs;
 pub mod binary_format;
 pub mod builder;
 mod engine;

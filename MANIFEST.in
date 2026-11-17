@@ -3,7 +3,7 @@
 # LIB_SRCS/MK_LIB_SRCS in the Makefile.
 exclude *
 include setup.py pyproject.toml LICENSE.txt
-include python/dparser.pyx
+include python/dparser.pyx python/dparser_attrs.py
 include *.h
 include arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c dattr.c
 include mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c
