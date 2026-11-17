@@ -93,7 +93,7 @@ skipped later, when the new parse state is created. This makes it possible
 to change the whitespace handling depending on which terminal was
 recognized. The Python grammar uses this to handle implicit line joining:
 see the productions `LP`, `RP`, `LB`, `RB`, `LC` and `RC` in
-`tests/python.test.g`.
+`python.g`.
 
 ### `.` in my regular expression doesn't match any character.
 
