@@ -83,37 +83,37 @@ generator is [make_dparser.cat](make_dparser.cat).
 
 ### Python
 
-`DParser` includes a powerful Cython-based bridge that allows you to define grammars and actions directly in Python.
+The Python binding lets you write a whole parser in Python: each `d_`
+function's docstring holds grammar rules, and the function is their action.
 
-* **Usage**: Define functions starting with `d_`. The function's docstring contains the grammar rule(s) associated with it.
-* **Installation**:
-  ```bash
-  cd python
-  gmake
-  gmake install
-  ```
-* **Examples**: See `python/tests/` for various examples, including arithmetic evaluation and complex grammar structures.
+* **Install**: `pip install .` from the top of the source tree.
+* **Features**: speculative actions and `Reject`, the symbol table (a
+  `scope` action argument), threaded state (`state`), parse trees kept
+  after the parse (`keep_tree=True`), and attributes (`dparser_attrs`).
+* **Docs**: the [Python tutorial](https://jplevyak.github.io/dparser/tutorial/python/)
+  and [API reference](https://jplevyak.github.io/dparser/reference/python/).
+  `python/tests/` has many small examples.
 
 ### Rust
 
-`DParser` for Rust is a **100% pure, native Rust** implementation. It provides a scannerless GLR parser generator and runtime entirely decoupled from C dependencies, ensuring complete memory safety.
+The `dparser` crate in `rust/` is a native Rust runtime, a port of the C
+engine that parses exactly as C does. Grammars use Rust code in their
+actions; `make_dparser` (built by the crate) compiles them to tables that
+your program embeds, and `dparser::build_actions` turns the actions into a
+Rust dispatcher.
 
-* **Features**:
-  - Pure Rust Runtime (no FFI needed for core logic).
-  - Zero-copy scanning over `&str` and `&[u8]`.
-  - Arena-backed parse trees for high performance and safety.
-  - Type-safe action dispatching via macros.
-* **Building**:
+* **Features**: speculative and final actions, `${reject}`, the symbol
+  table (`${parser}.symtab`), threaded state (`${state}`), passes, error
+  recovery, external scanners, whitespace functions, and attributes
+  (`dparser::attrs`).
+* **Build and test**:
   ```bash
   cd rust
   cargo build --workspace
-  ```
-* **Testing**:
-  ```bash
-  cd rust
   cargo test --workspace
   ```
-* **Examples**: Check the `rust/example` and `rust/integration_tests` directories for usage patterns.
+* **Docs**: the [Rust tutorial](https://jplevyak.github.io/dparser/tutorial/rust/)
+  and [reference](https://jplevyak.github.io/dparser/reference/rust/).
 
 ## Makefile Options
 

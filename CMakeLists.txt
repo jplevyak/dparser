@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(dparser VERSION 1.40.0)
+project(dparser VERSION 1.41.0)
 
 include(CPack)
 include(GenerateExportHeader)

@@ -68,7 +68,7 @@ number: "[0-9]+" { $$.value = atof($n0.start_loc.s); };
   explored, and can reject a parse path, and **final actions** that run once
   on the chosen parse.
 - **A symbol table designed for ambiguous parsing**, so each speculative path
-  sees its own declarations.
+  sees its own declarations, from C, Python and Rust.
 - **[Threaded state](reference/threaded-state.md)**: your own context, such
   as nesting depth or an indentation stack, carried along each parse path
   and safe for speculative actions to read and change.
