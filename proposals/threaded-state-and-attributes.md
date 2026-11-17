@@ -1,6 +1,6 @@
 # Proposal: Speculation-Safe Threaded State and Post-Parse Attributes
 
-- **Status:** Part A in progress: C runtime, code generator and C tests done; bindings to do
+- **Status:** Part A in progress: C runtime, code generator and C++, Python and Rust bindings done; user documentation and the `python.g` port to do
 - **Target:** DParser 1.40 (Part A), 1.41 (Part B)
 - **Date:** 2026-11-16
 
@@ -284,9 +284,9 @@ code reaches it through functions:
 
 | Binding | Representation |
 |---|---|
-| C++ | `ParseNode::state<T>()`, plus a `Parser::set_state_fns` that wraps `std::hash` / `operator==`. |
-| Python | Any **hashable** Python object (a tuple, a frozen dataclass, `frozenset`). The binding provides `hash`/`equal` that call `__hash__`/`__eq__` and keeps references alive. `Parser(initial_state=...)`; actions get it through a `state` keyword argument and return `(value, new_state)` or set `nodes[i].state`. |
-| Rust | `Parser<G, N, S: Clone + Eq + Hash = ()>`. States are interned as `Rc<S>`, and `build_actions` translates `${state}`. Defaulting to `()` keeps existing code compiling. |
+| C++ | `Parser::set_state<T, Prefer>(initial)` installs `D_StateFns` that use `std::hash<T>` and `==`; `Prefer` is an optional stateless comparison. Actions use `dparser::make_state(${parser}, value)` and `dparser::state<T>(${state})`; `ParseNode::state<T>()` / `state_before<T>()` read the tree. |
+| Python | Any **hashable** Python object (a tuple, a frozen dataclass, `frozenset`); `None` is no state. The binding's `hash`/`equal`/`free` call `__hash__`/`__eq__`/`Py_DECREF`. `parse(initial_state=..., prefer_state=...)`. Actions take a `state` argument, a one-element list like `g`: speculative actions may replace `state[0]`, and in final actions it is the state after the node, read-only. A whitespace function taking two arguments also gets the state. `DParseNode.state` / `state_before` read the tree. |
+| Rust | A `StateId` handle (0 is no state), like `ScopeId`, so no signature gains a type parameter. `Parser::states` interns values of any `Eq + Hash` type: `${parser}.make_state(v)` and `${parser}.state::<T>(id)`. `build_actions` translates `${state}` to `_ps.state` (a read-only block outside speculative actions) and `${state N}` to `_ps.children[N].state_before`. `Parser::initial_state`, `prefer_state` and `white_space_state_fn` complete it. |
 
 ### Relationship to `${scope}`
 

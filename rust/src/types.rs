@@ -1,6 +1,7 @@
 //! `types.rs`
 //! Public node and location types.
 
+use crate::state::StateId;
 use crate::symtab::ScopeId;
 
 /// A location in the input: a byte offset, the offset of the whitespace
@@ -31,6 +32,12 @@ pub struct ParseNode<'a, N> {
     pub user: N,
     /// The symbol table scope after this node (`${scope}`).
     pub scope: ScopeId,
+    /// The threaded state after this node (`${state}`).  Speculative actions
+    /// may replace it (see [`Parser::make_state`](crate::Parser::make_state));
+    /// changes made by final actions are ignored.
+    pub state: StateId,
+    /// The threaded state before this node (`${state N}` for child N).
+    pub state_before: StateId,
     /// The action index of the rule that built this node, or `i32::MIN` for
     /// terminals and other nodes without a rule.
     pub action_index: i32,

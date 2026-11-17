@@ -10,6 +10,8 @@ use std::path::PathBuf;
 struct Uses {
     globals: bool,
     parser: bool,
+    /// Input: the body is a speculative action, so `${state}` can be assigned.
+    speculative: bool,
 }
 
 /// Translate the `$` specifiers in an action body, leaving comments, strings
@@ -176,6 +178,18 @@ fn process_body(body: &str, uses: &mut Uses) -> Result<String, String> {
                         match keyword {
                             "reject" => out.push_str("return -1"),
                             "scope" => out.push_str("_ps.scope"),
+                            // ${state}: assignable in speculative actions, read-only
+                            // elsewhere (a block is not a place).  ${state N}: the
+                            // state before child N, read-only.
+                            "state" if args.is_empty() => {
+                                out.push_str(if uses.speculative { "_ps.state" } else { "{ _ps.state }" })
+                            }
+                            "state" => {
+                                if !args.chars().all(|c| c.is_ascii_digit()) {
+                                    return Err(format!("bad ${{state {}}}", args));
+                                }
+                                out.push_str(&format!("{{ _ps.children[{}].state_before }}", args));
+                            }
                             "parser" => {
                                 uses.parser = true;
                                 out.push_str("_parser");
@@ -300,7 +314,7 @@ pub fn build_actions(
             if !seen.insert((kind.clone(), idx)) {
                 continue;
             }
-            let mut uses = Uses::default();
+            let mut uses = Uses { speculative, ..Uses::default() };
             let body = process_body(&body, &mut uses).map_err(|e| invalid(format!("{}:{}: {}", file, line_no, e)))?;
             let globals = if !uses.globals {
                 String::new()
@@ -470,6 +484,16 @@ mod tests {
              (_ps.children.len() as i32); (_ps.children[2].children.len() as i32); _parser"
         );
         assert!(u.parser && !u.globals);
+    }
+
+    #[test]
+    fn state_specifiers() {
+        let mut u = Uses { speculative: true, ..Uses::default() };
+        let b = process_body("${state} = x; ${state 2}", &mut u).unwrap();
+        assert_eq!(b, "_ps.state = x; { _ps.children[2].state_before }");
+        let mut u = Uses::default();
+        assert_eq!(process_body("${state}", &mut u).unwrap(), "{ _ps.state }");
+        assert!(process_body("${state x}", &mut u).is_err());
     }
 
     #[test]

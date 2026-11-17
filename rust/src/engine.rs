@@ -12,6 +12,7 @@ use std::rc::Rc;
 
 use crate::grammar::*;
 use crate::scan::{ShiftResult, read_shift, scan_buffer_into};
+use crate::state::StateId;
 use crate::symtab::ScopeId;
 use crate::types::{Loc, ParseNode};
 use crate::{ActionKind, Parser};
@@ -127,6 +128,9 @@ type ZId = usize;
 /// reductions synthesized by error recovery.
 type RedId = u32;
 
+/// A PNode's identity: start, end, symbol, initial scope and initial state.
+type PKey = (usize, usize, u32, ScopeId, StateId);
+
 pub(crate) struct PNode<N> {
     pub symbol: u32,
     pub start: Loc,
@@ -134,6 +138,11 @@ pub(crate) struct PNode<N> {
     pub end_skip: usize,
     pub scope: ScopeId,
     pub initial_scope: ScopeId,
+    /// The threaded state before this node's action, after it, and before
+    /// the node (its leftmost leaf's initial state).
+    pub initial_state: StateId,
+    pub state: StateId,
+    pub state_before: StateId,
     pub assoc: u32,
     pub priority: i32,
     pub op_assoc: u32,
@@ -162,6 +171,7 @@ struct ZSet {
 struct SNode {
     state: usize,
     initial_scope: ScopeId,
+    initial_state: StateId,
     loc: Loc,
     depth: u32,
     in_error_recovery_queue: bool,
@@ -214,10 +224,10 @@ pub(crate) struct Engine<'a, N> {
     sn: Vec<SNode>,
     zn: Vec<ZNode>,
 
-    snode_hash: FxHashMap<(usize, ScopeId), SId>,
+    snode_hash: FxHashMap<(usize, ScopeId, StateId), SId>,
     snode_all: Vec<SId>,
     snode_last_all: Vec<SId>,
-    pnode_hash: FxHashMap<(usize, usize, u32, ScopeId), Bucket>,
+    pnode_hash: FxHashMap<PKey, Bucket>,
     pnode_all: Vec<PId>,
 
     reductions_todo: VecDeque<RedTodo>,
@@ -227,6 +237,7 @@ pub(crate) struct Engine<'a, N> {
     serial: u32,
     last_syntax_error_line: u32,
     pub top_scope: ScopeId,
+    pub top_state: StateId,
 
     ws_mode: WsMode,
     ws_parser: Option<Box<Engine<'a, N>>>,
@@ -274,6 +285,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             serial: 0,
             last_syntax_error_line: 0,
             top_scope,
+            top_state: StateId::NONE,
             ws_mode,
             ws_parser: None,
             partial_parses: false,
@@ -387,6 +399,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             children: Vec::new(),
             user: pn.user.clone(),
             scope: pn.scope,
+            state: pn.state,
+            state_before: pn.state_before,
             action_index: self.action_index_of(id),
             error_recovery: pn.error_recovery,
             node: u32::MAX,
@@ -420,6 +434,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             end_skip: pn.end_skip,
             user: pn.user.clone(),
             scope: pn.scope,
+            state: pn.state,
+            state_before: pn.state_before,
             action_index: e.action_index_of(node as PId),
             error_recovery: pn.error_recovery,
         }
@@ -552,11 +568,12 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         }
     }
 
-    fn new_snode(&mut self, state: usize, loc: Loc, sc: ScopeId) -> SId {
+    fn new_snode(&mut self, state: usize, loc: Loc, sc: ScopeId, st: StateId) -> SId {
         self.allocs_since_gc += 1;
         let node = SNode {
             state,
             initial_scope: sc,
+            initial_state: st,
             loc,
             depth: 0,
             in_error_recovery_queue: false,
@@ -574,7 +591,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             }
         };
         self.stats.states += 1;
-        self.snode_hash.insert((state, sc), id);
+        self.snode_hash.insert((state, sc, st), id);
         self.snode_all.push(id);
         if self.t.states[state].accept {
             match self.accept {
@@ -624,11 +641,11 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         self.shifts_todo.insert(i, s);
     }
 
-    fn add_snode(&mut self, state: usize, loc: Loc, sc: ScopeId) -> SId {
-        if let Some(&s) = self.snode_hash.get(&(state, sc)) {
+    fn add_snode(&mut self, state: usize, loc: Loc, sc: ScopeId, st: StateId) -> SId {
+        if let Some(&s) = self.snode_hash.get(&(state, sc, st)) {
             return s;
         }
-        let s = self.new_snode(state, loc, sc);
+        let s = self.new_snode(state, loc, sc, st);
         if self.t.states[state].has_shifts {
             self.add_shift(s);
         }
@@ -656,6 +673,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         let node = &mut self.pn[pn];
         node.user = ps.user;
         node.scope = ps.scope;
+        node.state = ps.state;
         r
     }
 
@@ -699,6 +717,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         path: Option<&[ZId]>,
         sh: Option<usize>,
         scope: ScopeId,
+        st: StateId,
     ) -> Option<PId> {
         let serial = self.serial;
         self.serial += 1;
@@ -710,6 +729,9 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             end_skip: e,
             scope: self.pn[prev].scope,
             initial_scope: scope,
+            initial_state: st,
+            state: st,
+            state_before: st,
             assoc: 0,
             priority: 0,
             op_assoc: 0,
@@ -738,6 +760,9 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
                     let c = self.zn[z].pn;
                     let c = self.latest(c);
                     self.pn[id].children.push(c);
+                }
+                if let Some(&first) = self.pn[id].children.first() {
+                    self.pn[id].state_before = self.pn[first].state_before;
                 }
             }
             if self.reduce_actions(p, id, r) != 0 {
@@ -791,19 +816,18 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         true
     }
 
-    fn find_pnode<G>(
-        &mut self,
-        p: &Parser<G, N>,
-        key: (usize, usize, u32, ScopeId),
-        result_scope: Option<ScopeId>,
-    ) -> Option<PId> {
+    /// A node with identity `key` whose resulting scope is equivalent to, and
+    /// resulting state the same as, `result`'s; with `result` None, any of them.
+    fn find_pnode<G>(&mut self, p: &Parser<G, N>, key: PKey, result: Option<(ScopeId, StateId)>) -> Option<PId> {
         let n = self.pnode_hash.get(&key)?.len();
         for i in (0..n).rev() {
             let c = self.pnode_hash[&key].get(i);
             let t = self.latest(c);
-            match result_scope {
+            match result {
                 None => return Some(t),
-                Some(rs) if self.same_scope(p, self.pn[t].scope, rs) => return Some(t),
+                Some((rs, rst)) if self.same_scope(p, self.pn[t].scope, rs) && self.pn[t].state == rst => {
+                    return Some(t);
+                }
                 _ => {}
             }
         }
@@ -812,7 +836,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
 
     fn find_equal_pnode(
         &mut self,
-        key: (usize, usize, u32, ScopeId),
+        key: PKey,
         r: Option<RedId>,
         path: Option<&[ZId]>,
         sh: Option<usize>,
@@ -837,7 +861,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
 
     fn insert_pnode(&mut self, pn: PId) {
         let n = &self.pn[pn];
-        let key = (n.start.s, n.end_skip, n.symbol, n.initial_scope);
+        let key = (n.start.s, n.end_skip, n.symbol, n.initial_scope, n.initial_state);
         self.pnode_hash.entry(key).and_modify(|b| b.push(pn)).or_insert(Bucket::One(pn));
         self.pnode_all.push(pn);
     }
@@ -855,14 +879,15 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         sh: Option<usize>,
     ) -> Option<PId> {
         let scope = self.equiv_scope(p, self.pn[prev].scope);
-        let key = (start_loc.s, e, symbol, scope);
+        let st = self.pn[prev].state;
+        let key = (start_loc.s, e, symbol, scope, st);
         let old_pn = self.find_pnode(p, key, None);
         if old_pn.is_some() {
             if let Some(same) = self.find_equal_pnode(key, r, path, sh) {
                 return Some(same);
             }
         }
-        let new_pn = self.make_pnode(p, symbol, start_loc, e, prev, r, path, sh, scope);
+        let new_pn = self.make_pnode(p, symbol, start_loc, e, prev, r, path, sh, scope, st);
         let mut old_pn = match old_pn {
             None => {
                 let n = new_pn?;
@@ -875,9 +900,9 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             None => return Some(old_pn),
             Some(n) => n,
         };
-        // prefer to compare against the derivation leaving the symbol table in the same state
-        let new_scope = self.pn[new_pn].scope;
-        let matched = self.find_pnode(p, key, Some(new_scope));
+        // prefer to compare against the derivation leaving the symbol table and threaded state the same
+        let result = (self.pn[new_pn].scope, self.pn[new_pn].state);
+        let matched = self.find_pnode(p, key, Some(result));
         if let Some(m) = matched {
             old_pn = m;
         }
@@ -885,8 +910,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         match self.cmp_pnodes(p, new_pn, old_pn) {
             0 => {
                 if matched.is_none() {
-                    // Ambiguous, but the symbol table differs: keep a separate node so
-                    // this path continues with its own scope.
+                    // Ambiguous, but the symbol table or threaded state differs: keep a
+                    // separate node so this path continues with its own scope and state.
                     self.insert_pnode(new_pn);
                     return Some(new_pn);
                 }
@@ -911,7 +936,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             return None;
         }
         let state_index = self.t.goto_state(state, symbol);
-        let new_ps = self.add_snode(state_index, loc, self.pn[pn].scope);
+        let new_ps = self.add_snode(state_index, loc, self.pn[pn].scope, self.pn[pn].state);
         self.sn[new_ps].last_pn = Some(pn);
         if ps != new_ps && self.sn[new_ps].depth < self.sn[ps].depth + 1 {
             self.sn[new_ps].depth = self.sn[ps].depth + 1;
@@ -930,7 +955,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
                 }
                 if self.pn[pn].shift.is_none() {
                     for h in &st.right_epsilon_hints {
-                        let key = (h.preceeding_state as usize, self.sn[new_ps].initial_scope);
+                        let key =
+                            (h.preceeding_state as usize, self.sn[new_ps].initial_scope, self.sn[new_ps].initial_state);
                         let Some(&pre_ps) = self.snode_hash.get(&key) else { continue };
                         let zs: Vec<ZId> = self.sn[pre_ps].zns.v.iter().flatten().copied().collect();
                         for zz in zs {
@@ -952,21 +978,26 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
 
     // ---------------------------------------------------------------- whitespace
 
-    fn white_space<G>(&mut self, p: &mut Parser<G, N>, loc: &mut Loc) {
+    /// Skip whitespace at `loc`; `st` is the threaded state, which whitespace
+    /// can read but not change.
+    fn white_space<G>(&mut self, p: &mut Parser<G, N>, loc: &mut Loc, st: StateId) {
         match self.ws_mode {
             WsMode::Null => {}
             WsMode::Builtin => crate::whitespace::white_space(self.input, self.end, loc),
             WsMode::User => {
-                if let Some(f) = p.white_space_fn {
+                if let Some(f) = p.white_space_state_fn {
+                    let g = p.globals.map(|g| unsafe { &mut *g });
+                    f(&self.input[..self.end], loc, g, &p.states, st);
+                } else if let Some(f) = p.white_space_fn {
                     let g = p.globals_mut();
                     f(&self.input[..self.end], loc, g);
                 }
             }
-            WsMode::Subparser => self.parse_whitespace(p, loc),
+            WsMode::Subparser => self.parse_whitespace(p, loc, st),
         }
     }
 
-    fn parse_whitespace<G>(&mut self, p: &mut Parser<G, N>, loc: &mut Loc) {
+    fn parse_whitespace<G>(&mut self, p: &mut Parser<G, N>, loc: &mut Loc, st: StateId) {
         let t = self.t.clone();
         let (text, end, top) = (self.text, self.end, self.top_scope);
         let ws = self.ws_parser.get_or_insert_with(|| {
@@ -977,6 +1008,7 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         });
         ws.reset(loc.s);
         ws.top_scope = top;
+        ws.top_state = st;
         if ws.exhaustive_parse(p, t.whitespace_state as usize) == 0 {
             if let Some(a) = ws.accept {
                 let al = ws.sn[a].loc;
@@ -1070,20 +1102,22 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
                 }
             }
         }
-        let mut skip_loc: Option<Loc> = None;
+        // whitespace after a token depends on its position and the state after it
+        let mut skip_loc: Option<(Loc, StateId)> = None;
         for &(rloc, shift, s) in &results {
             let Some(shift) = shift else { continue };
             self.stats.shifts += 1;
             let symbol = self.shift_def(shift).symbol as u32;
             let (sloc, last_pn) = (self.sn[s].loc, self.sn[s].last_pn.expect("snode without last_pn"));
             if let Some(new_pn) = self.add_pnode(p, symbol, sloc, rloc.s, last_pn, None, None, Some(shift)) {
-                if skip_loc.is_none_or(|sl| sl.s != rloc.s) {
+                let st = self.pn[new_pn].state;
+                if skip_loc.is_none_or(|(sl, sst)| sl.s != rloc.s || sst != st) {
                     let mut sl = rloc;
-                    self.white_space(p, &mut sl);
+                    self.white_space(p, &mut sl, st);
                     sl.ws = rloc.s;
-                    skip_loc = Some(sl);
+                    skip_loc = Some((sl, st));
                 }
-                self.goto_pnode(skip_loc.unwrap(), new_pn, s);
+                self.goto_pnode(skip_loc.unwrap().0, new_pn, s);
             }
         }
         self.shift_results = results;
@@ -1708,12 +1742,13 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
                 best_pn = Some(pn);
             }
         }
-        self.white_space(p, &mut best_loc);
+        self.white_space(p, &mut best_loc, self.sn[best_sn].initial_state);
         let loc = self.loc;
         let new_pn = self
             .add_pnode(p, 0, loc, best_loc.s, best_pn.expect("error recovery state without nodes"), None, None, None)
             .expect("error recovery node");
-        let new_sn = self.new_snode(self.sn[best_sn].state, best_loc, self.pn[new_pn].initial_scope);
+        let new_sn =
+            self.new_snode(self.sn[best_sn].state, best_loc, self.pn[new_pn].initial_scope, self.pn[new_pn].initial_state);
         self.sn[new_sn].last_pn = Some(new_pn);
         let z = self.new_znode(new_pn);
         self.snode_add_znode(new_sn, z);
@@ -1920,8 +1955,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
         self.loc.s = self.start;
         self.loc.ws = self.start;
         let mut loc = self.loc;
-        self.white_space(p, &mut loc);
-        let sn = self.add_snode(state, loc, self.top_scope);
+        self.white_space(p, &mut loc, self.top_state);
+        let sn = self.add_snode(state, loc, self.top_scope, self.top_state);
         // a node standing for the start of the input, carrying the top scope
         let tpn = self.alloc_pnode(PNode {
             symbol: 0,
@@ -1930,6 +1965,9 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
             end_skip: loc.s,
             scope: self.top_scope,
             initial_scope: self.top_scope,
+            initial_state: self.top_state,
+            state: self.top_state,
+            state_before: self.top_state,
             assoc: 0,
             priority: 0,
             op_assoc: 0,
@@ -2020,18 +2058,43 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
 
     /// The root of the parse: the accepting stack's node, with any other
     /// accepting derivations merged in as ambiguities.
-    pub fn root(&mut self) -> Option<PId> {
+    pub fn root<G>(&mut self, p: &Parser<G, N>) -> Option<PId> {
         let sn = self.accept?;
         let ambiguous = self.sn[sn].zns.v.len() != 1
             || self.snode_all.iter().chain(self.snode_last_all.iter()).any(|&x| self.other_accepts(sn, x));
         if !ambiguous {
             return Some(self.zn[self.sn[sn].zns.v[0]?].pn);
         }
+        let mut candidates: Vec<PId> = Vec::new();
+        let mut first_z: Option<ZId> = None;
+        for z in self.sn[sn].zns.v.clone().into_iter().flatten() {
+            candidates.push(self.zn[z].pn);
+            first_z.get_or_insert(z);
+        }
+        for pass in 0..2 {
+            let list: Vec<SId> =
+                if pass == 0 { self.snode_all.iter().rev().copied().collect() } else { self.snode_last_all.iter().rev().copied().collect() };
+            for x in list {
+                if self.other_accepts(sn, x) {
+                    for z in self.sn[x].zns.v.clone().into_iter().flatten() {
+                        candidates.push(self.zn[z].pn);
+                    }
+                }
+            }
+        }
+        for c in candidates.iter_mut() {
+            *c = self.latest(*c);
+        }
+        // drop candidates whose final state is less preferred than another's
+        if let Some(prefer) = p.prefer_state {
+            let states: Vec<StateId> = candidates.iter().map(|&c| self.pn[c].state).collect();
+            let dominated =
+                |a: StateId| states.iter().any(|&b| b != a && prefer(&p.states, b, a) > 0);
+            candidates.retain(|&c| !dominated(self.pn[c].state));
+        }
         let mut pn: Option<PId> = None;
         let mut last: Option<PId> = None;
-        let mut first_z: Option<ZId> = None;
         let mut add = |e: &mut Self, x: PId| {
-            let x = e.latest(x);
             match pn {
                 None => pn = Some(x),
                 Some(p0) if x != p0 && e.pn[x].ambiguities.is_none() && Some(x) != last => {
@@ -2044,20 +2107,8 @@ impl<'a, N: Default + Clone> Engine<'a, N> {
                 _ => {}
             }
         };
-        for z in self.sn[sn].zns.v.clone().into_iter().flatten() {
-            add(self, self.zn[z].pn);
-            first_z.get_or_insert(z);
-        }
-        for pass in 0..2 {
-            let list: Vec<SId> =
-                if pass == 0 { self.snode_all.iter().rev().copied().collect() } else { self.snode_last_all.iter().rev().copied().collect() };
-            for x in list {
-                if self.other_accepts(sn, x) {
-                    for z in self.sn[x].zns.v.clone().into_iter().flatten() {
-                        add(self, self.zn[z].pn);
-                    }
-                }
-            }
+        for c in candidates {
+            add(self, c);
         }
         self.sn[sn].zns = ZSet { v: SmallVec::from_elem(first_z, 1), i: 0 };
         pn

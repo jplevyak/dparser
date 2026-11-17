@@ -10,6 +10,7 @@ pub mod builder;
 mod engine;
 pub mod grammar;
 pub mod scan;
+pub mod state;
 pub mod symtab;
 pub mod tables;
 pub mod types;
@@ -17,6 +18,7 @@ pub mod whitespace;
 
 pub use builder::build_actions;
 pub use engine::Stats;
+pub use state::{StateId, States};
 pub use symtab::{ScopeId, SymId, SymTab};
 pub use types::{Loc, ParseNode};
 
@@ -54,6 +56,15 @@ pub type DispatchActionFn<G, N> = fn(
 /// `loc.s`, `loc.line` and `loc.col`.
 pub type WhiteSpaceFn<G> = fn(input: &[u8], loc: &mut Loc, globals: Option<&mut G>);
 
+/// A whitespace function that also reads the threaded state: the state after
+/// the preceding token.  It cannot change the state.
+pub type WhiteSpaceStateFn<G> =
+    fn(input: &[u8], loc: &mut Loc, globals: Option<&mut G>, states: &States, state: StateId);
+
+/// Chooses between parses that end with different threaded states: >0
+/// prefers `a`, <0 prefers `b`, 0 neither.
+pub type PreferStateFn = fn(states: &States, a: StateId, b: StateId) -> i32;
+
 /// A function choosing among ambiguous parses; returns the index of the
 /// alternative to keep.  The alternatives' final actions have not run yet.
 pub type AmbiguityFn<G, N> = fn(&mut Parser<G, N>, usize, &mut [ParseNode<'_, N>]) -> usize;
@@ -88,6 +99,8 @@ pub(crate) struct SpecNode<N> {
     pub end_skip: usize,
     pub user: N,
     pub scope: ScopeId,
+    pub state: StateId,
+    pub state_before: StateId,
     pub action_index: i32,
     pub error_recovery: bool,
 }
@@ -142,6 +155,9 @@ pub struct Parser<G: 'static, N: 'static> {
     /// Replaces the default whitespace handling (or the grammar's whitespace
     /// production).
     pub white_space_fn: Option<WhiteSpaceFn<G>>,
+    /// Like `white_space_fn`, but also given the threaded state; used
+    /// instead of it when set.
+    pub white_space_state_fn: Option<WhiteSpaceStateFn<G>>,
     /// Keep the parse tree.  Without it, final actions still run, but nodes
     /// don't keep their children once their actions have run.  Defaults to
     /// on if the grammar has `${declare save_parse_tree}`.
@@ -178,6 +194,13 @@ pub struct Parser<G: 'static, N: 'static> {
     pub symtab: SymTab,
     /// The scope to start parsing in, in `symtab`.
     pub initial_scope: Option<ScopeId>,
+    /// The threaded state values, which live as long as the parser.
+    pub states: States,
+    /// The threaded state at the start of a parse (see [`make_state`](Self::make_state)).
+    pub initial_state: StateId,
+    /// Chooses between parses that end with different threaded states,
+    /// before `ambiguity_fn` sees them.
+    pub prefer_state: Option<PreferStateFn>,
     /// Counts from the last parse.
     pub stats: Stats,
 }
@@ -211,6 +234,7 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
             syntax_error_fn: None,
             ambiguity_fn: None,
             white_space_fn: actions.white_space,
+            white_space_state_fn: None,
             start_state: 0,
             partial_parses: false,
             dont_fixup_internal_productions: false,
@@ -228,8 +252,23 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
             syntax_errors: 0,
             symtab: SymTab::new(),
             initial_scope: None,
+            states: States::new(),
+            initial_state: StateId::NONE,
+            prefer_state: None,
             stats: Stats::default(),
         })
+    }
+
+    /// A threaded state value, for `${state}` or `initial_state`:
+    /// `${state} = ${parser}.make_state(depth + 1);`
+    pub fn make_state<T: std::any::Any + Eq + std::hash::Hash>(&mut self, value: T) -> StateId {
+        self.states.intern(value)
+    }
+
+    /// The value of a threaded state, if it is a `T`:
+    /// `let depth = ${parser}.state::<i32>(${state}).copied().unwrap_or(0);`
+    pub fn state<T: std::any::Any>(&self, id: StateId) -> Option<&T> {
+        self.states.get(id)
     }
 
     /// The parse tables.
@@ -306,6 +345,8 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
             children: Vec::new(),
             user: n.user,
             scope: n.scope,
+            state: n.state,
+            state_before: n.state_before,
             action_index: n.action_index,
             error_recovery: n.error_recovery,
             node: id,
@@ -339,7 +380,7 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
                 t
             }
         };
-        let ws_mode = if self.white_space_fn.is_some() {
+        let ws_mode = if self.white_space_fn.is_some() || self.white_space_state_fn.is_some() {
             engine::WsMode::User
         } else if self.tables.whitespace_state != 0 {
             engine::WsMode::Subparser
@@ -348,12 +389,13 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
         };
         let result = if self.start_state < self.tables.states.len() {
             let mut engine = engine::Engine::new(self.tables.clone(), input, end, ws_mode, top);
+            engine.top_state = self.initial_state;
             engine.loc = self.loc;
             engine.set_partial_parses(self.partial_parses);
             engine.set_error_recovery(self.error_recovery);
             let r = engine.exhaustive_parse(self, self.start_state);
             self.loc = engine.loc;
-            let tree = if r == 0 { engine.root().and_then(|root| engine.commit_tree(self, root)) } else { None };
+            let tree = if r == 0 { engine.root(self).and_then(|root| engine.commit_tree(self, root)) } else { None };
             self.stats = engine.stats;
             tree
         } else {
@@ -448,6 +490,8 @@ impl<G: 'static, N: 'static + Default + Clone> Parser<G, N> {
             children: Vec::new(),
             user: N::default(),
             scope: ScopeId(0),
+            state: StateId::NONE,
+            state_before: StateId::NONE,
             action_index,
             error_recovery: false,
             node: u32::MAX,
