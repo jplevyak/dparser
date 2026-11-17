@@ -30,7 +30,7 @@ test_cpp_attr
 # Python binding build (pyproject.toml lives at the root, sources in python/)
 /build/
 /dist/
-/*.egg-info
+/python/*.egg-info
 /.venv
 python/dparser.c
 python/dparser.h

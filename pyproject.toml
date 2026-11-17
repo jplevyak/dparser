@@ -32,6 +32,8 @@ Homepage = "https://github.com/jplevyak/dparser"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "setuptools>=70",
+    "cython>=3",
 ]
 
 
