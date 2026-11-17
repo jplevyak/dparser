@@ -17,6 +17,7 @@ test_cpp
 test_cpp_actions
 test_bounds
 test_state
+test_cpp_state
 /.aider*
 /.build
 /.vs

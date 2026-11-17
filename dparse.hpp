@@ -10,8 +10,51 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <functional>
+#include <type_traits>
 
 namespace dparser {
+
+// Threaded state (${state}).  A state of type T is immutable, hashed with
+// std::hash<T> and compared with ==.  Prefer, if given, is a stateless type
+// with int operator()(const T& a, const T& b): >0 prefers a, <0 prefers b;
+// it chooses between parses that end with different states.
+struct NoPreference {
+    template <typename T>
+    int operator()(const T&, const T&) const { return 0; }
+};
+
+template <typename T, typename Prefer = NoPreference>
+struct StateFns {
+    static unsigned hash(void* s) {
+        size_t h = std::hash<T>()(*static_cast<const T*>(s));
+        return static_cast<unsigned>(h ^ (h >> 32));
+    }
+    static int equal(void* a, void* b) {
+        return *static_cast<const T*>(a) == *static_cast<const T*>(b);
+    }
+    static void free(void* s) { delete static_cast<T*>(s); }
+    static int prefer(void* a, void* b) {
+        return Prefer()(*static_cast<const T*>(a), *static_cast<const T*>(b));
+    }
+    static D_StateFns* fns() {
+        static D_StateFns f = {hash, equal, free,
+                               std::is_same<Prefer, NoPreference>::value ? nullptr : prefer};
+        return &f;
+    }
+};
+
+// In an action: a state value for ${state}, owned by the parser.
+//   ${state} = dparser::make_state(${parser}, depth + 1);
+template <typename T>
+void* make_state(D_Parser* p, T value) {
+    return d_intern_state(p, new T(std::move(value)));
+}
+
+// In an action: the value of ${state} or ${state N}, or nullptr if there is none.
+//   const int* depth = dparser::state<int>(${state});
+template <typename T>
+const T* state(void* s) { return static_cast<const T*>(s); }
 
 class ParseNode {
 public:
@@ -92,6 +135,13 @@ public:
     ChildRange children() const {
         return ChildRange(node_);
     }
+
+    // The threaded state after / before this node, or nullptr.
+    template<typename T>
+    const T* state() const { return node_ ? static_cast<const T*>(d_get_state(node_)) : nullptr; }
+
+    template<typename T>
+    const T* state_before() const { return node_ ? static_cast<const T*>(d_get_state_before(node_)) : nullptr; }
 
     std::optional<ParseNode> find_in_tree(int symbol) const {
         if (!node_) return std::nullopt;
@@ -210,6 +260,16 @@ public:
 
     void set_ambiguity_fn(D_AmbiguityFn fn) {
         if (parser_) parser_->ambiguity_fn = fn;
+    }
+
+    // Use threaded state of type T, starting with 'initial'.  Call it once,
+    // before parsing: the parser keeps every state it has seen until it is freed.
+    template <typename T, typename Prefer = NoPreference>
+    void set_state(T initial) {
+        if (!parser_) return;
+        parser_->state_fns = StateFns<T, Prefer>::fns();
+        // Interning hands the value to the parser, which frees it.
+        parser_->initial_state = d_intern_state(parser_, new T(std::move(initial)));
     }
 
     int syntax_errors() const {

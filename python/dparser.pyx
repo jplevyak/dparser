@@ -2,6 +2,7 @@
 from libc.string cimport strncpy
 cimport cython
 from cpython.ref cimport PyObject, Py_INCREF, Py_DECREF
+from cpython.object cimport PyObject_Hash, PyObject_RichCompareBool, Py_EQ
 
 # These macro definitions MUST appear before any C headers are included so that
 # dparse.h (pulled in transitively by d.h) sees D_ParseNode_User = user_pyobjects
@@ -93,6 +94,12 @@ cdef extern from "dparse.h":
         void *scope
         user_pyobjects user
 
+    ctypedef struct D_StateFns:
+        unsigned (*hash)(void *state) noexcept
+        int (*equal)(void *a, void *b) noexcept
+        void (*free)(void *state) noexcept
+        int (*prefer)(void *a, void *b) noexcept
+
     ctypedef void (*D_SyntaxErrorFn)(D_Parser *)
     ctypedef D_ParseNode* (*D_AmbiguityFn)(D_Parser *, int n, D_ParseNode **v)
     ctypedef void (*D_FreeNodeFn)(D_ParseNode *d)
@@ -120,6 +127,8 @@ cdef extern from "dparse.h":
         int error_recovery
         int partial_parses
         int syntax_errors
+        D_StateFns *state_fns
+        void *initial_state
 
     D_Parser *new_D_Parser(D_ParserTables *t, int sizeof_ParseNode_User)
     void free_D_Parser(D_Parser *p)
@@ -129,6 +138,10 @@ cdef extern from "dparse.h":
     int d_get_number_of_children(D_ParseNode *pn)
     D_ParseNode *d_get_child(D_ParseNode *pn, int child)
     char *d_ws_after(D_Parser *p, D_ParseNode *pn)
+    void *d_get_state(D_ParseNode *pn)
+    void *d_get_state_before(D_ParseNode *pn)
+    void *d_get_whitespace_state(D_Parser *p)
+    void **d_state_slot(D_ParseNode *pn)
 
 cdef extern from "gram.h":
     cdef struct Grammar:
@@ -274,6 +287,67 @@ cdef class DParseNode:
     def buf(self):
         return self.buf_bytes
 
+    @property
+    def state(self):
+        """The threaded state after this node (None if there is none)."""
+        return _state_object(d_get_state(self.ptr))
+
+    @property
+    def state_before(self):
+        """The threaded state before this node (None if there is none)."""
+        return _state_object(d_get_state_before(self.ptr))
+
+# ---------------------------------------------------------------------------
+# Threaded state: any hashable Python object, interned by the parser, which
+# holds one reference to each value until the parser is freed.  None is
+# represented as NULL.
+# ---------------------------------------------------------------------------
+
+cdef object _state_object(void *s):
+    if s == NULL:
+        return None
+    return <object>s
+
+cdef unsigned py_state_hash(void *s) noexcept with gil:
+    cdef Py_hash_t h = PyObject_Hash(<object>s)
+    return <unsigned>(h ^ (h >> 32))
+
+cdef int py_state_equal(void *a, void *b) noexcept with gil:
+    try:
+        return PyObject_RichCompareBool(<object>a, <object>b, Py_EQ) == 1
+    except Exception:
+        return 0
+
+cdef void py_state_free(void *s) noexcept with gil:
+    Py_DECREF(<object>s)
+
+# The prefer_state function of the parse in progress (state_fns.prefer has no
+# parser argument).
+cdef object _prefer_state = None
+
+cdef int py_state_prefer(void *a, void *b) noexcept with gil:
+    if _prefer_state is None:
+        return 0
+    try:
+        r = _prefer_state(<object>a, <object>b)
+        return 1 if r > 0 else (-1 if r < 0 else 0)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return 0
+
+cdef D_StateFns _state_fns
+_state_fns.hash = py_state_hash
+_state_fns.equal = py_state_equal
+_state_fns.free = py_state_free
+_state_fns.prefer = NULL
+
+cdef D_StateFns _state_fns_prefer
+_state_fns_prefer.hash = py_state_hash
+_state_fns_prefer.equal = py_state_equal
+_state_fns_prefer.free = py_state_free
+_state_fns_prefer.prefer = py_state_prefer
+
 # ---------------------------------------------------------------------------
 # C-level callbacks
 # ---------------------------------------------------------------------------
@@ -310,7 +384,10 @@ cdef void my_initial_white_space_fn(D_Parser *dp, d_loc_t *loc, void **p_globals
         l.ptr = loc
         l.buf_bytes = p.buf
         l.buf_start_addr = <long><char*>p.buf
-        p.initial_skip_space_fn(l)
+        if p.skip_space_takes_state:
+            p.initial_skip_space_fn(l, _state_object(d_get_whitespace_state(dp)))
+        else:
+            p.initial_skip_space_fn(l)
 
 
 cdef D_ParseNode* my_ambiguity_fn(D_Parser *dp, int n, D_ParseNode **v) noexcept with gil:
@@ -421,6 +498,9 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
     cdef DParseNode n
     cdef tuple action_tuple = None
     cdef list globals_holder = None
+    cdef list state_holder = None
+    cdef object old_state = None
+    cdef void **state_slot
 
     if parser.initial_globals == NULL:
         return 0  # sub-parser (e.g. whitespace): no Python context, just succeed
@@ -483,6 +563,11 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
                 args.append(speculative)
             elif arg_t == 7:      # parser
                 args.append(p)
+            elif arg_t == 8:      # state: one-element list holding the threaded state
+                state_slot = d_state_slot(dd)
+                old_state = _state_object(state_slot[0])
+                state_holder = [old_state]
+                args.append(state_holder)
             else:
                 args.append(None)
 
@@ -492,6 +577,17 @@ cdef int my_action(void *new_ps, void **children, int n_children, int pn_offset,
             py_res = action_fn(*args)
             if globals_holder is not None:
                 p.globals = globals_holder[0]
+            if state_holder is not None and state_holder[0] is not old_state:
+                new_state = state_holder[0]
+                if not speculative:
+                    raise RuntimeError("action " + action_fn.__name__ +
+                                       ": the state can only be changed in speculative actions")
+                if new_state is not None:
+                    hash(new_state)  # raises TypeError if unhashable
+                    Py_INCREF(new_state)  # handed to the parser, which interns it
+                    state_slot[0] = <void*><PyObject*>new_state
+                else:
+                    state_slot[0] = NULL
             if py_res is Reject or isinstance(py_res, Reject) or (
                     isinstance(py_res, type) and issubclass(py_res, Reject)):
                 return -1
@@ -762,6 +858,10 @@ class Parser:
                     speculative = -1
                 elif var == 'parser':
                     arg_types.append(7)
+                elif var == 'state':
+                    arg_types.append(8)
+                    if speculative == 0:
+                        speculative = 1  # the state is changed by speculative actions
                 else:
                     raise RuntimeError("\nunknown action argument " + var)
             if not speculative:
@@ -778,7 +878,13 @@ class Parser:
               dont_merge_epsilon_trees=False, commit_actions_interval=100,
               error_recovery=False, print_debug_info=0, partial_parses=False,
               dont_compare_stacks=False, dont_use_greediness_for_disambiguation=False,
-              dont_use_height_for_disambiguation=False, start_symbol=''):
+              dont_use_height_for_disambiguation=False, start_symbol='',
+              initial_state=None, prefer_state=None):
+        """Parse buf.  initial_state is the threaded state at the start
+        (any hashable object; None for none).  prefer_state(a, b) returns >0
+        to prefer state a, <0 to prefer b and 0 for neither; it chooses
+        between parses that end with different states."""
+        global _prefer_state
         cdef BinaryTables* bt
         cdef D_Parser* dp
         cdef D_ParseNode* pn
@@ -789,6 +895,9 @@ class Parser:
 
         self.buf = buf.encode('utf-8') if isinstance(buf, str) else buf
         self.initial_skip_space_fn = initial_skip_space_fn
+        code = getattr(initial_skip_space_fn, '__code__', None)
+        self.skip_space_takes_state = code is not None and code.co_argcount - (
+            1 if hasattr(initial_skip_space_fn, '__self__') else 0) >= 2
         self.syntax_error_fn = syntax_error_fn
         self.ambiguity_fn = ambiguity_fn
         self.make_token = make_token
@@ -830,11 +939,21 @@ class Parser:
         dp.dont_use_greediness_for_disambiguation = 1 if dont_use_greediness_for_disambiguation else 0
         dp.dont_use_height_for_disambiguation = 1 if dont_use_height_for_disambiguation else 0
         dp.save_parse_tree = 1
+        dp.state_fns = &_state_fns_prefer if prefer_state is not None else &_state_fns
+        if initial_state is not None:
+            hash(initial_state)
+            Py_INCREF(initial_state)  # handed to the parser, which interns it
+            dp.initial_state = <void*><PyObject*>initial_state
 
         buf_bytes = self.buf
         buf_ptr = <char*>buf_bytes
 
-        pn = dparse(dp, buf_ptr + <int>buf_offset, len(self.buf) - buf_offset)
+        saved_prefer = _prefer_state
+        _prefer_state = prefer_state
+        try:
+            pn = dparse(dp, buf_ptr + <int>buf_offset, len(self.buf) - buf_offset)
+        finally:
+            _prefer_state = saved_prefer
 
         if pn == NULL:
             free_D_Parser(dp)
