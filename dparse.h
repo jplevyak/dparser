@@ -100,6 +100,11 @@ void *d_get_state_before(D_ParseNode *pn);      /* the state before pn */
 void *d_get_whitespace_state(D_Parser *p);      /* the state, in a whitespace function */
 void **d_state_slot(D_ParseNode *pn);           /* used by generated code for ${state} */
 
+/* The rule that built a node: the D_RULE_<production>_<n> constants of the
+   generated header (make_dparser -H 1), or -1 for terminals, error recovery
+   nodes and rules numbered with ${action}. */
+int d_get_production(D_ParseNode *pn);
+
 int resolve_amb_greedy(D_Parser *dp, int n, D_ParseNode **v);
 
 char *d_dup_pathname_str(const char *str);

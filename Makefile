@@ -94,7 +94,7 @@ dparser/verilog/main.c dparser/verilog/vparse.c dparser/verilog/vparse.h dparser
 TAR_FILES = $(AUX_FILES) $(TEST_FILES) $(PYTHON_FILES) $(VERILOG_FILES) \
 dparser/grammar.g dparser/sample.g dparser/my.g
 
-LIB_SRCS = arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c
+LIB_SRCS = arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c dattr.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 
 MK_LIB_SRCS = mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c
@@ -127,10 +127,10 @@ MAKE_DPARSER = ./make_dparser
 EXECUTABLES = make_dparser
 LIBRARIES = $(LIBMKDPARSE) $(LIBDPARSE)
 INSTALL_LIBRARIES = $(LIBDPARSE)
-INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp
+INCLUDES = dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp dattr.h dattr.hpp
 MANPAGES = make_dparser.1
 
-EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions test_bounds test_state test_cpp_state
+EXECS = $(EXECUTABLES) sample_parser test_parser test_dsymtab test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_attr test_cpp_attr
 ifeq ($(OS_TYPE),CYGWIN)
 EXEC_FILES = $(EXECS:%=%.exe)
 EXECUTABLE_FILES = $(EXECUTABLES:%=%.exe)
@@ -150,13 +150,15 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_spec_globals test_python
+test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_attr test_cpp_attr test_spec_globals test_python
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
 	./test_bounds
 	./test_state
 	./test_cpp_state
+	./test_attr
+	./test_cpp_attr
 
 # $g is read-only in speculative actions unless the grammar declares
 # ${declare mutable_speculative_globals}: check that this is enforced in C and C++.
@@ -234,6 +236,22 @@ test_state.g.d_parser.c: test_state.g make_dparser
 
 test_state_ws.g.d_parser.c: test_state_ws.g make_dparser
 	$(MAKE_DPARSER) -i state_ws $<
+
+TEST_ATTR_OBJS = test_attr.o test_attr.g.d_parser.o
+test_attr: $(TEST_ATTR_OBJS) $(INSTALL_LIBRARIES)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+test_attr.g.d_parser.c test_attr.g.d_parser.h: test_attr.g make_dparser
+	$(MAKE_DPARSER) -A -H 1 -i attr $<
+
+test_attr.o: test_attr.g.d_parser.h
+
+TEST_CPP_ATTR_OBJS = test_cpp_attr.o test_attr.g.d_parser.o
+test_cpp_attr: $(TEST_CPP_ATTR_OBJS) version.o $(INSTALL_LIBRARIES)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -std=c++17 -I. -o $@ $^ $(LIBS)
+
+test_cpp_attr.o: test_cpp_attr.cc test_attr.g.d_parser.h dattr.hpp
+	$(CXX) $(CXXFLAGS) -std=c++17 -I. -c -o $@ $<
 
 TEST_CPP_STATE_OBJS = test_cpp_state.o test_cpp_state.g.d_parser.o
 test_cpp_state: $(TEST_CPP_STATE_OBJS) version.o $(INSTALL_LIBRARIES)

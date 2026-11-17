@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 # Keep in sync with LIB_SRCS/MK_LIB_SRCS in the Makefile and with MANIFEST.in.
 LIB_SRCS = [
     'arg.c', 'parse.c', 'scan.c', 'dsymtab.c', 'util.c', 'read_binary.c',
-    'dparse_tree.c',
+    'dparse_tree.c', 'dattr.c',
 ]
 MK_LIB_SRCS = [
     'mkdparse.c', 'write_tables.c', 'grammar.g.c', 'gram.c', 'lex.c', 'lr.c',

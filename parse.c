@@ -210,6 +210,15 @@ void *d_get_state_before(D_ParseNode *apn) {
 
 void *d_get_whitespace_state(D_Parser *ap) { return ((Parser *)ap)->ws_state; }
 
+/* make_dparser numbers a rule without ${action} as
+   symbol * 10000 + rule index + 1000000 (see write_tables.c). */
+int d_get_production(D_ParseNode *apn) {
+  PNode *pn = D_ParseNode_to_PNode(apn);
+  D_Reduction *r = pn->reduction;
+  if (!r || pn->error_recovery || r->action_index < D_RULE_INDEX_BASE) return -1;
+  return r->action_index - D_RULE_INDEX_BASE - r->symbol * D_RULE_INDEX_SCALE;
+}
+
 #define SNODE_HASH(_s, _sc, _st) ((((uintptr_t)(_s)) << 12) + (((uintptr_t)(_sc))) + (((uintptr_t)(_st)) >> 3))
 
 SNode *find_SNode(Parser *p, uint state, D_Scope *sc, void *st) {

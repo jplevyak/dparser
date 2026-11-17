@@ -5,5 +5,5 @@ exclude *
 include setup.py pyproject.toml LICENSE.txt
 include python/dparser.pyx
 include *.h
-include arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c
+include arg.c parse.c scan.c dsymtab.c util.c read_binary.c dparse_tree.c dattr.c
 include mkdparse.c write_tables.c grammar.g.c gram.c lex.c lr.c

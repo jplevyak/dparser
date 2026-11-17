@@ -29,6 +29,11 @@ typedef int (*D_ScanCode)(d_loc_t *loc, unsigned short *symbol, int *term_priori
                           int *op_priority);
 typedef int (*D_ReductionCode)(void *new_ps, void **children, int n_children, int pn_offset, struct D_Parser *parser);
 
+/* A rule without ${action} gets action_index
+   symbol * D_RULE_INDEX_SCALE + rule index + D_RULE_INDEX_BASE. */
+#define D_RULE_INDEX_BASE 1000000
+#define D_RULE_INDEX_SCALE 10000
+
 typedef struct D_Reduction {
   unsigned short nelements;
   unsigned short symbol;

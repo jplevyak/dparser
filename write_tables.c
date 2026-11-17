@@ -610,7 +610,7 @@ static void write_scanner_data(File *fp, Grammar *g, char *tag) {
       Rule *r = t->regex_production->rules.v[0];
       action_index = r->action_index;
       /* the same index as the rule's code in the actions file (see write_code) */
-      if (action_index < 0) action_index = t->regex_production->index * 10000 + r->index + 1000000;
+      if (action_index < 0) action_index = t->regex_production->index * D_RULE_INDEX_SCALE + r->index + D_RULE_INDEX_BASE;
     }
     start_struct(fp, D_Shift, make_name("d_shift_%d_%s", i, tag), "");
     add_struct_member(fp, D_Shift, "%d", g->terminals.v[i]->index + g->productions.n, symbol);
@@ -1138,7 +1138,7 @@ static void write_code(File *file, Grammar *g, Rule *r, int kind, char *fnname, 
     if (r) {
       /* Header: int d_{final,speculative,pass<N>}_code_action_<action index> <line> "<file>" <lines> */
       int idx = r->action_index;
-      if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * 10000 + r->index + 1000000);
+      if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * D_RULE_INDEX_SCALE + r->index + D_RULE_INDEX_BASE);
       if (kind == CODE_SPECULATIVE)
         fprintf(file->actions_fp, "int d_speculative_code_action_%d", idx);
       else if (kind == CODE_FINAL)
@@ -1382,8 +1382,40 @@ static void write_global_code(File *file, Grammar *g, char *tag) {
   }
 }
 
+/* Rules of a production with the same length, code, priorities and passes
+   share one D_Reduction: set same_reduction to the first such rule. */
+static void find_same_reductions(Grammar *g) {
+  int i, j, k, l;
+  Production *p;
+  Rule *r;
+  for (i = 0; i < (int)g->productions.n; i++) {
+    p = g->productions.v[i];
+    for (j = p->rules.n - 1; j >= 0; j--) {
+      r = p->rules.v[j];
+      for (k = 0; k < j; k++)
+        if (r->elems.n == p->rules.v[k]->elems.n && r->speculative_code.code == p->rules.v[k]->speculative_code.code &&
+            r->final_code.code == p->rules.v[k]->final_code.code && r->op_priority == p->rules.v[k]->op_priority &&
+            r->op_assoc == p->rules.v[k]->op_assoc && r->rule_priority == p->rules.v[k]->rule_priority &&
+            r->rule_assoc == p->rules.v[k]->rule_assoc && r->action_index == p->rules.v[k]->action_index) {
+          if (r->pass_code.n != p->rules.v[k]->pass_code.n) continue;
+          for (l = 0; l < (int)r->pass_code.n; l++) {
+            if (!r->pass_code.v[l] && !p->rules.v[k]->pass_code.v[l]) continue;
+            if (!r->pass_code.v[l] || !p->rules.v[k]->pass_code.v[l]) goto Lcontinue;
+            if (r->pass_code.v[l]->code != p->rules.v[k]->pass_code.v[l]->code) goto Lcontinue;
+          }
+          r->same_reduction = p->rules.v[k];
+          break;
+        Lcontinue:;
+        }
+    }
+  }
+}
+
+/* The rule whose D_Reduction is used for r. */
+static Rule *reduction_rule(Rule *r) { return r->same_reduction ? r->same_reduction : r; }
+
 static void write_reductions(File *file, Grammar *g, char *tag) {
-  int i, j, k, l, pmax;
+  int i, j, k, pmax;
   Production *p, *pdefault;
   Rule *r, *rdefault = NULL;
   char final_code[256], speculative_code[256], pass_code[256];
@@ -1405,26 +1437,9 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       g->write_line += 1;
     }
   }
+  find_same_reductions(g);
   for (i = 0; i < (int)g->productions.n; i++) {
     p = g->productions.v[i];
-    for (j = p->rules.n - 1; j >= 0; j--) {
-      r = p->rules.v[j];
-      for (k = 0; k < j; k++)
-        if (r->elems.n == p->rules.v[k]->elems.n && r->speculative_code.code == p->rules.v[k]->speculative_code.code &&
-            r->final_code.code == p->rules.v[k]->final_code.code && r->op_priority == p->rules.v[k]->op_priority &&
-            r->op_assoc == p->rules.v[k]->op_assoc && r->rule_priority == p->rules.v[k]->rule_priority &&
-            r->rule_assoc == p->rules.v[k]->rule_assoc && r->action_index == p->rules.v[k]->action_index) {
-          if (r->pass_code.n != p->rules.v[k]->pass_code.n) continue;
-          for (l = 0; l < (int)r->pass_code.n; l++) {
-            if (!r->pass_code.v[l] && !p->rules.v[k]->pass_code.v[l]) continue;
-            if (!r->pass_code.v[l] || !p->rules.v[k]->pass_code.v[l]) goto Lcontinue;
-            if (r->pass_code.v[l]->code != p->rules.v[k]->pass_code.v[l]->code) goto Lcontinue;
-          }
-          r->same_reduction = p->rules.v[k];
-          break;
-        Lcontinue:;
-        }
-    }
     for (j = 0; j < (int)p->rules.n; j++) {
       r = p->rules.v[j];
       if (r->same_reduction) continue;
@@ -1515,7 +1530,7 @@ static void write_reductions(File *file, Grammar *g, char *tag) {
       add_struct_member(file, D_Reduction, "%d", r->rule_priority, rule_priority);
       {
         int idx = r->action_index;
-        if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * 10000 + r->index + 1000000);
+        if (idx < 0) idx = r->prod->internal ? -1 : (r->prod->index * D_RULE_INDEX_SCALE + r->index + D_RULE_INDEX_BASE);
         add_struct_member(file, D_Reduction, "%d", idx, action_index);
       }
       add_struct_member(file, D_Reduction, "%d", pmax, npass_code);
@@ -1709,6 +1724,9 @@ static void write_state_data(File *fp, Grammar *g, VecState *er_hash, char *tag)
   }
 }
 
+static void find_same_reductions(Grammar *g);
+static Rule *reduction_rule(Rule *r);
+
 static int write_header(Grammar *g, char *base_pathname, char *tag) {
   char pathname[FILENAME_MAX];
   char ver[128];
@@ -1758,6 +1776,18 @@ static int write_header(Grammar *g, char *base_pathname, char *tag) {
       for (i = 0; i < g->productions.n; i++)
         if (!g->productions.v[i]->internal && g->productions.v[i]->elem)
           fprintf(hfp, "#define D_START_STATE_%s \t%d\n", g->productions.v[i]->name, g->productions.v[i]->state->index);
+    }
+    /* Rule numbers, as returned by d_get_production(): D_RULE_<production>_<n>
+       for the n-th rule of a production.  Rules sharing a D_Reduction share
+       the number of the first of them. */
+    find_same_reductions(g);
+    for (i = 0; i < g->productions.n; i++) {
+      Production *p = g->productions.v[i];
+      uint j;
+      if (p->internal || p->regex || !strcmp(p->name, "_")) continue;
+      for (j = 0; j < p->rules.n; j++)
+        if (p->rules.v[j]->action_index < 0)
+          fprintf(hfp, "#define D_RULE_%s_%u \t%d\n", p->name, j, reduction_rule(p->rules.v[j])->index);
     }
     fprintf(hfp, "#endif\n");
     fclose(hfp);

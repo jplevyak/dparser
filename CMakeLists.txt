@@ -63,6 +63,7 @@ add_library(dparse STATIC
   util.c
   read_binary.c
   dparse_tree.c
+  dattr.c
   version.c
 )
 
@@ -117,7 +118,7 @@ install(
   ARCHIVE DESTINATION lib
 )
 install(
-  FILES dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp
+  FILES dparse.h dparse_tables.h dsymtab.h dparse_tree.h read_binary.h dparse.hpp dattr.h dattr.hpp
   DESTINATION include
 )
 configure_file(dparser-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/dparser-config.cmake @ONLY)
