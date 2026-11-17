@@ -152,6 +152,7 @@ typedef struct d_loc_t {
 | `char *d_ws_after(D_Parser *p, D_ParseNode *pn)` | The end of the whitespace after the node. |
 | `void d_pass(D_Parser *p, D_ParseNode *pn, int pass)` | Run a [pass](actions.md#pass-actions) over a subtree. |
 | `void free_D_ParseTreeBelow(D_Parser *p, D_ParseNode *pn)` | Free the subtree below a node. |
+| `int d_get_production(D_ParseNode *pn)` | The rule that built a node, one of the `D_RULE_` constants written by `make_dparser -H 1`, or -1. See [Attributes](attributes.md#which-rule-built-a-node). |
 | `void *d_get_state(D_ParseNode *pn)` | The [threaded state](threaded-state.md) after a node. |
 | `void *d_get_state_before(D_ParseNode *pn)` | The threaded state before a node. |
 | `void *d_get_whitespace_state(D_Parser *p)` | In a whitespace function, the current threaded state. |

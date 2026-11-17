@@ -107,6 +107,12 @@ In grammar actions, `$c0`, `$c1`, ... are `dparser::ParseNode` views of the
 rule's elements, and `$c` is the node being built. See
 [Actions](actions.md#node-data).
 
+## Attributes
+
+`dattr.hpp` evaluates synthesized and inherited attributes on a saved
+tree, with equations written as lambdas; see
+[Attributes](attributes.md#c-dattrhpp).
+
 ## Threaded state
 
 [Threaded state](threaded-state.md) can be any type that `std::hash` and

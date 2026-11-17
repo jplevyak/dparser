@@ -18,6 +18,8 @@ with DParser 1.37 while writing these pages.
    symbol table to solve the classic C `typedef` problem.
 6. **[Python](python.md)**: the same ideas using the Python binding, with
    grammar rules written in docstrings.
+7. **[Attributes after Parsing](attributes.md)**: compute values that flow
+   up and down the finished tree, such as scopes and types, on demand.
 
 You should have DParser [installed](../getting-started/installation.md)
 and have read [Your First Parser](../getting-started/first-parser.md).

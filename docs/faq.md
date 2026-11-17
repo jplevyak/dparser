@@ -73,6 +73,13 @@ reject a parse. Don't keep it in `$g`, which every path shares: a
 speculative action can run for a path that is later abandoned, and nothing
 undoes what it wrote.
 
+### How do I compute scopes or types after parsing, when information flows down the tree?
+
+Use [attributes](reference/attributes.md): write an equation for each
+value, synthesized (from the children) or inherited (from the parent), and
+ask for the values you need. They are computed in the right order and
+cached. See the [tutorial chapter](tutorial/attributes.md).
+
 ### How do I find out where my grammar is ambiguous?
 
 Turn off greediness and height disambiguation, set `d_verbose_level = 1`,

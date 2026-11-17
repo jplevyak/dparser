@@ -1,7 +1,7 @@
 # Proposal: Speculation-Safe Threaded State and Post-Parse Attributes
 
-- **Status:** Part A implemented (C, C++, Python, Rust, `python.g`, documentation); Part B not started
-- **Target:** DParser 1.40 (Part A), 1.41 (Part B)
+- **Status:** Implemented in 1.40: Part A and Part B, in C, C++, Python and Rust, with documentation. Deferred ideas are under [Future work](#future-work).
+- **Target:** DParser 1.40 (a minor release)
 - **Date:** 2026-11-16
 
 ## Summary
@@ -396,9 +396,10 @@ A per-use escape hatch (for example `${g_mut}` for writes that really are
 the same on every path, such as interning) was considered and left out until
 there is demand; the declaration covers existing grammars.
 
-### What still uses the declaration
+### The Python grammars (done in 1.40)
 
-`python.g` and `tests/python.test.g` update `$g` from speculative actions:
+`python.g` and `tests/python.test.g` used to update `$g` from speculative
+actions, under `${declare mutable_speculative_globals}`:
 
 ```c
 INDENT: [ if (!python_indent(&$g)) return -1; ] ;
@@ -406,15 +407,20 @@ LP ::= '(' [ $g->implicit_line_joining++; ];
 RP ::= ')' [ $g->implicit_line_joining--; ];
 ```
 
-If a path that reduced `LP` later dies, nothing undoes the increment. It works
-only because Python's grammar rarely keeps competing paths alive across a
-parenthesis. Both files now use `${declare mutable_speculative_globals}`.
+They were Part A's acceptance test, and now keep the bracket depth and the
+indentation stack in `${state}`. Because whitespace can't change the state,
+the whitespace function only reads the bracket depth, and the indentation
+logic moved into the grammar: `INDENT` and `DEDENT` push and pop columns,
+and a new `LINE` check makes each statement start at the current
+indentation. That also fixed bugs: misindented code used to be accepted,
+and tab indentation failed. `python.g` also makes `match` and `case` soft
+keywords, which keeps a statement path and an expression path alive across
+brackets that span lines (`tests/python_g/ok_split_*`).
 
-This grammar is the best first test for Part A. `implicit_line_joining` and
-the indent stack are read by the **whitespace function**, so Part A must let
-whitespace read the threaded state (see [Whitespace](#whitespace)). Porting this grammar to
-`${state}`, and adding an input where paths split across a parenthesis,
-should be Part A's acceptance test.
+The `$g` version passed those split-path inputs too: every path that
+shifts a bracket shares one parse node, so the bracket's action ran once
+however many paths were live. Its real problems were in the indentation
+handling.
 
 ---
 
@@ -438,9 +444,9 @@ these limits:
 
 ### Design overview
 
-A separate library, `libdparse_attr` (`dattr.h` / `dattr.c`), is built on the
-public tree API. It needs no changes to the parser core beyond one small
-accessor. Its parts:
+A small library, `dattr.h` / `dattr.c`, is built on the public tree API and
+compiled into `libdparse`. It needs no changes to the parser core beyond
+one small accessor. Its parts:
 
 1. **An attribute tree.** `d_attr_tree()` copies the saved parse tree into
    `D_AttrNode`s. Each one has a parent, an index within its parent, children,
@@ -450,9 +456,11 @@ accessor. Its parts:
 2. **Attribute descriptors.** Each attribute is synthesized or inherited and
    comes with an equation function.
 3. **Demand-driven evaluation.** `d_attr_get(node, attr)` evaluates on first
-   use and caches the result. It tracks three states per slot: unevaluated, in
-   progress, and done. Reaching a slot that is in progress is a cycle, which
-   is reported with the chain of attribute and node names.
+   use and caches the result. It tracks the state of each slot: unevaluated,
+   in progress, done or undefined. Reaching a slot that is in progress is a
+   cycle: it is reported, with the chain of attribute and node names, to a
+   callback (stderr by default), counted, and the request returns NULL.
+   Cycles are always errors; see [Future work](#future-work).
 
 ```text
               d_attr_get(n, type)                 inherited: d_attr_get(n, env)
@@ -470,24 +478,30 @@ typedef struct D_AttrTree D_AttrTree;
 
 typedef enum { D_ATTR_SYN, D_ATTR_INH } D_AttrKind;
 
-typedef struct D_Attr {
+typedef struct D_Attr D_Attr;
+struct D_Attr {
   const char *name;
   D_AttrKind  kind;
-  /* SYN: compute the value for node.
-     INH: compute the value that parent gives to its child number child_index.
-     Return nonzero if this node defines an equation; return zero to use the
-     default (for INH, ask the next ancestor). */
-  int  (*eval)(D_AttrTree *t, D_AttrNode *node, int child_index, void *out);
-  int  size;                         /* bytes of value storage */
-  void (*free)(void *value);         /* optional */
-} D_Attr;
+  /* SYN: compute the value for node (child_index is -1).
+     INH: compute the value that node gives to its child number child_index;
+     at the root, also called with the root and child_index -1.
+     Write the value to out and return nonzero, or return zero if there is no
+     equation: a SYN value is then undefined, and an INH value is copied down
+     from the next ancestor. */
+  int  (*eval)(D_AttrTree *t, D_Attr *a, D_AttrNode *node, int child_index, void *out);
+  int  size;                              /* bytes of value storage */
+  void (*free)(D_Attr *a, void *value);   /* optional */
+  void *data;                             /* yours */
+};
 
 D_AttrTree *d_attr_tree(D_Parser *p, D_ParseNode *root,
                         D_Attr **attrs, int n_attrs, void *ctx);
 void        d_attr_tree_free(D_AttrTree *t);
 
-void       *d_attr_get(D_AttrTree *t, D_AttrNode *n, D_Attr *a);  /* NULL on cycle */
+void       *d_attr_get(D_AttrTree *t, D_AttrNode *n, D_Attr *a);  /* NULL if undefined or on a cycle */
 void       *d_attr_ctx(D_AttrTree *t);
+int         d_attr_cycles(D_AttrTree *t);
+void        d_attr_set_cycle_fn(D_AttrTree *t, D_AttrCycleFn fn);
 
 D_AttrNode  *d_attr_root(D_AttrTree *t);
 D_AttrNode  *d_attr_parent(D_AttrNode *n);
@@ -496,7 +510,12 @@ int          d_attr_n_children(D_AttrNode *n);
 D_AttrNode  *d_attr_child(D_AttrNode *n, int i);
 D_ParseNode *d_attr_parse_node(D_AttrNode *n);    /* symbol, text, user data */
 int          d_attr_production(D_AttrNode *n);    /* see below */
+const char  *d_attr_symbol_name(D_AttrTree *t, D_AttrNode *n);
 ```
+
+`eval` and `free` receive the `D_Attr`, so one function can serve several
+attributes, and wrappers (C++ lambdas) can find their closure through
+`data`.
 
 Equations usually switch on the node's symbol or production, as `_` default
 pass actions do today.
@@ -508,24 +527,34 @@ defined once at a block and is visible everywhere below it.
 
 ### Core change needed
 
-Equations need to know *which production* built a node, not only its symbol.
+Equations need to know *which rule* built a node, not only its symbol.
 `D_ParseNode` does not expose this. Add one accessor to the core:
 
 ```c
-int d_get_production(D_ParseNode *pn);  /* reduction index, or -1 for a terminal */
+int d_get_production(D_ParseNode *pn);  /* rule number, or -1 */
 ```
 
-Also have `make_dparser` emit named constants for productions, as it already
-does for symbols (for example with `-X` header output). This also helps
-`ambiguity_fn` implementations and passes, so it is worth doing even without
-Part B.
+`D_Reduction` has no rule number, and adding one would change the table
+formats. But `make_dparser` already gives each rule without `${action}` the
+action index `symbol * 10000 + rule + 1000000`, so `d_get_production`
+decodes that. It returns -1 for terminals, internal (EBNF) nodes, error
+recovery nodes and rules numbered with `${action}` (as the Python binding
+does).
+
+`make_dparser -H 1` writes `D_RULE_<production>_<n>` constants for the
+*n*-th rule of each production in the generated header, and with `-a` it
+writes them to the actions file, from which `build_actions` makes Rust
+constants. Rules of a production with the same length and no code,
+priorities or passes share one `D_Reduction`, so they share the number of
+the first of them; the children's symbols tell them apart. This also helps
+`ambiguity_fn` implementations and passes.
 
 ### Interaction with parser features
 
 | Feature | Behavior |
 |---|---|
 | `save_parse_tree = 0` | Not supported: a saved tree is required. `d_attr_tree` returns NULL. |
-| Ambiguities | Built after disambiguation, so it sees exactly the final tree. A future `d_attr_tree_choose` could evaluate attributes on each candidate within `ambiguity_fn` (see the open questions). |
+| Ambiguities | Built after disambiguation, so it sees exactly the final tree. Evaluating attributes on each candidate within `ambiguity_fn` is [future work](#future-work). |
 | `*` / `+` / internal productions | Follows the same flattening the user sees from `d_get_child`, so `D_AttrNode`s match the C API's view. |
 | Error recovery nodes | Present as nodes with no reduction (`d_attr_production` returns -1). Equations should handle them, and the default for synthesized attributes is "undefined", which reads as NULL. |
 | `${pass}` | Stays as it is. The two can be mixed: passes can read attributes, and attribute equations can read data that passes stored. |
@@ -535,11 +564,11 @@ Part B.
 
 | Binding | Shape |
 |---|---|
-| C++ | A header-only `dparser::AttrTree`, with `syn<T>("type", lambda)` / `inh<T>("env", lambda)` and `node.get<T>(attr)`. |
-| Python | A pure-Python module, `dparser.attrs`, built on the existing parse-tree objects. Decorators register equations, and results are stored on node objects. About 300 lines; no C needed. |
-| Rust | `dparser::attrs` over `ParseNode`, with trait-based attributes and `RefCell` caches keyed by node ID. |
+| C++ | Header-only `dattr.hpp`: `dparser::Attr<T>` made with `syn<T>("type", lambda)` / `inh<T>("env", lambda)`, where the lambda returns `std::optional<T>` (`nullopt` for no equation); `attr(node)` gives a `const T*`; `dparser::AttrTree(parser, tree, attrs...)`. Values are constructed in place and destroyed with the tree. |
+| Python | A pure-Python module, `dparser_attrs` (the extension module is not a package, so it can't be `dparser.attrs`), with `@syn` / `@inh` decorators, `NO_EQUATION`, and `AttributeCycle` raised on cycles. It works on the tree kept by the new `parse(..., keep_tree=True)` (`getTree()`, whose `Node`s record the action function and alternative that built them), or on any tree with children. |
+| Rust | `dparser::attrs`: `const` `Attr<T, N>` values with `fn` equations returning `Option<T>`, and `AttrTree` over `ParseNode` with `RefCell` caches keyed by node and attribute name. Values are cloned out (use `Rc` for large ones). `ParseNode::production()` decodes the rule number. |
 
-### Possible later step: grammar syntax
+### Grammar syntax (future work)
 
 If the library proves useful, `make_dparser` could accept declarative
 equations, for example:
@@ -569,11 +598,8 @@ proposal; it should wait for experience with the library.
 
 ### Effort
 
-- C library and core accessor: 3–5 days.
-- C++, Python and Rust wrappers: 3–5 days.
-- Documentation and tests: 2–3 days.
-
-About 1.5–2.5 weeks in total.
+Estimated at 1.5–2.5 weeks: C library and core accessor 3–5 days, C++,
+Python and Rust wrappers 3–5 days, documentation and tests 2–3 days.
 
 ---
 
@@ -591,6 +617,8 @@ About 1.5–2.5 weeks in total.
 | Effort | — | 1–2 weeks | 1.5–2.5 weeks | Months, and ongoing for four bindings |
 
 ## Recommendation and order
+
+This was the plan; Parts A and B are both done.
 
 1. **Part A first.** 1.39 closed the correctness gap by making `$g`
    read-only in speculative actions; Part A gives the grammars that need
@@ -614,15 +642,37 @@ About 1.5–2.5 weeks in total.
 2. **Part A and whitespace.** Whitespace can read the state but not change
    it. See [Whitespace](#whitespace).
 
-## Open questions
+3. **Part B: attributes during disambiguation.** Not for now: attribute
+   trees are built only for the final tree. See [Future work](#future-work).
+4. **Part B: circular attributes.** Not for now: cycles are always errors.
+   See [Future work](#future-work).
+5. **Version.** A minor release, 1.40, with a note that code using
+   `dparse.h` must be recompiled. `D_Parser` gains fields at its end;
+   `D_ParseNode` and the table formats do not change.
 
-3. **Part B: attributes during disambiguation.** Is it worth building attribute
-   trees for each candidate inside `ambiguity_fn`, for example to pick the
-   well-typed reading of `a * b;`? This is powerful but costly, and it mixes
-   the two phases.
-4. **Part B: circular attributes.** Should circular attributes that iterate to
-   a fixed point (JastAdd's `circular`, useful for data flow) be supported, or
-   should cycles always be errors?
-5. **Version.** Part A appends fields to `D_Parser` and adds fields to internal
-   node structs. Does that need a major version bump, or is a minor release
-   with a recompile note enough? (`D_ParseNode` itself does not change.)
+## Future work
+
+Ideas considered and deferred:
+
+- **Attributes during disambiguation.** Build attribute trees for each
+  candidate inside `ambiguity_fn` (a `d_attr_tree_choose`), for example to
+  pick the well-typed reading of `a * b;`. Powerful but costly, and it
+  mixes the two phases.
+- **Circular attributes.** Attributes that iterate to a fixed point
+  (JastAdd's `circular`), useful for data flow, instead of reporting every
+  cycle as an error.
+- **Grammar syntax for attributes**, with static circularity checking; see
+  [Grammar syntax](#grammar-syntax-future-work).
+- **Whitespace that changes the threaded state**, not only reads it; see
+  [Whitespace](#whitespace) for why it was left out.
+- **`D_Scope` as a kind of threaded state**, unifying the two mechanisms.
+- **Trimming the state intern table** when actions are committed
+  (`commit_actions_interval`), instead of keeping every state until
+  `free_D_Parser`.
+- **Detecting states changed in place**: a debug build could re-hash
+  interned states at commit time and report any whose hash changed.
+- **A per-use escape hatch for `$g`** (such as `${g_mut}`) for writes that
+  really are the same on every path.
+- **Production numbers in `D_Reduction`**, so that rules sharing a reduction,
+  and rules numbered with `${action}`, get their own numbers. This needs a
+  table format change.

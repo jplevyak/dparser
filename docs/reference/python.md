@@ -79,7 +79,7 @@ parser.parse(buf, buf_offset=0, initial_skip_space_fn=None,
              dont_compare_stacks=False,
              dont_use_greediness_for_disambiguation=False,
              dont_use_height_for_disambiguation=False, start_symbol='',
-             initial_state=None, prefer_state=None)
+             initial_state=None, prefer_state=None, keep_tree=False)
 ```
 
 | Argument | Description |
@@ -93,6 +93,7 @@ parser.parse(buf, buf_offset=0, initial_skip_space_fn=None,
 | `start_symbol` | The name of the nonterminal to parse, instead of the first rule. Raises `ValueError` for an unknown name. |
 | `initial_state` | The [threaded state](#threaded-state) at the start: any hashable object, or `None`. |
 | `prefer_state` | `prefer_state(a, b)` returns >0 to prefer state `a`, <0 to prefer `b` and 0 for neither; it chooses between parses that end with different states. |
+| `keep_tree` | Keep the parse tree, as [`Node`](#node)s, for `getTree()`. |
 | `print_debug_info` | `1` prints a line for every action call (marked `???` when speculative); `2` prints final actions only. |
 | `error_recovery` | Recover from syntax errors and continue. Off by default in Python. |
 | `partial_parses` | Accept a parse of a prefix of the input. |
@@ -104,6 +105,7 @@ Returns a `ParsedStructure`:
 |---|---|
 | `getStructure()` | The value of the root node: the start rule's action result. |
 | `getStringLeft()` | The input after the end of the parse: empty unless `partial_parses` stopped early. |
+| `getTree()` | With `keep_tree=True`, the root [`Node`](#node) of the parse tree; otherwise `None`. |
 | `getString()` | The parsed text as a nested list, as actions see it in `s`, including any edits actions made to it. Use this to rewrite text. |
 
 After a parse, `parser.globals` holds the final global state (see the `g`
@@ -124,6 +126,22 @@ Raises `dparser.SyntaxErr` if the parse fails.
 | `user.t`, `user.s` | The node's value and text structure, once its action has run. |
 | `state`, `state_before` | The [threaded state](#threaded-state) after and before the node. |
 | `str(node)` | The node's text. |
+
+### `Node`
+
+A node of a tree kept with `keep_tree=True`. It outlives the parse, unlike
+`DParseNode`, and is what [attributes](attributes.md#python-dparser_attrs)
+work on.
+
+| Attribute | Description |
+|---|---|
+| `symbol`, `name` | The symbol number and name. |
+| `text` | The node's text. |
+| `start`, `end`, `line` | Byte offsets of the text, and the line it starts on. |
+| `children` | The child `Node`s, flattened as actions see them. |
+| `value` | What the node's action returned (for a terminal, its text). |
+| `action` | The `d_` function whose rule built the node, or `None`. |
+| `alternative` | Which of that function's rules built it (from 0), or -1. |
 
 ### `DLoc`
 

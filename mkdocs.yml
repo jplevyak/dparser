@@ -81,6 +81,7 @@ nav:
       - 4. Ambiguity: tutorial/ambiguity.md
       - 5. Speculative Actions: tutorial/speculative-actions.md
       - 6. Python: tutorial/python.md
+      - 7. Attributes after Parsing: tutorial/attributes.md
   - Reference:
       - reference/index.md
       - Grammar Syntax: reference/grammar.md
@@ -90,6 +91,7 @@ nav:
       - Priorities and Disambiguation: reference/disambiguation.md
       - Symbol Table: reference/symbol-table.md
       - Threaded State: reference/threaded-state.md
+      - Attributes: reference/attributes.md
       - make_dparser: reference/make_dparser.md
       - C API: reference/c-api.md
       - C++ Wrapper: reference/cpp.md

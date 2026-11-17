@@ -20,7 +20,7 @@ Options marked *toggle* take no value and flip the default.
 | `-X ext` | `--ext` | `c` | Extension for the default output name, for example `cpp` to compile the actions as C++. |
 | `-i name` | `--grammar_ident` | `gram` | Suffix for generated names: the tables become `parser_tables_name`. Use it to link several grammars into one program. |
 | `-I` | `--filename_ident` | off (toggle) | Use the grammar's file name (up to the first `.`) as the identifier. |
-| `-H n` | `--write_header` | `-1` | Write the header `grammar.g.d_parser.h`: `1` always, `0` never, `-1` only if it would not be empty (the grammar has tokens or start states). |
+| `-H n` | `--write_header` | `-1` | Write the header `grammar.g.d_parser.h`: `1` always, `0` never, `-1` only if it would not be empty (the grammar has tokens or start states). The header also has `D_RULE_<production>_<n>` constants for [`d_get_production`](attributes.md#which-rule-built-a-node). |
 | `-t n` | `--token_type` | `0` | Token symbols in the header as `#define`s (`0`) or an `enum` (`1`). |
 | `-l` | `--longest_match` | off (toggle) | Use longest-match scanning. See [Longest match](terminals.md#longest-match). |
 | `-T` | `--tokenizer` | off (toggle) | Use a tokenizer for the start symbol. See [Tokenizers](terminals.md#tokenizers). |

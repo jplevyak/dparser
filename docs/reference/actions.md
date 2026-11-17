@@ -67,7 +67,8 @@ S: A ( A B { printf("X"); } ) B ;   // runs in the context of the "A B" group
 
 Pass actions run when you walk the finished tree with `d_pass()`. Declare
 the passes at the top of the grammar, and label actions with the pass
-name:
+name. (For values that flow down the tree as well as up, such as scopes
+and types, [attributes](attributes.md) work out the order for you.)
 
 ```c
 ${pass sym for_all postorder}

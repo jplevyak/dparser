@@ -19,6 +19,8 @@ Complete descriptions of the grammar language, the tools and the APIs.
 - **[Symbol Table](symbol-table.md)**: the speculative symbol table API.
 - **[Threaded State](threaded-state.md)**: `${state}`, path-specific
   context such as nesting depth or an indentation stack.
+- **[Attributes](attributes.md)**: synthesized and inherited attributes
+  on the finished tree, and `d_get_production`.
 
 ## Tools and APIs
 

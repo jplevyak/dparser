@@ -14,5 +14,6 @@ Known issues and ideas for future work.
   *  Error repair a la Carl Cerecke.
   *  Split global state on demand.
   *  Let whitespace change the threaded state, not only read it.
-  *  A post-parse attribute library (Part B of `proposals/threaded-state-and-attributes.md`).
+  *  Circular attributes, attributes during disambiguation, and grammar syntax for attributes.
+  *  More ideas under "Future work" in `proposals/threaded-state-and-attributes.md`.
   *  Eager parser.

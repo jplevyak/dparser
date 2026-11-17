@@ -10,6 +10,18 @@
           Python: a `state` action argument, parse(initial_state=,
           prefer_state=).  Rust: StateId, Parser::make_state / state,
           initial_state, prefer_state and white_space_state_fn.
+        Attributes after parsing: synthesized and inherited attributes on
+          the saved tree, evaluated on demand, cached, copied down to
+          descendants when a parent has no equation, and checked for
+          cycles.  C: dattr.h (d_attr_tree, d_attr_get, ...), part of
+          libdparse.  C++: dattr.hpp (dparser::Attr<T>, syn, inh,
+          AttrTree).  Python: the dparser_attrs module (@syn, @inh) and
+          parse(keep_tree=True) with ParsedStructure.getTree() and Node.
+          Rust: dparser::attrs.
+        d_get_production: the rule that built a node.  make_dparser -H 1
+          writes D_RULE_<production>_<n> constants; with -a they go to the
+          actions file and build_actions makes them Rust constants.  Rust:
+          ParseNode::production().
         D_Parser has two new fields at the end: recompile code that uses
           dparse.h.  Rust ParseNode has new fields state and state_before.
         python.g and tests/python.test.g keep the bracket depth and the

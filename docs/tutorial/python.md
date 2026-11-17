@@ -160,5 +160,4 @@ All the `parse()` options are listed in the
   information, and return `Reject` from a speculative action to abandon a
   parse.
 
-That's the end of the tutorial. The [Reference](../reference/index.md)
-covers everything in full detail.
+Next: [Attributes after Parsing](attributes.md).
