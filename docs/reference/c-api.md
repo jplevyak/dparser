@@ -85,6 +85,8 @@ The parser object. Set the fields you need after `new_D_Parser` and before
 | `D_FreeNodeFn free_node_fn` | `NULL` | Called with each parse node as it is freed, so you can free resources in your node data. |
 | `d_loc_t loc` | line 1 | The starting location. Set `loc.pathname` to name the input in error messages. After an error, the error location. |
 | `int start_state` | `0` | The state to start parsing in. `0` is the start symbol; see [Start states](grammar.md#start-states). |
+| `D_StateFns *state_fns` | `NULL` | How to hash, compare, free and prefer [threaded states](threaded-state.md#setting-it-up-in-c). With `NULL`, states are compared by pointer. |
+| `void *initial_state` | `NULL` | The threaded state at the start of the parse. With `state_fns`, the parser takes ownership of it. |
 
 ### Options
 
@@ -150,6 +152,10 @@ typedef struct d_loc_t {
 | `char *d_ws_after(D_Parser *p, D_ParseNode *pn)` | The end of the whitespace after the node. |
 | `void d_pass(D_Parser *p, D_ParseNode *pn, int pass)` | Run a [pass](actions.md#pass-actions) over a subtree. |
 | `void free_D_ParseTreeBelow(D_Parser *p, D_ParseNode *pn)` | Free the subtree below a node. |
+| `void *d_get_state(D_ParseNode *pn)` | The [threaded state](threaded-state.md) after a node. |
+| `void *d_get_state_before(D_ParseNode *pn)` | The threaded state before a node. |
+| `void *d_get_whitespace_state(D_Parser *p)` | In a whitespace function, the current threaded state. |
+| `void *d_intern_state(D_Parser *p, void *state)` | The canonical pointer for a threaded state, which the parser then owns. |
 
 Symbol names and kinds are in the tables:
 
@@ -169,6 +175,13 @@ typedef struct D_ParseNode *(*D_AmbiguityFn)(struct D_Parser *p, int n,
 typedef void (*D_FreeNodeFn)(struct D_ParseNode *pn);
 typedef void (*D_WhiteSpaceFn)(struct D_Parser *p, d_loc_t *loc,
                                void **p_globals);
+
+typedef struct D_StateFns {
+  unsigned (*hash)(void *state);
+  int (*equal)(void *a, void *b);   /* nonzero if equal */
+  void (*free)(void *state);        /* optional */
+  int (*prefer)(void *a, void *b);  /* optional: >0 prefer a, <0 prefer b */
+} D_StateFns;
 ```
 
 ## Debugging output

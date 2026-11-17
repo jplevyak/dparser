@@ -19,10 +19,11 @@ flowchart RL
 ```
 
 **`SNode` (state node).** A parse state at a position in the input: the
-LR state, the location, and the symbol table scope. SNodes are
-hash-consed on *(state, scope)* at each position, so all parses that reach
-the same state at the same place with the same view of the symbol table
-share one SNode.
+LR state, the location, the symbol table scope and the
+[threaded state](../reference/threaded-state.md). SNodes are hash-consed
+on *(state, scope, threaded state)* at each position, so all parses that
+reach the same state at the same place with the same view of the symbol
+table and the same threaded state share one SNode.
 
 **`ZNode` (symbol node).** An edge of the stack graph. An SNode has a set
 of ZNodes, each holding the parse node (`pn`) that was shifted or reduced
@@ -33,7 +34,8 @@ what make the stack a graph.
 **`PNode` (parse node).** A node of the parse forest: a symbol spanning
 some input, with its children, priority information, and the public
 `D_ParseNode` (with your user data) embedded at its end. PNodes are
-hash-consed on *(start, end, symbol, initial scope)*, so the same
+hash-consed on *(start, end, symbol, initial scope, initial threaded
+state)*, so the same
 derivation reached by different stack paths is built once. Alternative
 derivations of the same span are linked through the `ambiguities` list.
 When disambiguation replaces a node by a better one, the old node's
@@ -103,17 +105,24 @@ as they are referenced from the stack graph or the parse forest.
 
 ## Ambiguity
 
-When `add_PNode()` creates a node with the same start, end, symbol and
-initial scope as an existing one, the two are compared with `cmp_pnodes()`
+When `add_PNode()` creates a node with the same start, end, symbol,
+initial scope and initial threaded state as an existing one, the two are compared with `cmp_pnodes()`
 (priorities, then greediness, then height). The loser is discarded. If
 neither wins, the new node is added to the existing node's `ambiguities`
 list, to be resolved by the ambiguity function when the tree is
 committed.
 
-Derivations whose speculative actions left the symbol table in different
-states are not merged. They stay as separate PNodes, so each parse path
-continues with its own scope. If several survive to the end of the input,
-they are combined as alternatives at the top of the tree.
+Derivations whose speculative actions left the symbol table or the
+threaded state different are not merged. They stay as separate PNodes, so
+each parse path continues with its own scope and state. If several survive
+to the end of the input, they are combined as alternatives at the top of
+the tree, after dropping any whose final threaded state is less preferred
+(`state_fns->prefer`) than another's.
+
+Threaded states are interned (`d_intern_state`), so comparing them, and
+hashing them into the keys above, is a pointer operation. Whitespace is
+skipped once per token end position and threaded state, since a
+whitespace function may read the state.
 
 See [Disambiguation](disambiguation.md) for the comparison rules.
 

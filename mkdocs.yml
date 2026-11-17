@@ -89,6 +89,7 @@ nav:
       - Declarations: reference/declarations.md
       - Priorities and Disambiguation: reference/disambiguation.md
       - Symbol Table: reference/symbol-table.md
+      - Threaded State: reference/threaded-state.md
       - make_dparser: reference/make_dparser.md
       - C API: reference/c-api.md
       - C++ Wrapper: reference/cpp.md

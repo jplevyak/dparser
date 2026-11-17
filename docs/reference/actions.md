@@ -36,6 +36,7 @@ A speculative action can:
 - set values in `$$`, which stay with the node and are visible to later
   actions, speculative and final;
 - read and update the symbol table through `${scope}`;
+- read and replace the [threaded state](threaded-state.md) through `${state}`;
 - read, but not write, the globals through `$g`;
 - reject the current parse path with `${reject}`.
 
@@ -143,13 +144,16 @@ symbol, start location, end of the text, and scope; see
 The global state type is `D_ParseNode_Globals`, also set with `#define`,
 and the pointer is whatever you assign to `parser->initial_globals` before
 parsing. It is shared by all parse paths, so don't change it in
-speculative actions.
+speculative actions; keep state that depends on the parse path in
+[`${state}`](threaded-state.md).
 
 ### Control and context
 
 | Specifier | Meaning |
 |---|---|
 | `${scope}` | The current symbol table scope (`D_Scope *`) for this node. Assign to it to change the scope seen by later parts of the parse. See [Symbol Table](symbol-table.md). |
+| `${state}` | The [threaded state](threaded-state.md) (`void *`). In a speculative action, assign it to change the state seen by later parts of the parse on this path; elsewhere it is the state after this node, read-only. |
+| `${state N}` | The threaded state before element *N*, read-only. |
 | `${reject}` | In a speculative action, reject this parse path. (It expands to `return -1`.) |
 | `${parser}` | The `D_Parser *` running the parse. |
 | `${free_below}` | Free the parse tree below this node, to save memory when you no longer need it. |

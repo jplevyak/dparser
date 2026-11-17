@@ -59,7 +59,8 @@ A rule can have both kinds: `rule: elements [ speculative ] { final };`
     A speculative action may run for a parse that is later abandoned, and
     may run a different number of times than the rule appears in the final
     parse. Only write to `$$` (the node's own data), to `${scope}` (the
-    symbol table, below), or to nothing at all. Printing or allocating
+    symbol table, below), to `${state}` (the threaded state, below), or to
+    nothing at all. Printing or allocating
     global resources from a speculative action will see the effects of
     parses that never happen. For the same reason, `$g` is read-only in
     speculative actions; see
@@ -196,6 +197,26 @@ typedef struct { int is_type; int value; } MySym;
 #define D_UserSym MySym
 ```
 
+## Threaded state
+
+The symbol table is one kind of state that flows from left to right along
+a parse path. For other context, such as whether you are inside a loop,
+use the [threaded state](../reference/threaded-state.md), `${state}`: a
+value of your own that speculative actions read and replace. Paths with
+different states are kept apart, just as with scopes.
+
+```c
+stmt: 'while' '(' expr ')' enter stmt leave
+    | 'break' ';' [ if (depth(${state}) == 0) ${reject}; ]
+    | expr ';' ;
+enter: [ ${state} = with_depth(depth(${state}) + 1); ] ;
+leave: [ ${state} = with_depth(depth(${state}) - 1); ] ;
+```
+
+States are immutable: build a new value and assign it. Tell the parser how
+to compare them with `parser->state_fns`; the reference page has the
+details and a complete example.
+
 ## What you learned
 
 - `[ ]` actions run speculatively, possibly several times, on parses that
@@ -203,5 +224,7 @@ typedef struct { int is_type; int value; } MySym;
 - `${reject}` in a speculative action abandons the current parse path.
 - The symbol table gives each parse path its own view. Use
   `SPECULATIVE_NEW_D_SYM` and `UPDATE_D_SYM` in speculative actions.
+- `${state}` carries other path-specific context, such as nesting depth,
+  from left to right.
 
 Next: [Python](python.md).

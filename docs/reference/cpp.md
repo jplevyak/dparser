@@ -68,6 +68,7 @@ parse tree by default (`save_parse_tree` is on).
 | `void set_loc(const char *pathname, int line = 1, int col = 0)` | Set the starting location and file name. |
 | `void set_syntax_error_fn(D_SyntaxErrorFn)` | Install a syntax error callback. |
 | `void set_ambiguity_fn(D_AmbiguityFn)` | Install an ambiguity callback. |
+| `template <class T, class Prefer = NoPreference> void set_state(T initial)` | Use [threaded state](#threaded-state) of type `T`. |
 | `int syntax_errors() const` | The number of syntax errors. |
 | `D_Parser *c_parser() const` | The underlying C parser, for options without a wrapper. |
 
@@ -97,6 +98,7 @@ A lightweight, non-owning view of a `D_ParseNode`.
 | `ParseNode child(size_t i) const` | Child `i`. |
 | `children() const` | A range for `for (auto c : node.children())`. |
 | `std::optional<ParseNode> find_in_tree(int symbol) const` | Depth-first search for a symbol. |
+| `template <class T> const T *state() const`, `state_before() const` | The [threaded state](#threaded-state) after or before the node, or `nullptr`. |
 | `D_ParseNode *c_node() const` | The underlying C node. |
 
 ## In actions
@@ -104,3 +106,36 @@ A lightweight, non-owning view of a `D_ParseNode`.
 In grammar actions, `$c0`, `$c1`, ... are `dparser::ParseNode` views of the
 rule's elements, and `$c` is the node being built. See
 [Actions](actions.md#node-data).
+
+## Threaded state
+
+[Threaded state](threaded-state.md) can be any type that `std::hash` and
+`==` support. `set_state<T>(initial)` installs the hash, equality and free
+functions for `T`; call it once, before parsing. In actions,
+`dparser::make_state(${parser}, value)` makes a state value (owned by the
+parser) and `dparser::state<T>(${state})` reads one:
+
+```cpp
+{
+#include "dparse.hpp"
+static int depth(void *s) { const int *d = dparser::state<int>(s); return d ? *d : 0; }
+}
+
+stmt: 'while' enter stmt leave
+    | 'break' [ if (!depth(${state})) ${reject}; ]
+    | 'x' ;
+enter: [ ${state} = dparser::make_state(${parser}, depth(${state}) + 1); ] ;
+leave: [ ${state} = dparser::make_state(${parser}, depth(${state}) - 1); ] ;
+```
+
+```cpp
+struct PreferLarger {
+    int operator()(const int &a, const int &b) const { return a - b; }
+};
+
+dparser::Parser parser(&parser_tables_gram);
+parser.set_state<int>(0);                  // or set_state<int, PreferLarger>(0)
+```
+
+The optional second type chooses between parses that end with different
+states; see [Choosing between final states](threaded-state.md#choosing-between-final-states).

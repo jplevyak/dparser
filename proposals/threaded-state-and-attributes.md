@@ -1,6 +1,6 @@
 # Proposal: Speculation-Safe Threaded State and Post-Parse Attributes
 
-- **Status:** Part A in progress: C runtime, code generator and C++, Python and Rust bindings done; user documentation and the `python.g` port to do
+- **Status:** Part A implemented (C, C++, Python, Rust, `python.g`, documentation); Part B not started
 - **Target:** DParser 1.40 (Part A), 1.41 (Part B)
 - **Date:** 2026-11-16
 

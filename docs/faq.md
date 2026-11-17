@@ -65,6 +65,14 @@ That is what speculative actions are: they run while alternatives are
 still being explored. Only write to `$$` and the symbol table in them. See
 [Speculative Actions](tutorial/speculative-actions.md).
 
+### Where do I keep state that changes as parsing proceeds, like nesting depth?
+
+In the [threaded state](reference/threaded-state.md), `${state}`. Each
+parse path has its own, so a speculative action can use it to accept or
+reject a parse. Don't keep it in `$g`, which every path shares: a
+speculative action can run for a path that is later abandoned, and nothing
+undoes what it wrote.
+
 ### How do I find out where my grammar is ambiguous?
 
 Turn off greediness and height disambiguation, set `d_verbose_level = 1`,

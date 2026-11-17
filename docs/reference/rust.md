@@ -128,6 +128,8 @@ An action is the body of a function that receives the node being built,
 | `${child 0, 2, 1}` | `_ps.children[0].children[2].children[1]` | A path into the tree. |
 | `$g` | `&mut G`, or `&G` | The globals passed to `parse`. Read-only in speculative actions; see below. |
 | `${scope}` | `_ps.scope` | The symbol table scope (a `ScopeId`). Speculative actions may assign it. |
+| `${state}` | `_ps.state` | The [threaded state](#threaded-state) (a `StateId`). Speculative actions may assign it; elsewhere it is read-only. |
+| `${state N}` | `_ps.children[N].state_before` | The threaded state before element *N*. |
 | `${parser}` | `&mut Parser` | The parser, for example `${parser}.symtab`. |
 | `${reject}` | `return -1` | In a speculative action, reject this parse path. |
 | `${nterm name}`, `${string 'x'}` | an `i32` | The symbol number of a nonterminal or string. |
@@ -136,7 +138,7 @@ An action is the body of a function that receives the node being built,
 A `ParseNode` has `symbol`, `string` (the text, without trailing
 whitespace), `end_skip_string` (the whitespace after it), `start_loc` (a
 `Loc` with byte offset, line and column), `end`, `children`, `user`,
-`scope` and `action_index`.
+`scope`, `state`, `state_before` and `action_index`.
 
 ### Speculative actions and `$g`
 
@@ -152,7 +154,8 @@ first node with that symbol under `$n0`, as `d_find_in_tree`) or
 copying it.
 
 `$g` is `&G` in speculative actions, so they can't write to the globals: a
-write wouldn't be undone if the parse path fails. Add
+write wouldn't be undone if the parse path fails. Keep path-specific state
+in [`${state}`](#threaded-state) instead, or add
 [`${declare mutable_speculative_globals}`](declarations.md#mutable-speculative-globals)
 to the grammar to make it `&mut G`.
 
@@ -186,6 +189,33 @@ paths whose scopes differ apart.
 
 A new symbol table is made for each parse, unless you set
 `parser.initial_scope` (and `parser.symtab`) first.
+
+### Threaded state
+
+[Threaded state](threaded-state.md) values can be of any `Eq + Hash`
+type. The parser interns them and actions handle them as `StateId`s
+(`StateId::NONE` is no state). `${parser}.make_state(value)` returns the
+id of a value, and `${parser}.state::<T>(id)` the value:
+
+```rust
+{
+fn depth<G, N: Default + Clone>(p: &dparser::Parser<G, N>, s: dparser::StateId) -> i32 {
+    p.state::<i32>(s).copied().unwrap_or(0)
+}
+}
+
+stmt: 'while' enter stmt leave
+    | 'break' [ if depth(${parser}, ${state}) == 0 { ${reject}; } ]
+    | 'x' ;
+enter: [ let d = depth(${parser}, ${state}); ${state} = ${parser}.make_state(d + 1); ] ;
+leave: [ let d = depth(${parser}, ${state}); ${state} = ${parser}.make_state(d - 1); ] ;
+```
+
+`Parser::initial_state` is the state at the start, and
+`Parser::prefer_state`, a `fn(&States, StateId, StateId) -> i32`, chooses
+between parses that end with different states. Values live as long as the
+parser (`Parser::states`). A whitespace function that needs the state is
+set as `white_space_state_fn` (see below).
 
 ### Passes
 
@@ -223,6 +253,10 @@ fn f(input: &[u8], loc: &mut dparser::Loc, symbol: &mut u16, term_priority: &mut
 
 // ${declare whitespace f}
 fn f(input: &[u8], loc: &mut dparser::Loc, globals: Option<&mut GlobalsStruct>);
+
+// Parser::white_space_state_fn: also reads the threaded state
+fn f(input: &[u8], loc: &mut dparser::Loc, globals: Option<&mut GlobalsStruct>,
+     states: &dparser::States, state: dparser::StateId);
 ```
 
 A scanner that matches advances `loc.s` and returns nonzero.
@@ -281,6 +315,8 @@ in the input are ignored.
 | `syntax_error_fn` | report on stderr | Called on each syntax error, with `loc` set. |
 | `ambiguity_fn` | report and fail | Chooses among ambiguous parses. `dparser::resolve_amb_greedy` chooses as C's `resolve_amb_greedy`. |
 | `white_space_fn` | the default | Replaces whitespace handling. |
+| `white_space_state_fn` | `None` | Replaces whitespace handling with a function that also reads the [threaded state](#threaded-state); used instead of `white_space_fn` when set. |
+| `initial_state`, `prefer_state` | `StateId::NONE`, `None` | The [threaded state](#threaded-state) at the start, and the preference between final states. |
 | `pathname`, `start_line` | | The file name and first line, for locations and messages (`set_loc`). |
 
 After a parse, `loc` is the location of the last syntax error,

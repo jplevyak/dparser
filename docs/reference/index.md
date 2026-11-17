@@ -17,6 +17,8 @@ Complete descriptions of the grammar language, the tools and the APIs.
   operator and rule priorities, associativity, and the order in which
   ambiguities are resolved.
 - **[Symbol Table](symbol-table.md)**: the speculative symbol table API.
+- **[Threaded State](threaded-state.md)**: `${state}`, path-specific
+  context such as nesting depth or an indentation stack.
 
 ## Tools and APIs
 
@@ -42,7 +44,7 @@ start: rule1 | rule2 ;                   // first production is the start symbol
 rule1
   : 'literal' "[a-z]+" other*            // strings, regexes, nonterminals, EBNF
       [ /* speculative action */ ]
-      { /* final action: $$ $0 $n0 ${scope} ... */ }
+      { /* final action: $$ $0 $n0 ${scope} ${state} ... */ }
   | other '+' other $left 10             // rule priority and associativity
   | ( other ',' )+ other?                // grouping, +, ?
   | 'x'@2:4                              // bounded repetition

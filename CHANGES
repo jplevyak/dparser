@@ -1,3 +1,26 @@
+1.40    Threaded state (${state}): a value of your own that flows left to
+          right along each parse path, like ${scope}.  Speculative actions
+          read and replace it; paths whose states differ are kept apart, so
+          it can decide which parses are accepted.  ${state N} is the state
+          before element N.  D_Parser.state_fns (D_StateFns) interns states
+          and can prefer between parses ending with different states;
+          whitespace functions read it with d_get_whitespace_state.  Also
+          d_get_state, d_get_state_before and d_intern_state.  C++:
+          Parser::set_state<T>, dparser::make_state / dparser::state.
+          Python: a `state` action argument, parse(initial_state=,
+          prefer_state=).  Rust: StateId, Parser::make_state / state,
+          initial_state, prefer_state and white_space_state_fn.
+        D_Parser has two new fields at the end: recompile code that uses
+          dparse.h.  Rust ParseNode has new fields state and state_before.
+        python.g and tests/python.test.g keep the bracket depth and the
+          indentation stack in ${state} instead of $g, and no longer need
+          ${declare mutable_speculative_globals}.  Misindented code is now
+          a syntax error, tabs indent correctly, and python.g treats match
+          and case as soft keywords.  Each statement's tree has a new
+          first child, LINE.
+        make test also runs the C++, Python grammar and threaded state
+          tests.
+
 1.39    BREAKING: $g is read-only in speculative actions: a
           const D_ParseNode_Globals * in C and C++, a &G in Rust, so writes
           no longer compile. Add ${declare mutable_speculative_globals} to

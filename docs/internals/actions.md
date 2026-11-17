@@ -17,7 +17,9 @@ reduction is abandoned on that path.
 
 The new node's `parse_node.scope` starts as the scope of the rightmost
 child, so the action sees the symbol table as of the end of the rule, and
-can replace it. Speculative actions for terminals (from `[ ]` on a regex
+can replace it. The [threaded state](../reference/threaded-state.md) works
+the same way: it starts as the state after the rightmost child, and
+whatever the action assigns to `${state}` is interned when it returns. Speculative actions for terminals (from `[ ]` on a regex
 production) run when the terminal is shifted.
 
 ## Final actions and commit

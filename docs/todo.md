@@ -13,5 +13,6 @@ Known issues and ideas for future work.
   *  LALR.
   *  Error repair a la Carl Cerecke.
   *  Split global state on demand.
-  *  Ensure that states only summarize identical `.scope`, `.globals` and `.skip_space`.
+  *  Let whitespace change the threaded state, not only read it.
+  *  A post-parse attribute library (Part B of `proposals/threaded-state-and-attributes.md`).
   *  Eager parser.

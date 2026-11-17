@@ -35,8 +35,8 @@ write is a compile error.
 
 A speculative action can run on a parse path that is later abandoned, and
 nothing undoes what it wrote to `$g`. State that depends on the parse
-path belongs in the node's own data (`$$`) or in the symbol table
-(`${scope}`).
+path belongs in the node's own data (`$$`), in the symbol table
+(`${scope}`) or in the [threaded state](threaded-state.md) (`${state}`).
 
 `${declare mutable_speculative_globals}` restores the old behavior for
 grammars that relied on it:
@@ -50,7 +50,13 @@ LP ::= '(' [ $g->implicit_line_joining++; ];
 ```
 
 Only use it when writes to `$g` are correct whichever paths survive, or
-when the grammar never keeps competing paths alive across them.
+when the grammar never keeps competing paths alive across them. Prefer
+moving such state to `${state}`, which is always correct; `python.g` did
+exactly this with the line above:
+
+```c
+LP ::= '(' [ ${state} = (void *)py_with(${state}, 1); ];
+```
 
 ## `${pass ...}`
 

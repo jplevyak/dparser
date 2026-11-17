@@ -44,8 +44,9 @@ are recognized **by name**:
 | `nodes` | A list of `DParseNode` objects for the elements. |
 | `this` | The `DParseNode` for the node being built. |
 | `parser` | The `Parser` object. |
+| `state` | A one-element list holding the [threaded state](#threaded-state). Speculative actions may replace `state[0]`. Makes the action run speculatively too, like `spec`. |
 
-Without `spec` or `spec_only`, an action runs only on the final parse.
+Without `spec`, `spec_only` or `state`, an action runs only on the final parse.
 
 ## `Parser`
 
@@ -77,18 +78,21 @@ parser.parse(buf, buf_offset=0, initial_skip_space_fn=None,
              error_recovery=False, print_debug_info=0, partial_parses=False,
              dont_compare_stacks=False,
              dont_use_greediness_for_disambiguation=False,
-             dont_use_height_for_disambiguation=False, start_symbol='')
+             dont_use_height_for_disambiguation=False, start_symbol='',
+             initial_state=None, prefer_state=None)
 ```
 
 | Argument | Description |
 |---|---|
 | `buf` | The text to parse, `str` or `bytes`. |
 | `buf_offset` | Start parsing at this byte offset. |
-| `initial_skip_space_fn` | A whitespace function. It receives a `DLoc` and should advance `loc.s`. |
+| `initial_skip_space_fn` | A whitespace function. It receives a `DLoc` and should advance `loc.s`. If it takes a second argument, it also receives the [threaded state](#threaded-state). |
 | `syntax_error_fn` | Called with a `DLoc` on each syntax error. `dparser.my_syntax_error_func` raises a `SyntaxErr` showing the error in context. |
 | `ambiguity_fn` | Called with a list of `DParseNode` alternatives; must return one of them (the same object). If it raises, the first alternative is used. |
 | `make_token` | A function applied to the text of every terminal; its result is what actions see in `t` instead of the string. |
 | `start_symbol` | The name of the nonterminal to parse, instead of the first rule. Raises `ValueError` for an unknown name. |
+| `initial_state` | The [threaded state](#threaded-state) at the start: any hashable object, or `None`. |
+| `prefer_state` | `prefer_state(a, b)` returns >0 to prefer state `a`, <0 to prefer `b` and 0 for neither; it chooses between parses that end with different states. |
 | `print_debug_info` | `1` prints a line for every action call (marked `???` when speculative); `2` prints final actions only. |
 | `error_recovery` | Recover from syntax errors and continue. Off by default in Python. |
 | `partial_parses` | Accept a parse of a prefix of the input. |
@@ -118,6 +122,7 @@ Raises `dparser.SyntaxErr` if the parse fails.
 | `end`, `end_skip` | Byte offsets of the end of the text, without and with trailing whitespace. |
 | `buf` | The input as `bytes`. |
 | `user.t`, `user.s` | The node's value and text structure, once its action has run. |
+| `state`, `state_before` | The [threaded state](#threaded-state) after and before the node. |
 | `str(node)` | The node's text. |
 
 ### `DLoc`
@@ -137,6 +142,38 @@ Raises `dparser.SyntaxErr` if the parse fails.
 | `AmbiguityException` | Raised by `my_ambiguity_func`. |
 | `NoActionsFound` | `Parser()` found no `d_` functions. |
 | `ParsingException` | Base class for parsing errors. |
+
+## Threaded state
+
+[Threaded state](threaded-state.md) can be any hashable Python object (a
+number, a tuple, a frozen dataclass); `None` means no state. An action
+that takes a `state` argument gets a one-element list. In the speculative
+run (`spec` true) it holds the current state, and assigning `state[0]`
+changes the state seen by everything to the right on this parse path. In
+the final run it holds the state after the node, and must not be changed.
+
+```python
+def d_while(t):
+    '''stmt : 'while' enter stmt leave'''
+
+def d_break(t, spec, state):
+    '''stmt : 'break' '''
+    if spec and not state[0]:
+        return Reject
+
+def d_enter(t, spec, state):
+    '''enter : '''
+    if spec:
+        state[0] = (state[0] or 0) + 1
+
+def d_leave(t, spec, state):
+    '''leave : '''
+    if spec:
+        state[0] -= 1
+```
+
+States are compared with `==` and `hash()`, so don't change a state object
+in place; make a new one. An unhashable state rejects the parse path.
 
 ## Whitespace
 
