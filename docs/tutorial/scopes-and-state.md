@@ -225,6 +225,12 @@ See [Threaded State](../reference/threaded-state.md), which also covers
 choosing between parses that end in different states, and whitespace that
 depends on the state.
 
+## In Python and Rust
+
+Both have the symbol table and threaded state too: in Python through the
+`scope` and `state` action arguments ([chapter 7](python.md#the-symbol-table)),
+and in Rust through `${parser}.symtab` and `${state}` ([chapter 9](rust.md)).
+
 ## Which to use
 
 | To keep | Use |

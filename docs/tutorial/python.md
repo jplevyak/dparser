@@ -78,6 +78,8 @@ binding looks at the parameter *names*:
 | `nodes` | A list of node objects for the elements, with locations. |
 | `this` | The node object for the rule itself. |
 | `parser` | The `Parser` object. |
+| `scope` | The symbol table, as the node being built sees it (below). |
+| `state` | The [threaded state](scopes-and-state.md#context-that-isnt-a-name), as a one-element list. |
 
 For example, `nodes` gives line and column information:
 
@@ -151,6 +153,65 @@ SyntaxErr: syntax error during parse
 All the `parse()` options are listed in the
 [Python API reference](../reference/python.md).
 
+## The symbol table
+
+An action that takes a `scope` argument can use the symbol table, as in
+[Speculative Actions](speculative-actions.md#the-typedef-problem). Here is
+the `typedef` example in Python:
+
+```python
+from dparser import Parser, Reject
+
+def d_program(t):
+    '''program : item*'''
+
+def d_typedef(t, spec, scope):
+    '''item : 'typedef' identifier ';' '''
+    if spec:
+        scope.declare(t[1])
+    else:
+        print('new type', t[1])
+
+def d_declare(t):
+    '''item : type_name '*' identifier ';' '''
+    print('declare', t[2], 'as pointer to', t[0])
+
+def d_multiply(t):
+    '''item : value '*' value ';' '''
+    print('multiply', t[0], 'by', t[2])
+
+def d_type_name(t, spec, scope):
+    '''type_name : identifier'''
+    if spec and scope.find(t[0]) is None:
+        return Reject
+    return t[0]
+
+def d_value(t, spec, scope):
+    '''value : identifier'''
+    if spec and scope.find(t[0]) is not None:
+        return Reject
+    return t[0]
+
+def d_identifier(t):
+    '''identifier : "[a-zA-Z_][a-zA-Z0-9_]*" $term -1'''
+    return t[0]
+
+Parser().parse('a * b;  typedef a;  a * b;')
+```
+
+```text
+multiply a by b
+new type a
+declare b as pointer to a
+```
+
+`scope.declare` and `scope.find` are `SPECULATIVE_NEW_D_SYM` and
+`find_D_Sym`. Declarations happen in the speculative run (`spec` true),
+since that is when the parser decides between the two readings of
+`a * b;`. Symbols can hold any Python object as their value, and
+`push`, `pop` and `update` handle nested scopes and assignments; see the
+[Python API](../reference/python.md#symbol-table).
+
 ## What you learned
 
 - In Python, grammar rules live in the docstrings of `d_` functions, and
@@ -159,5 +220,6 @@ All the `parse()` options are listed in the
 - Name extra parameters (`spec`, `nodes`, `s`, ...) to get more
   information, and return `Reject` from a speculative action to abandon a
   parse.
+- `scope` gives an action the symbol table, and `state` the threaded state.
 
 Next: [Attributes after Parsing](attributes.md).

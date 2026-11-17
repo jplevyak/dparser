@@ -2,8 +2,7 @@
 
 This tutorial builds working parsers step by step. Each chapter has
 complete code that you can copy, compile and run. Every example was run
-while writing these pages: chapters 1 to 5 and 7 with DParser 1.37, and
-chapters 6, 8 and 9 with 1.40.
+while writing these pages, with DParser 1.37 or later.
 
 1. **[A Calculator](calculator.md)**: attach C actions to grammar rules,
    carry values up the parse tree, and use priorities to get operator

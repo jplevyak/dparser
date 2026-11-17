@@ -45,6 +45,7 @@ are recognized **by name**:
 | `this` | The `DParseNode` for the node being built. |
 | `parser` | The `Parser` object. |
 | `state` | A one-element list holding the [threaded state](#threaded-state). Speculative actions may replace `state[0]`. Makes the action run speculatively too, like `spec`. |
+| `scope` | A `Scope`: the [symbol table](#symbol-table) as this node sees it. Makes the action run speculatively too, like `spec`. |
 
 Without `spec`, `spec_only` or `state`, an action runs only on the final parse.
 
@@ -160,6 +161,50 @@ work on.
 | `AmbiguityException` | Raised by `my_ambiguity_func`. |
 | `NoActionsFound` | `Parser()` found no `d_` functions. |
 | `ParsingException` | Base class for parsing errors. |
+| `SymbolTableError` | A symbol table change outside a speculative action, or a `Scope` or `Symbol` used after its parse. |
+
+## Symbol table
+
+The [symbol table](symbol-table.md) is available to actions that take a
+`scope` argument: a `Scope` for the node being built (`${scope}` in C).
+Each parse path sees its own symbols, so a speculative action can decide
+whether to accept a parse from what has been declared.
+
+| Method | Description |
+|---|---|
+| `find(name)` | The `Symbol` visible here with this name, or `None` (`find_D_Sym`). |
+| `find_local(name)` | The `Symbol` declared in this scope itself, or `None`. |
+| `declare(name, value=None)` | Declare a symbol on this parse path, with any Python object as its value (`SPECULATIVE_NEW_D_SYM`). |
+| `update(symbol, value)` | Give a symbol a new value on this parse path (`UPDATE_D_SYM`). |
+| `push()` | Open a scope nested in this one for what follows (`new_D_Scope`). |
+| `pop(node)` | Return to the scope after `node`, a `DParseNode` such as `nodes[0]` for the `{` that opened a block, keeping updates made since to outer symbols (`enter_D_Scope`). |
+
+A `Symbol` has `name` and `value`. Lookups work in any action; changes are
+allowed only in speculative actions (when `spec` is true), and raise
+`SymbolTableError` otherwise. `Scope` and `Symbol` objects are valid only
+during the parse that made them.
+
+```python
+def d_block(t, spec, scope, nodes):
+    '''statement : '{' new_scope statement* '}' '''
+    if spec:
+        scope.pop(nodes[0])
+
+def d_new_scope(t, spec, scope):
+    '''new_scope : '''
+    if spec:
+        scope.push()
+
+def d_declare(t, spec, scope):
+    '''statement : identifier ':' expression ';' '''
+    if spec:
+        scope.declare(t[0], t[2])
+
+def d_name(t, spec, scope):
+    '''expression : identifier'''
+    sym = scope.find(t[0])
+    return Reject if sym is None else sym.value
+```
 
 ## Threaded state
 

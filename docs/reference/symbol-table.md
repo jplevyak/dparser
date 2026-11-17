@@ -5,7 +5,8 @@ Different parse paths can declare and update symbols independently, while
 sharing everything they have in common.
 
 It is optional: you only need it if your speculative actions depend on
-declarations, as in the C `typedef` problem. For a walkthrough see
+declarations, as in the C `typedef` problem. It is also available from
+[Python](python.md#symbol-table) and [Rust](rust.md#symbol-tables). For a walkthrough see
 [Speculative Actions](../tutorial/speculative-actions.md) and
 [Scopes and State](../tutorial/scopes-and-state.md); for how it works
 see [Symbol Table internals](../internals/symbol-table.md).

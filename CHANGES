@@ -1,3 +1,18 @@
+1.41    Python: the symbol table, through a `scope` action argument (a
+          Scope with find, find_local, declare, update, push and pop;
+          symbols hold any Python object), and SymbolTableError.
+        Python: spec_only actions run only speculatively and keep that
+          value, as documented; they used to run only in the final pass.
+        Symbol table: UPDATE_D_SYM copies all of a symbol whose D_UserSym is
+          larger than the default, not just sizeof(D_Sym) of it.
+        make_dparser: $ specifiers are not expanded in comments, in actions
+          or global code, and global code skips string and character
+          literals.  Code blocks accept Rust lifetimes ('a, 'static) and
+          character literals holding brackets.
+        make test also runs test_dsymtab.  Fix the '+' rule in
+          tests/g29.test.g and the Symbol Table reference.
+        Tutorial: new chapters Scopes and State (6) and Rust (9).
+
 1.40    Threaded state (${state}): a value of your own that flows left to
           right along each parse path, like ${scope}.  Speculative actions
           read and replace it; paths whose states differ are kept apart, so
