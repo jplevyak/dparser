@@ -70,7 +70,7 @@ The package provides a `dparse_generate()` function for running
 ```cmake
 cmake_minimum_required(VERSION 3.10)
 project(calc C)
-find_package(dparser 1.37 REQUIRED)
+find_package(dparser 1.40 REQUIRED)
 dparse_generate(${CMAKE_CURRENT_SOURCE_DIR}/calc.g
                 ${CMAKE_CURRENT_BINARY_DIR}/calc.g.d_parser.c)
 add_executable(calc main.c ${CMAKE_CURRENT_BINARY_DIR}/calc.g.d_parser.c)

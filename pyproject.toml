@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dparser"
-version = "1.38"
+version = "1.40"
 description = "DParser for Python"
 authors = [{ name = "John Plevyak", email = "jplevyak@gmail.com" }]
 requires-python = ">=3.10"

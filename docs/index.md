@@ -38,7 +38,7 @@ number: "[0-9]+" { $$.value = atof($n0.start_loc.s); };
 -   **[Tutorial](tutorial/index.md)**
 
     Build a calculator step by step, then learn parse trees, error recovery,
-    ambiguity and speculative actions.
+    ambiguity, speculative actions and attributes.
 
 -   **[Reference](reference/index.md)**
 
@@ -68,7 +68,13 @@ number: "[0-9]+" { $$.value = atof($n0.start_loc.s); };
   on the chosen parse.
 - **A symbol table designed for ambiguous parsing**, so each speculative path
   sees its own declarations.
+- **[Threaded state](reference/threaded-state.md)**: your own context, such
+  as nesting depth or an indentation stack, carried along each parse path
+  and safe for speculative actions to read and change.
 - **Automatic parse trees**, tree walkers and multi-pass actions.
+- **[Attributes](reference/attributes.md)**: synthesized and inherited
+  values on the finished tree, such as scopes and types, computed on demand
+  in dependency order.
 - **Built-in error recovery** suited to C-like languages.
 - **Whitespace as a subgrammar**, or as your own C function.
 - **Partial parses** and parsing from any nonterminal.
@@ -76,7 +82,7 @@ number: "[0-9]+" { $$.value = atof($n0.start_loc.s); };
   and a native [Rust](reference/rust.md) runtime.
 - **Example grammars** for
   [ANSI C](https://github.com/jplevyak/dparser/blob/main/ansic/ansic.g) and
-  [Python](https://github.com/jplevyak/dparser/blob/main/tests/python.test.g).
+  [Python](https://github.com/jplevyak/dparser/blob/main/python.g).
 - Portable C under the BSD license.
 
 ## How it fits together

@@ -31,6 +31,8 @@ The result is natural grammars and powerful parsing.
 * Final actions as you go, or on the complete parse tree
 * Tree walkers and default actions (multi-pass compilation support)
 * Symbol table built for ambiguous parsing
+* Threaded state: per-parse-path context that speculative actions can safely change
+* Attributes: synthesized and inherited values on the parse tree, evaluated on demand
 * Partial parses, recursive parsing, parsing starting with any non-terminal
 * Whitespace can be specified as a subgrammar
 * External (C call interface) tokenizers and terminal scanners
@@ -44,7 +46,7 @@ The result is natural grammars and powerful parsing.
 ## Example Grammars
 
 * [ANSI-C](ansic/ansic.g)
-* [Python](tests/python.test.g)
+* [Python](python.g)
 * [Verilog](verilog/verilog.g)
 
 
@@ -66,6 +68,7 @@ generator is [make_dparser.cat](make_dparser.cat).
 * [dparse.h](dparse.h) - main parser data structures and functions
 * [dparse_tables.h](dparse_tables.h) - parse tables data structures
 * [dsymtab.h](dsymtab.h) - optional symbol table
+* [dattr.h](dattr.h) - optional attributes after parsing (C++: [dattr.hpp](dattr.hpp))
 
 
 ## Building
