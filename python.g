@@ -49,15 +49,19 @@ imagnumber ::= (floatnumber | "[0-9][0-9_]*") "[jJ]";
 
 stringprefix ::= 'r' | 'u' | 'R' | 'U' | 'f' | 'F' | 'fr' | 'Fr' | 'fR' | 'FR' | 'rf' | 'rF' | 'Rf' | 'RF' | 'b' | 'B' | 'br' | 'Br' | 'bR' | 'BR' | 'rb' | 'rB' | 'Rb' | 'RB';
 shortstring ::= "'" shortstringsingleitem* "'" | '"' shortstringdoubleitem* '"';
-longstring ::= "'''" longstringitem* "'''" | '"""' longstringitem* '"""';
+longstring ::= "'''" longstringsingleitem* "'''" | '"""' longstringdoubleitem* '"""';
 
 shortstringsingleitem ::= shortstringsinglechar | escapeseq;
 shortstringdoubleitem ::= shortstringdoublechar | escapeseq;
-longstringitem ::= longstringchar | escapeseq;
+/* One or two quotes are content only when something else follows them, so
+   a long string ends at the first unescaped triple quote, not the last. */
+longstringsingleitem ::= longstringsinglechar | "'" "'"? longstringsinglechar;
+longstringdoubleitem ::= longstringdoublechar | '"' '"'? longstringdoublechar;
 
 shortstringsinglechar ::= "[^\\\n\']";
 shortstringdoublechar ::= "[^\\\n\"]";
-longstringchar ::= "[^\\]";
+longstringsinglechar ::= "[^\\\']" | escapeseq;
+longstringdoublechar ::= "[^\\\"]" | escapeseq;
 escapeseq ::= "\\[^]";
 
 NL: '\n';
