@@ -182,5 +182,5 @@ the reduction or nonzero (which is what `${reject}` does) to reject it.
 The return value of final actions is ignored. A `return` statement in
 your code returns from the action.
 
-`$` signs inside C string and character literals are not translated, so
-`printf("$5")` is safe. Avoid `$` in comments inside actions.
+`$` signs inside C string and character literals, and inside comments,
+are not translated, so `printf("$5")` is safe.

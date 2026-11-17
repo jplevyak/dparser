@@ -150,7 +150,7 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_attr test_cpp_attr test_spec_globals test_python
+test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_attr test_cpp_attr test_dsymtab test_spec_globals test_python
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
@@ -159,6 +159,7 @@ test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_attr 
 	./test_cpp_state
 	./test_attr
 	./test_cpp_attr
+	./test_dsymtab
 
 # $g is read-only in speculative actions unless the grammar declares
 # ${declare mutable_speculative_globals}: check that this is enforced in C and C++.

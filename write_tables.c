@@ -51,6 +51,43 @@ typedef struct File {
 } File;
 
 static void write_rule_numbers(FILE *fp, Grammar *g, const char *fmt);
+
+/* If c starts a string literal, or a character literal ('x' or '\x', so
+   that Rust lifetimes are not mistaken for one), copy it to fp and return
+   the position after it; otherwise return c. */
+static char *copy_literal(FILE *fp, char *c) {
+  char q = *c;
+  if (q != '"' && !(q == '\'' && (c[1] == '\\' || (c[1] && c[2] == '\'')))) return c;
+  fputc(*c++, fp);
+  while (*c && *c != q) {
+    if (*c == '\\' && c[1]) fputc(*c++, fp);
+    fputc(*c++, fp);
+  }
+  if (*c) fputc(*c++, fp);
+  return c;
+}
+
+/* If c starts a comment, // to the end of the line or a block comment,
+   copy it to fp, counting its lines, and return the position after it;
+   otherwise return c.  $ specifiers are not expanded in comments. */
+static char *copy_comment(Grammar *g, FILE *fp, char *c) {
+  if (c[0] != '/' || (c[1] != '/' && c[1] != '*')) return c;
+  if (c[1] == '/') {
+    while (*c && *c != '\n') fputc(*c++, fp);
+    return c;
+  }
+  fputc(*c++, fp);
+  fputc(*c++, fp);
+  while (*c && !(c[0] == '*' && c[1] == '/')) {
+    if (*c == '\n') g->write_line++;
+    fputc(*c++, fp);
+  }
+  if (*c) {
+    fputc(*c++, fp);
+    fputc(*c++, fp);
+  }
+  return c;
+}
 static char *REDUCTION_ARGS = "(void *_ps, void **_children, int _n_children, int _offset, D_Parser *_parser)";
 
 OffsetEntry null_entry = {"NULL", sizeof("NULL") - 1, -1};
@@ -1174,25 +1211,9 @@ static void write_code(File *file, Grammar *g, Rule *r, int kind, char *fnname, 
           in_string = c[1];
       }
     }
-    if (!in_string && *c == '/') {
-      /* pass through c++ style comments */
-      if (c[1] == '/') {
-        while (*c && *c != '\n') {
-          fputc(*c, fp);
-          c++;
-        }
-      } else if (c[1] == '*') {
-        while (*c && *c != '*' && c[1] != '\\') {
-          fputc(*c, fp);
-          c++;
-        }
-        if (*c) {
-          fputc(*c, fp);
-          c++;
-          fputc(*c, fp);
-          c++;
-        }
-      }
+    if (!in_string) {
+      c = copy_comment(g, fp, c);
+      if (!*c) break;
     }
     if (*c == '\n') g->write_line++;
     if (!in_string && *c == '$') {
@@ -1348,6 +1369,8 @@ static void write_global_code(File *file, Grammar *g, char *tag) {
       fprintf(fp, "%d \"%s\" %d\n", g->code[i].line, g->pathname, count_newlines(c) + 1);
     }
     while (*c) {
+      c = copy_literal(fp, copy_comment(g, fp, c));
+      if (!*c) break;
       if (*c == '\n') g->write_line++;
       if (*c == '$') {
         c++;

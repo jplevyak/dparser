@@ -204,8 +204,12 @@ curly_code: '{' balanced_code* '}';
 bracket_code: '[' balanced_code* ']';
 balanced_code
   : '(' balanced_code* ')' | '[' balanced_code* ']' | '{' balanced_code* '}'
-  | string | identifier | regex | integer | symbols;
+  | char_literal | lifetime | identifier | regex | integer | symbols;
 symbols : "[!~`@#$%^&*\-_+=|:;\\<,>.?/]";
+/* In code: a C or Rust character literal on one line ('x', '\n', '\x41',
+   '\'') or a Rust lifetime ('a, 'static). */
+char_literal: "'([^'\\\n]|\\[^\n][^'\n]*)'";
+lifetime: "'[a-zA-Z_][a-zA-Z_0-9]*";
 string: "'([^'\\]|\\[^])*'";
 regex: "\"([^\"\\]|\\[^])*\"";
 unicode_char: "[uU]\+[0-9a-fA-F]+";

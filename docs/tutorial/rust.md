@@ -286,8 +286,6 @@ parser share work between paths.
   it. Keep path-specific data in `$$`, the symbol table or `${state}`.
 - Action code is Rust, so `$$ = $0.clone()` copies a node's data, and a
   speculative action rejects with `${reject}` (which is `return -1`).
-- `${...}` is expanded in the global code too, so don't write it in
-  comments there.
 - With [`AttrTree`](../reference/attributes.md#rust-dparserattrs) you can
   compute [attributes](attributes.md) on the tree that `parse` returns.
 

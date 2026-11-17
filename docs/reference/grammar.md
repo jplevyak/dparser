@@ -126,8 +126,11 @@ them to find the end of the block.
 
 Code is copied as-is, except for `$` specifiers. Global code may use
 `${nterm name}`, `${string text}` and `${pass name}`, which are replaced by
-numbers. **Any other `$` in global code is an error**, so avoid `$` in
-global code, even inside comments and strings.
+numbers. `$` in comments and in string and character literals is left
+alone; any other `$` in global code is an error.
+
+Code may be C, C++ or Rust: character literals such as `'}'` and Rust
+lifetimes such as `'a` are read as such, not as the start of a string.
 
 ## Comments
 

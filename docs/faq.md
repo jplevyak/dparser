@@ -102,9 +102,9 @@ such as `[^\n]`. See [Regular expressions](reference/terminals.md#regular-expres
 
 ### Can I have `$` in my global C code?
 
-Only in `${nterm ...}`, `${string ...}` and `${pass ...}`. Any other `$` in
-global code, even in a comment or string, is an error. Move such code into
-a separate C file.
+In comments and in string and character literals, yes: they are copied
+as they are. Elsewhere only `${nterm ...}`, `${string ...}` and
+`${pass ...}` are allowed, and any other `$` is an error.
 
 ## About DParser
 

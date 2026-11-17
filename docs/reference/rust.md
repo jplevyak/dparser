@@ -110,9 +110,8 @@ U: 'u' | 'v';
 
 All three kinds of action work as in C: speculative `[ ]`, final `{ }`,
 and pass code (`name: { }`, see [Passes](#passes)). Default actions on the
-`_` production apply to every rule without its own. As in C, `${...}`
-escapes are expanded in global code too, so don't write them in comments
-there.
+`_` production apply to every rule without its own. As in C, global code may use `${nterm}`, `${string}` and `${pass}`;
+`$` in comments and literals is left alone.
 
 ### Specifiers
 
