@@ -1,0 +1,16 @@
+#!/bin/bash
+# Acceptance test for python.g's threaded state: files named ok_* must parse
+# and bad_* must not.  The ok_split_* inputs keep two parse paths (match as a
+# soft keyword and as a name) alive across brackets that span lines, where
+# newlines are whitespace only on the paths inside the brackets.
+cd "$(dirname "$0")"
+failed=0
+for f in ok_*.py bad_*.py; do
+  if ../../python_parser "$f" > /dev/null 2>&1; then got=ok; else got=bad; fi
+  if [ "$got" != "${f%%_*}" ]; then
+    echo "$f ******** FAILED ********"
+    failed=1
+  fi
+done
+[ $failed = 0 ] && echo "python.g acceptance tests passed"
+exit $failed

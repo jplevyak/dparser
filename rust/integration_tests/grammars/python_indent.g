@@ -1,34 +1,92 @@
 {
-// tests/python.test.g with Rust actions and a Rust whitespace function: the
-// whitespace function and speculative actions share indentation state in the
-// globals (which needs mutable_speculative_globals).
-#[derive(Debug)]
+// tests/python.test.g with Rust actions.  The threaded state of a parse path
+// holds the depth of open brackets (inside which newlines are whitespace) and
+// the stack of indentation columns.  The whitespace function reads it; INDENT,
+// DEDENT and LINE (at the start of a statement) check and change it.  Actions
+// find a line's column in the input, which the test puts in the globals.
+#[derive(Debug, Default)]
 pub struct GlobalsStruct {
-    pub indent_stack: Vec<i32>,
-    pub current_indent: usize,
-    pub implicit_line_joining: i32,
-}
-
-impl Default for GlobalsStruct {
-    fn default() -> Self {
-        GlobalsStruct { indent_stack: vec![0; 1024], current_indent: 2, implicit_line_joining: 0 }
-    }
+    pub input: String,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct NodeStruct {}
 
-impl GlobalsStruct {
-    fn at(&self, offset: isize) -> i32 {
-        self.indent_stack[(self.current_indent as isize + offset) as usize]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PyState {
+    pub joining: i32,
+    pub indent: Vec<i32>,
+}
+
+impl Default for PyState {
+    fn default() -> Self {
+        PyState { joining: 0, indent: vec![0] }
     }
 }
 
-pub fn python_whitespace(input: &[u8], loc: &mut dparser::Loc, globals: Option<&mut GlobalsStruct>) {
-    let pg = globals.expect("python_whitespace needs the globals");
+type P = dparser::Parser<GlobalsStruct, NodeStruct>;
+
+fn py_get(p: &P, s: dparser::StateId) -> PyState {
+    p.state::<PyState>(s).cloned().unwrap_or_default()
+}
+
+/// The state with the bracket depth changed by `d`.
+fn py_with(p: &mut P, s: dparser::StateId, d: i32) -> dparser::StateId {
+    let mut x = py_get(p, s);
+    x.joining = (x.joining + d).max(0);
+    p.make_state(x)
+}
+
+/// The column of `s` if it starts its line (tabs to multiples of 8).
+fn py_column(input: &str, s: usize) -> Option<i32> {
+    let b = input.as_bytes();
+    let mut start = s;
+    while start > 0 && (b[start - 1] == b' ' || b[start - 1] == b'\t') {
+        start -= 1;
+    }
+    if start > 0 && (b[start - 1] != b'\n' || (start > 1 && b[start - 2] == b'\\')) {
+        return None;
+    }
+    Some(b[start..s].iter().fold(0, |c, &x| if x == b'\t' { (c / 8 + 1) * 8 } else { c + 1 }))
+}
+
+fn py_indent(p: &mut P, input: &str, s: dparser::StateId, at: usize) -> Option<dparser::StateId> {
+    let mut x = py_get(p, s);
+    let col = py_column(input, at)?;
+    if col <= *x.indent.last().unwrap() {
+        return None;
+    }
+    x.indent.push(col);
+    Some(p.make_state(x))
+}
+
+/// Close one level; the column must match an enclosing level.
+fn py_dedent(p: &mut P, input: &str, s: dparser::StateId, at: usize) -> Option<dparser::StateId> {
+    let mut x = py_get(p, s);
+    let col = py_column(input, at)?;
+    let n = x.indent.len();
+    if col >= x.indent[n - 1] || !x.indent[..n - 1].contains(&col) {
+        return None;
+    }
+    x.indent.pop();
+    Some(p.make_state(x))
+}
+
+fn py_line(p: &P, input: &str, s: dparser::StateId, at: usize) -> bool {
+    py_column(input, at) == py_get(p, s).indent.last().copied()
+}
+
+pub fn python_whitespace(
+    input: &[u8],
+    loc: &mut dparser::Loc,
+    _globals: Option<&mut GlobalsStruct>,
+    states: &dparser::States,
+    state: dparser::StateId,
+) {
+    let joining = states.get::<PyState>(state).map_or(0, |x| x.joining);
     let mut p = loc.s;
     let ch = |p: usize| input.get(p).copied().unwrap_or(0);
-    let mut i: i32 = if p == 0 || ch(p - 1) == b'\n' { 0 } else { -1 };
+    let mut at_line_start = p == 0 || ch(p - 1) == b'\n';
     loop {
         match ch(p) {
             b'#' => {
@@ -37,65 +95,22 @@ pub fn python_whitespace(input: &[u8], loc: &mut dparser::Loc, globals: Option<&
                     p += 1;
                 }
             }
-            b' ' => {
-                p += 1;
-                if i >= 0 {
-                    i += 1;
-                }
-            }
-            b'\t' => {
-                p += 1;
-                if i >= 0 {
-                    i = (i + 7) & !7;
-                }
-            }
-            b'\n' if i >= 0 || pg.implicit_line_joining != 0 => {
+            b' ' | b'\t' => p += 1,
+            b'\n' if at_line_start || joining != 0 => {
                 loc.line += 1;
                 p += 1;
-                i = 0;
+                at_line_start = true;
             }
             _ => break,
         }
     }
-    if i >= 0 && pg.implicit_line_joining == 0 && ch(p) != b'\n' && i != pg.at(-1) {
-        let c = pg.current_indent;
-        pg.indent_stack[c] = i;
-        pg.current_indent += 1;
-    }
     loc.s = p;
-}
-
-fn python_indent(pg: &mut GlobalsStruct) -> bool {
-    if pg.at(-1) > pg.at(-2) {
-        return true;
-    }
-    if pg.at(-1) != 0 && pg.at(-1) == pg.at(-2) && pg.at(-2) > pg.at(-3) {
-        pg.current_indent -= 1;
-        return true;
-    }
-    false
-}
-
-fn python_dedent(pg: &mut GlobalsStruct) -> bool {
-    if pg.at(-1) < pg.at(-2) {
-        pg.current_indent -= 1;
-        let x = pg.at(0);
-        let c = pg.current_indent;
-        pg.indent_stack[c - 1] = x;
-        while x == pg.at(-2) {
-            pg.current_indent -= 1;
-        }
-        return true;
-    }
-    false
 }
 }
 
 ${declare longest_match}
-${declare mutable_speculative_globals}
 ${declare subparser single_input}
 ${declare subparser eval_input}
-${declare whitespace python_whitespace}
 
 file_input: (NL | stmt)*;
 single_input: NL | simple_stmt | compound_stmt NL;
@@ -110,7 +125,7 @@ varargslist: (fpdef ('=' test)? ',')* ('*' NAME (',' '**' NAME) | '**' NAME) | f
 fpdef: NAME | LP fplist RP;
 fplist: fpdef (',' fpdef)* ','?;
 
-stmt: simple_stmt | compound_stmt;
+stmt: LINE (simple_stmt | compound_stmt);
 simple_stmt: small_stmt (';' small_stmt)* ';'? NL;
 small_stmt: expr_stmt | print_stmt  | 'del' exprlist | 'pass' | flow_stmt | import_stmt | global_stmt | exec_stmt | assert_stmt;
 expr_stmt: testlist (augassign testlist | ('=' testlist)*);
@@ -204,8 +219,9 @@ yield_expr: 'yield' testlist?;
 /* additional material from http://www.python.org/doc/current/ref/grammar.txt */
 
 NL: '\n';
-INDENT: [ if !python_indent($g) { ${reject}; } ] ;
-DEDENT: [ if !python_dedent($g) { ${reject}; } ] ;
+INDENT: [ match py_indent(${parser}, &$g.input, ${state}, $n.start_loc.s) { Some(s) => ${state} = s, None => ${reject} } ] ;
+DEDENT: [ match py_dedent(${parser}, &$g.input, ${state}, $n.start_loc.s) { Some(s) => ${state} = s, None => ${reject} } ] ;
+LINE: [ if !py_line(${parser}, &$g.input, ${state}, $n.start_loc.s) { ${reject}; } ] ;
 NAME ::= (letter|'_') (letter | digit | '_')*;
 letter ::= "[a-zA-Z]";
 digit ::= "[0-9]";
@@ -240,9 +256,9 @@ digit ::= "[0-9]";
 octdigit ::= "[0-7]";
 hexdigit ::= digit | "[a-fA-F]";
 
-LP ::= '(' [ $g.implicit_line_joining += 1; ];
-RP ::= ')' [ $g.implicit_line_joining -= 1; ];
-LB ::= '[' [ $g.implicit_line_joining += 1; ];
-RB ::= ']' [ $g.implicit_line_joining -= 1; ];
-LC ::= '{' [ $g.implicit_line_joining += 1; ];
-RC ::= '}' [ $g.implicit_line_joining -= 1; ];
+LP ::= '(' [ ${state} = py_with(${parser}, ${state}, 1); ];
+RP ::= ')' [ ${state} = py_with(${parser}, ${state}, -1); ];
+LB ::= '[' [ ${state} = py_with(${parser}, ${state}, 1); ];
+RB ::= ']' [ ${state} = py_with(${parser}, ${state}, -1); ];
+LC ::= '{' [ ${state} = py_with(${parser}, ${state}, 1); ];
+RC ::= '}' [ ${state} = py_with(${parser}, ${state}, -1); ];

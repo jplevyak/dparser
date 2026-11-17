@@ -120,9 +120,10 @@ fn g25_whitespace_function() {
 }
 
 #[test]
-fn python_indentation_from_whitespace_and_speculative_actions() {
+fn python_indentation_from_threaded_state() {
     let mut p = Parser::with_actions(python::TABLES, python::actions()).unwrap();
-    let mut g = python::GlobalsStruct::default();
+    p.white_space_state_fn = Some(python::python_whitespace);
+    let mut g = python::GlobalsStruct { input: test_file("python.test.g.1") };
     let got = run_like_sample_parser(&mut p, &mut g, "python.test.g.1", |_| Vec::new());
     assert_eq!(got, expected("python.test.g.1"));
 }

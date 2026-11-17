@@ -1,33 +1,38 @@
 /* Python Grammar for DParser */
 
 {
-#include "dparse_tables.h"
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "dparse.h"
 
-  typedef struct PythonGlobals {
-    int indent_stack[1024];
-    int current_indent;
-    int implicit_line_joining;
-  } PythonGlobals;
-#define D_ParseNode_Globals PythonGlobals
-  int python_indent(PythonGlobals **p_globals);
-  int python_dedent(PythonGlobals **p_globals);
+  /* The threaded state of a parse path: the depth of open
+     brackets, inside which newlines are whitespace, and the stack of
+     indentation columns.  States are interned by py_state, so equal states
+     are the same pointer; NULL is the initial state. */
+#define PY_MAX_INDENT 100
+  typedef struct PyState {
+    int joining;
+    int n;
+    int indent[PY_MAX_INDENT];
+  } PyState;
+  const PyState *py_state(const PyState *s);
+  const PyState *py_get(void *state);
+  const PyState *py_with(void *state, int joining_change);
+  int py_column(D_Parser *p, char *s);
+  int py_indent(D_Parser *p, void *state, char *s, void **result);
+  int py_dedent(D_Parser *p, void *state, char *s, void **result);
+  int py_line(D_Parser *p, void *state, char *s);
   void python_whitespace(struct D_Parser *p, d_loc_t *loc, void **p_globals);
 }
 
 ${declare longest_match}
-${declare mutable_speculative_globals}
 ${declare whitespace python_whitespace}
 
 file_input: (NL | stmt)*;
 
 /* Tokens */
 NAME: "[a-zA-Z_][a-zA-Z0-9_]*" $term -1;
+/* Soft keywords: also names, so both readings are tried. */
+MATCH: "match" $term -1;
+CASE: "case" $term -1;
 NUMBER ::= integer | floatnumber | imagnumber;
 STRING ::= stringprefix?(shortstring | longstring);
 
@@ -56,11 +61,14 @@ longstringchar ::= "[^\\]";
 escapeseq ::= "\\[^]";
 
 NL: '\n';
-INDENT: [ if (!python_indent(&$g)) return -1; ] ;
-DEDENT: [ if (!python_dedent(&$g)) return -1; ] ;
+/* INDENT and DEDENT change the indentation stack in the state; LINE checks
+   that a statement starts at the current indentation. */
+INDENT: [ if (!py_indent(${parser}, ${state}, $n.start_loc.s, &${state})) ${reject}; ] ;
+DEDENT: [ if (!py_dedent(${parser}, ${state}, $n.start_loc.s, &${state})) ${reject}; ] ;
+LINE: [ if (!py_line(${parser}, ${state}, $n.start_loc.s)) ${reject}; ] ;
 
 /* Statements */
-stmt: simple_stmt | compound_stmt;
+stmt: LINE (simple_stmt | compound_stmt);
 simple_stmt: small_stmt (';' small_stmt)* ';'? NL;
 small_stmt: expr_stmt | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt;
 
@@ -116,12 +124,12 @@ try_stmt: 'try' ':' suite ((except_clause ':' suite)+ ('else' ':' suite)? ('fina
 with_stmt: 'async'? 'with' with_item (',' with_item)* ':' suite;
 funcdef: decorators? 'async'? 'def' NAME type_params? parameters ('->' test)? ':' suite;
 classdef: decorators? 'class' NAME type_params? (LP arguments? RP)? ':' suite;
-match_stmt: "match" test ':' NL INDENT case_block+ DEDENT;
+match_stmt: MATCH test ':' NL INDENT case_block+ DEDENT;
 
 suite: simple_stmt | NL INDENT stmt+ DEDENT;
 
 /* Case Block */
-case_block: "case" pattern guard? ':' suite;
+case_block: LINE CASE pattern guard? ':' suite;
 guard: 'if' test;
 pattern: as_pattern | or_pattern;
 as_pattern: or_pattern 'as' NAME;
@@ -208,85 +216,120 @@ yield_expr: 'yield' ('from' test | testlist?);
 with_item: test ('as' expr)?;
 except_clause: 'except' (test ('as' NAME)?)?;
 
-/* Helpers */
-/* Implicit line joining handling in C code from original grammar */
-
-LP ::= '(' [ $g->implicit_line_joining++; ];
-RP ::= ')' [ $g->implicit_line_joining--; ];
-LB ::= '[' [ $g->implicit_line_joining++; ];
-RB ::= ']' [ $g->implicit_line_joining--; ];
-LC ::= '{' [ $g->implicit_line_joining++; ];
-RC ::= '}' [ $g->implicit_line_joining--; ];
+/* Brackets: inside them newlines are whitespace (implicit line joining).
+   The terminals' actions run when they are shifted, so the whitespace right
+   after a bracket already sees the new depth. */
+LP ::= '(' [ ${state} = (void *)py_with(${state}, 1); ];
+RP ::= ')' [ ${state} = (void *)py_with(${state}, -1); ];
+LB ::= '[' [ ${state} = (void *)py_with(${state}, 1); ];
+RB ::= ']' [ ${state} = (void *)py_with(${state}, -1); ];
+LC ::= '{' [ ${state} = (void *)py_with(${state}, 1); ];
+RC ::= '}' [ ${state} = (void *)py_with(${state}, -1); ];
 
 {
 
-#include "dparse.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
+/* Interning: a chained hash table of states, kept for the life of the
+   process (there are few distinct states). */
+#define PY_STATE_BUCKETS 1024
+typedef struct PyStateEntry {
+  struct PyStateEntry *next;
+  PyState s;
+} PyStateEntry;
+static PyStateEntry *py_states[PY_STATE_BUCKETS];
+static const PyState py_initial = {0, 1, {0}};
+
+static unsigned py_hash(const PyState *s) {
+  unsigned h = (unsigned)s->joining * 31 + (unsigned)s->n;
+  int i;
+  for (i = 0; i < s->n; i++) h = h * 31 + (unsigned)s->indent[i];
+  return h;
+}
+
+static int py_equal(const PyState *a, const PyState *b) {
+  return a->joining == b->joining && a->n == b->n && !memcmp(a->indent, b->indent, a->n * sizeof(int));
+}
+
+const PyState *py_state(const PyState *s) {
+  unsigned h = py_hash(s) % PY_STATE_BUCKETS;
+  PyStateEntry *e;
+  if (py_equal(s, &py_initial)) return NULL;
+  for (e = py_states[h]; e; e = e->next)
+    if (py_equal(&e->s, s)) return &e->s;
+  e = (PyStateEntry *)malloc(sizeof(PyStateEntry));
+  e->s = *s;
+  e->next = py_states[h];
+  py_states[h] = e;
+  return &e->s;
+}
+
+const PyState *py_get(void *state) { return state ? (const PyState *)state : &py_initial; }
+
+const PyState *py_with(void *state, int joining_change) {
+  PyState s = *py_get(state);
+  s.joining += joining_change;
+  if (s.joining < 0) s.joining = 0;
+  return py_state(&s);
+}
+
+/* The column of s if it starts its line (tabs to multiples of 8), else -1. */
+int py_column(D_Parser *p, char *s) {
+  char *start = p->loc.s, *b = s;
+  int col = 0;
+  while (b > start && (b[-1] == ' ' || b[-1] == '\t')) b--;
+  if (b > start && (b[-1] != '\n' || (b - 1 > start && b[-2] == '\\'))) return -1;
+  for (; b < s; b++) col = *b == '\t' ? (col / 8 + 1) * 8 : col + 1;
+  return col;
+}
+
+/* Open a level at the column of s, which must be deeper than the current one. */
+int py_indent(D_Parser *p, void *state, char *s, void **result) {
+  PyState x = *py_get(state);
+  int col = py_column(p, s);
+  if (col <= x.indent[x.n - 1] || x.n >= PY_MAX_INDENT) return 0;
+  x.indent[x.n++] = col;
+  *result = (void *)py_state(&x);
+  return 1;
+}
+
+/* Close one level; the column of s must match an enclosing level. */
+int py_dedent(D_Parser *p, void *state, char *s, void **result) {
+  PyState x = *py_get(state);
+  int col = py_column(p, s), i;
+  if (col < 0 || col >= x.indent[x.n - 1]) return 0;
+  for (i = 0; i < x.n - 1 && x.indent[i] != col; i++);
+  if (i >= x.n - 1) return 0;
+  x.n--;
+  *result = (void *)py_state(&x);
+  return 1;
+}
+
+int py_line(D_Parser *p, void *state, char *s) {
+  const PyState *x = py_get(state);
+  return py_column(p, s) == x->indent[x->n - 1];
+}
 
 void python_whitespace(struct D_Parser *parser, d_loc_t *loc, void **p_globals) {
   char *p = loc->s;
-  PythonGlobals *pg = *p_globals;
-  int i;
-  if (!pg) {
-    *p_globals = (void**)(pg = (PythonGlobals*)malloc(sizeof(PythonGlobals)));
-    memset(pg, 0, sizeof(*pg));
-    pg->current_indent = 2; // Start at index 2
-  }
-  if (parser->loc.s == p)
-    i = 0;
-  else
-    i = p[-1] == '\n' ? 0 : -1;
+  int joining = py_get(d_get_whitespace_state(parser))->joining;
+  int at_line_start = parser->loc.s == p || p[-1] == '\n';
+  (void)p_globals;
   while (1) {
     switch (*p) {
       case '#': p++; while (*p && *p != '\n') p++; break;
-      case ' ': p++; if (i >= 0) i++; break;
-      case '\t': p++; if (i >= 0) i = (i + 7) & ~7; break;
-      case '\\': if (p[1] == '\n') { p+=2; loc->line++; } else goto Ldone; break;
-      case '\n': if (i >= 0 || pg->implicit_line_joining) { loc->line++; p++; i = 0; break; }
-                   /* else fall through */
+      case ' ': case '\t': case '\f': p++; break;
+      case '\\': if (p[1] == '\n') { p += 2; loc->line++; } else goto Ldone; break;
+      /* blank lines, and newlines inside brackets, are whitespace */
+      case '\n': if (at_line_start || joining) { loc->line++; p++; at_line_start = 1; break; }
+                 goto Ldone;
+      case '\r': if (p[1] == '\n') { p++; break; } goto Ldone;
       default: goto Ldone;
     }
   }
-Ldone:;
-    if (i >= 0 && !pg->implicit_line_joining && *p != '\n')
-      if (i != pg->indent_stack[pg->current_indent-1]) {
-        if (pg->current_indent < 1024) {
-          pg->indent_stack[pg->current_indent] = i;
-          pg->current_indent++;
-        }
-      }
-    loc->s = p;
-}
-
-int python_indent(PythonGlobals **p_globals) {
-  PythonGlobals *pg = *p_globals;
-  if (pg) {
-    if (pg->indent_stack[pg->current_indent-1] > pg->indent_stack[pg->current_indent-2])
-      return 1;
-    if (pg->indent_stack[pg->current_indent-1] && 
-        pg->indent_stack[pg->current_indent-1] == pg->indent_stack[pg->current_indent-2] &&
-        pg->indent_stack[pg->current_indent-2] > pg->indent_stack[pg->current_indent-3]) {
-      pg->current_indent--;
-      return 1;
-    }
-  }
-  return 0;
-}
-
-int python_dedent(PythonGlobals **p_globals) {
-  int x;
-  PythonGlobals *pg = *p_globals;
-  if (pg && pg->indent_stack[pg->current_indent-1] < pg->indent_stack[pg->current_indent-2]) {
-    pg->current_indent--;
-    x = pg->indent_stack[pg->current_indent-1] = pg->indent_stack[pg->current_indent]; /* Replacing top with dedented value */
-    while (pg->current_indent >= 2 && x == pg->indent_stack[pg->current_indent-2]) {
-      pg->current_indent--;
-    }
-    return 1;
-  }
-  return 0;
+Ldone:
+  loc->s = p;
 }
 
 }

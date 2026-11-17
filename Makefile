@@ -150,7 +150,7 @@ debug:
 version:
 	echo $(OS_TYPE) $(OS_VERSION)
 
-test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_spec_globals
+test: test_cpp test_cpp_actions test_bounds test_state test_cpp_state test_spec_globals test_python
 	(MAKE=$(MAKE) ./parser_tests)
 	./test_cpp
 	./test_cpp_actions
@@ -259,6 +259,7 @@ python_parser: $(PYTHON_PARSER_OBJS) $(INSTALL_LIBRARIES)
 
 test_python: python_parser
 	./python_parser coverage.py
+	bash tests/python_g/run
 
 myexample: make_dparser
 	$(MAKE_DPARSER) my.g
