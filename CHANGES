@@ -15,8 +15,26 @@
           Hard keywords are no longer accepted as names (x = pass), and
           only a name, attribute or subscript may be annotated (f(a): int
           is an error).
-          python.g now parses all of the Python 3.12 standard library but
-          traceback.py, which uses PEP 701 f-strings.
+        python.g: f-strings and t-strings are parsed (PEP 701, PEP 750):
+          replacement fields hold any expression, including strings in the
+          same quotes, comments and newlines; format specs nest fields two
+          deep.  Bytes, strings and t-strings no longer concatenate with
+          each other, and bytes must be ASCII.  Assignment, augmented
+          assignment, del, for and with targets are checked (f() = 1 is an
+          error).  New: except* and except A, B: (PEP 758); return and yield
+          of *x; parenthesized with items; keyword and star patterns,
+          complex literals and open sequences in match; star expressions in
+          subscripts (PEP 646); any expression as a decorator (PEP 614);
+          non-ASCII names.  Errors: parameters and call arguments out of
+          order, := outside the places Python allows it, except mixed with
+          except*, a starred comprehension element, a trailing comma in an
+          unparenthesized import, and a keyword glued to a following name
+          (The origin).  A line holding only a backslash gives its
+          indentation to the line it continues.
+          python.g now agrees with CPython 3.14 on every file in its Lib/
+          (tests included) but four whose errors are in their encoding or
+          identifier characters, and on all but 25 of 2,899 snippets from
+          its grammar tests.
         tests/python.test.g, a Python 2 grammar, is now
           tests/python2.test.g; its Rust copy is python2_indent.g.
 
