@@ -1,5 +1,5 @@
 {
-// tests/python.test.g with Rust actions.  The threaded state of a parse path
+// tests/python2.test.g with Rust actions.  The threaded state of a parse path
 // holds the depth of open brackets (inside which newlines are whitespace) and
 // the stack of indentation columns.  The whitespace function reads it; INDENT,
 // DEDENT and LINE (at the start of a statement) check and change it.  Actions

@@ -36,28 +36,36 @@ CASE: "case" $term -1;
 NUMBER ::= integer | floatnumber | imagnumber;
 STRING ::= stringprefix?(shortstring | longstring);
 
+/* A single underscore may separate digits, as in 1_000; it may not lead,
+   trail or double up. */
 integer ::= decimalinteger | octinteger | hexinteger | bininteger;
-decimalinteger ::= "[1-9]([0-9_]*[0-9])?|0+";
-octinteger ::= "0[oO][0-7_]+";
-hexinteger ::= "0[xX][0-9a-fA-F_]+";
-bininteger ::= "0[bB][0-1_]+";
+decimalinteger ::= "[1-9](_?[0-9])*|0(_?0)*";
+octinteger ::= "0[oO](_?[0-7])+";
+hexinteger ::= "0[xX](_?[0-9a-fA-F])+";
+bininteger ::= "0[bB](_?[01])+";
 
+digitpart ::= "[0-9](_?[0-9])*";
 floatnumber ::= pointfloat | exponentfloat;
-pointfloat ::= "[0-9][0-9_]*\.[0-9_]*|[0-9_]+\.";
-exponentfloat ::= "([0-9][0-9_]*|[0-9][0-9_]*\.[0-9_]*|[0-9_]+\.)[eE][+-]?[0-9][0-9_]*";
-imagnumber ::= (floatnumber | "[0-9][0-9_]*") "[jJ]";
+pointfloat ::= digitpart '.' digitpart? | '.' digitpart;
+exponentfloat ::= (digitpart | pointfloat) exponent;
+exponent ::= "[eE][+-]?" digitpart;
+imagnumber ::= (floatnumber | digitpart) "[jJ]";
 
-stringprefix ::= 'r' | 'u' | 'ur' | 'R' | 'U' | 'UR' | 'Ur' | 'uR' | 'f' | 'F' | 'fr' | 'Fr' | 'fR' | 'FR' | 'rf' | 'rF' | 'Rf' | 'RF' | 'b' | 'B' | 'br' | 'Br' | 'bR' | 'BR' | 'rb' | 'rB' | 'Rb' | 'RB';
+stringprefix ::= 'r' | 'u' | 'R' | 'U' | 'f' | 'F' | 'fr' | 'Fr' | 'fR' | 'FR' | 'rf' | 'rF' | 'Rf' | 'RF' | 't' | 'T' | 'tr' | 'Tr' | 'tR' | 'TR' | 'rt' | 'rT' | 'Rt' | 'RT' | 'b' | 'B' | 'br' | 'Br' | 'bR' | 'BR' | 'rb' | 'rB' | 'Rb' | 'RB';
 shortstring ::= "'" shortstringsingleitem* "'" | '"' shortstringdoubleitem* '"';
-longstring ::= "'''" longstringitem* "'''" | '"""' longstringitem* '"""';
+longstring ::= "'''" longstringsingleitem* "'''" | '"""' longstringdoubleitem* '"""';
 
 shortstringsingleitem ::= shortstringsinglechar | escapeseq;
 shortstringdoubleitem ::= shortstringdoublechar | escapeseq;
-longstringitem ::= longstringchar | escapeseq;
+/* One or two quotes are content only when something else follows them, so
+   a long string ends at the first unescaped triple quote, not the last. */
+longstringsingleitem ::= longstringsinglechar | "'" "'"? longstringsinglechar;
+longstringdoubleitem ::= longstringdoublechar | '"' '"'? longstringdoublechar;
 
 shortstringsinglechar ::= "[^\\\n\']";
 shortstringdoublechar ::= "[^\\\n\"]";
-longstringchar ::= "[^\\]";
+longstringsinglechar ::= "[^\\\']" | escapeseq;
+longstringdoublechar ::= "[^\\\"]" | escapeseq;
 escapeseq ::= "\\[^]";
 
 NL: '\n';

@@ -41,7 +41,7 @@ def operations(a, b):
     res = a + b - a * b / a // b % a ** b @ a
     
     # Bitwise
-    res = a & b | a ^ b << 1 >> 1 ~a
+    res = a & b | a ^ b << 1 >> 1 & ~a
     
     # Comparison
     if a < b <= a > b >= a == b != a is b is not a in l and not b:

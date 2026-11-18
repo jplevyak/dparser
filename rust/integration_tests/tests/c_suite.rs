@@ -23,7 +23,7 @@ grammar!(g31, "g31_passes");
 grammar!(g33, "g33_default_passes");
 grammar!(g40, "g40_scopes");
 grammar!(g53, "g53_speculative");
-grammar!(python, "python_indent");
+grammar!(python2, "python2_indent");
 grammar!(ansic, "ansic_typedef");
 
 fn expected(input: &str) -> String {
@@ -120,12 +120,12 @@ fn g25_whitespace_function() {
 }
 
 #[test]
-fn python_indentation_from_threaded_state() {
-    let mut p = Parser::with_actions(python::TABLES, python::actions()).unwrap();
-    p.white_space_state_fn = Some(python::python_whitespace);
-    let mut g = python::GlobalsStruct { input: test_file("python.test.g.1") };
-    let got = run_like_sample_parser(&mut p, &mut g, "python.test.g.1", |_| Vec::new());
-    assert_eq!(got, expected("python.test.g.1"));
+fn python2_indentation_from_threaded_state() {
+    let mut p = Parser::with_actions(python2::TABLES, python2::actions()).unwrap();
+    p.white_space_state_fn = Some(python2::python_whitespace);
+    let mut g = python2::GlobalsStruct { input: test_file("python2.test.g.1") };
+    let got = run_like_sample_parser(&mut p, &mut g, "python2.test.g.1", |_| Vec::new());
+    assert_eq!(got, expected("python2.test.g.1"));
 }
 
 #[test]
