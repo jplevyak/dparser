@@ -22,7 +22,8 @@ int main(int argc, char *argv[]) {
   long fsize = ftell(f);
   fseek(f, 0, SEEK_SET);
 
-  char *buf = malloc(fsize + 1);
+  /* Room for a final newline, which Python implies when it is missing. */
+  char *buf = malloc(fsize + 2);
   if (!buf) {
     perror("malloc");
     return 1;
@@ -33,8 +34,9 @@ int main(int argc, char *argv[]) {
     free(buf);
     return 1;
   }
-  buf[fsize] = 0;
   fclose(f);
+  if (fsize > 0 && buf[fsize - 1] != '\n') buf[fsize++] = '\n';
+  buf[fsize] = 0;
 
   D_Parser *p = new_D_Parser(&parser_tables_gram, 0);
   p->save_parse_tree = 1;
