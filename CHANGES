@@ -1,3 +1,22 @@
+1.42    python.g: a triple-quoted string ends at its first closing triple
+          quote; it ran to the last one in the file, silently joining
+          docstrings into one string.  Underscores in numbers follow
+          Python's rule (one, between two digits), so 1__0 and 1.5_ are
+          errors and _.x is no longer scanned as a number.  New: floats
+          with a leading dot (.5, .5e3, .5j) and the t-string prefixes (t,
+          tr and rt, in any case).  Removed: the Python 2 ur prefixes.
+        python.g: a generator expression may be a call's sole argument,
+          f(x for x in y).  Positional-only parameters (def f(a, /)) in def
+          and lambda; lambda takes keyword-only parameters (lambda *, k:).
+          Annotated *args and **kwargs (*args: *Ts).  type is a soft
+          keyword, so type = None parses.  Type parameters take bounds,
+          constraints and defaults ([T: int = int, *Ts, **P]).  A comment
+          ending in a backslash no longer joins the next line to it.
+          python.g now parses all of the Python 3.12 standard library but
+          traceback.py, which uses PEP 701 f-strings.
+        tests/python.test.g, a Python 2 grammar, is now
+          tests/python2.test.g; its Rust copy is python2_indent.g.
+
 1.41    Python: the symbol table, through a `scope` action argument (a
           Scope with find, find_local, declare, update, push and pop;
           symbols hold any Python object), and SymbolTableError.

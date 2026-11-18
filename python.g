@@ -33,6 +33,7 @@ NAME: "[a-zA-Z_][a-zA-Z0-9_]*" $term -1;
 /* Soft keywords: also names, so both readings are tried. */
 MATCH: "match" $term -1;
 CASE: "case" $term -1;
+TYPE: "type" $term -1;
 NUMBER ::= integer | floatnumber | imagnumber;
 STRING ::= stringprefix?(shortstring | longstring);
 
@@ -83,7 +84,7 @@ small_stmt: expr_stmt | del_stmt | pass_stmt | flow_stmt | import_stmt | global_
 expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) | ('=' (yield_expr|testlist_star_expr))*)
          | type_alias;
 annassign: ':' test ('=' (yield_expr|testlist_star_expr))?;
-type_alias: "type" NAME type_params? '=' test;
+type_alias: TYPE NAME type_params? '=' test;
 
 /* Assignments */
 augassign: '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//=';
@@ -157,17 +158,26 @@ class_pattern: dotted_name LP patterns? RP; /* Simplified */
 
 /* Decorators */
 decorators: decorator+;
-decorator: '@' dotted_name (LP arguments? RP)? NL;
+decorator: '@' dotted_name (LP call_arguments? RP)? NL;
 
 /* Functions/Classes Helpers */
-parameters: LP (param_item (',' param_item)* ','?)? RP;
-param_item: param | '*' NAME? | '**' NAME;
+/* Parameters before a '/' are positional-only; at least one must precede
+   it, and it comes before any '*' or '**'. */
+parameters: LP param_list? RP;
+param_list: param (',' param)* ',' '/' (',' param_items?)? | param_items;
+param_items: param_item (',' param_item)* ','?;
+param_item: param | '*' (NAME (':' (test | star_expr))?)? | '**' NAME (':' test)?;
 param: NAME (':' test)? ('=' test)?;
-arguments: arglist; 
+/* A call's arguments may be a bare generator expression, f(x for x in y),
+   but only when it is the sole argument; class bases may not be one. */
+call_arguments: arguments | test comp_for;
+arguments: arglist;
 arglist: argument (',' argument)* ','?;
 argument: test ('=' test)? | '*' test | '**' test;
 type_params: LB type_param (',' type_param)* RB;
-type_param: NAME;
+/* A bound or constraints, and a default (Python 3.13); *Ts and **P take
+   only a default. */
+type_param: NAME (':' test)? ('=' test)? | '*' NAME ('=' (test | star_expr))? | '**' NAME ('=' test)?;
 
 /* Expressions */
 test: named_expr | or_test ('if' or_test 'else' test)? | lambdef;
@@ -200,7 +210,7 @@ atom:   LP (yield_expr|testlist_comp)? RP |
 
 ATOM_NAME: NAME; /* Separate to allow different priorities if needed */
 
-trailer: LP arguments? RP | LB subscriptlist RB | '.' NAME;
+trailer: LP call_arguments? RP | LB subscriptlist RB | '.' NAME;
 subscriptlist: subscript (',' subscript)* ','?;
 subscript: test | test? ':' test? sliceop?;
 sliceop: ':' test?;
@@ -215,7 +225,11 @@ dictorsetmaker: ( ((test ':' test | '**' expr) (comp_for | (',' (test ':' test |
                   ((test | star_expr) (comp_for | (',' (test | star_expr))* ','?)) );
 
 lambdef: 'lambda' varargslist? ':' test;
-varargslist: (vfpdef ('=' test)? ',')* ('*' NAME (',' '**' NAME)? | '**' NAME)? | vfpdef ('=' test)? (',' vfpdef ('=' test)?)* ','?;
+/* Lambda parameters: as for def, without annotations. */
+varargslist: vfpdef_default (',' vfpdef_default)* ',' '/' (',' lambda_items?)? | lambda_items;
+lambda_items: lambda_item (',' lambda_item)* ','?;
+lambda_item: vfpdef_default | '*' NAME? | '**' NAME;
+vfpdef_default: vfpdef ('=' test)?;
 vfpdef: NAME;
 
 exprlist: (expr|star_expr) (',' (expr|star_expr))* ','?;
@@ -287,7 +301,15 @@ int py_column(D_Parser *p, char *s) {
   char *start = p->loc.s, *b = s;
   int col = 0;
   while (b > start && (b[-1] == ' ' || b[-1] == '\t')) b--;
-  if (b > start && (b[-1] != '\n' || (b - 1 > start && b[-2] == '\\'))) return -1;
+  if (b > start && b[-1] != '\n') return -1;
+  /* A backslash before that newline joins the lines only if nothing but
+     blanks precedes it on its line; after other text it ends a comment,
+     since python_whitespace skips any other backslash-newline. */
+  if (b - 1 > start && b[-2] == '\\') {
+    char *q = b - 2;
+    while (q > start && (q[-1] == ' ' || q[-1] == '\t')) q--;
+    if (q == start || q[-1] == '\n') return -1;
+  }
   for (; b < s; b++) col = *b == '\t' ? (col / 8 + 1) * 8 : col + 1;
   return col;
 }
