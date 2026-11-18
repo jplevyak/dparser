@@ -20,6 +20,7 @@
   int py_indent(D_Parser *p, void *state, char *s, void **result);
   int py_dedent(D_Parser *p, void *state, char *s, void **result);
   int py_line(D_Parser *p, void *state, char *s);
+  int py_is_keyword(const char *s, const char *e);
   void python_whitespace(struct D_Parser *p, d_loc_t *loc, void **p_globals);
 }
 
@@ -29,7 +30,10 @@ ${declare whitespace python_whitespace}
 file_input: (NL | stmt)*;
 
 /* Tokens */
-NAME: "[a-zA-Z_][a-zA-Z0-9_]*" $term -1;
+/* A keyword outranks NAME only where both are expected, so NAME rejects
+   the hard keywords itself. */
+NAME: "[a-zA-Z_][a-zA-Z0-9_]*" $term -1
+  [ if (py_is_keyword($n0.start_loc.s, $n0.end)) ${reject}; ];
 /* Soft keywords: also names, so both readings are tried. */
 MATCH: "match" $term -1;
 CASE: "case" $term -1;
@@ -81,8 +85,10 @@ stmt: LINE (simple_stmt | compound_stmt);
 simple_stmt: small_stmt (';' small_stmt)* ';'? NL;
 small_stmt: expr_stmt | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt;
 
-expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) | ('=' (yield_expr|testlist_star_expr))*)
-         | type_alias;
+expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) | ('=' (yield_expr|testlist_star_expr))*)
+         | annassign_target annassign | type_alias;
+/* Only a name, an attribute or a subscript may be annotated. */
+annassign_target: NAME | LP annassign_target RP | (ATOM_NAME | atom) trailer* ('.' NAME | LB subscriptlist RB);
 annassign: ':' test ('=' (yield_expr|testlist_star_expr))?;
 type_alias: TYPE NAME type_params? '=' test;
 
@@ -334,6 +340,19 @@ int py_dedent(D_Parser *p, void *state, char *s, void **result) {
   x.n--;
   *result = (void *)py_state(&x);
   return 1;
+}
+
+/* Python's hard keywords; match, case, type and _ are soft. */
+int py_is_keyword(const char *s, const char *e) {
+  static const char *keywords[] = {
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break",
+    "class", "continue", "def", "del", "elif", "else", "except", "finally",
+    "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
+    "not", "or", "pass", "raise", "return", "try", "while", "with", "yield"};
+  size_t n = e - s, i;
+  for (i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
+    if (strlen(keywords[i]) == n && !strncmp(keywords[i], s, n)) return 1;
+  return 0;
 }
 
 int py_line(D_Parser *p, void *state, char *s) {

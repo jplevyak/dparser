@@ -12,6 +12,9 @@
           keyword, so type = None parses.  Type parameters take bounds,
           constraints and defaults ([T: int = int, *Ts, **P]).  A comment
           ending in a backslash no longer joins the next line to it.
+          Hard keywords are no longer accepted as names (x = pass), and
+          only a name, attribute or subscript may be annotated (f(a): int
+          is an error).
           python.g now parses all of the Python 3.12 standard library but
           traceback.py, which uses PEP 701 f-strings.
         tests/python.test.g, a Python 2 grammar, is now

@@ -1,2 +1,2 @@
 match (a,
-  b): pass
+  b).c: int
